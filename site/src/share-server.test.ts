@@ -67,7 +67,7 @@ describe('share server client', () => {
 
 describe('auto summaries', () => {
   it('reads the battle back as one line', () => {
-    expect(summarizeBattle(battle)).toBe('180초 · 무속성 · 코어 없음 · 난수');
+    expect(summarizeBattle(battle)).toBe('180秒 · 無屬性 · 無核心 · 隨機');
     expect(summarizeBattle({
       ...battle,
       duration: 90,
@@ -79,7 +79,7 @@ describe('auto summaries', () => {
       immuneWindows: [{ from: 10, to: 20 }],
       elementWindows: [{ from: 30, to: 40, code: '작열' }],
       rngMode: 'expected',
-    })).toBe('90초 · 적 수냉 · 코어 60px · 파츠 · 적정 AR·SMG · 족자 1 · 속저 1 · 기대값');
+    })).toBe('90秒 · 敵 水冷 · 核心 60px · 部位 · 適正 AR·SMG · 免疫 1 · 屬濾 1 · 期望值');
   });
 
   it('names the squad, and counts decks in five-deck mode', () => {

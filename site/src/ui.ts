@@ -796,47 +796,47 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="custom-head"><h2>戰鬥條件</h2><button type="button" class="custom-close" data-battle-modal-close aria-label="關閉">✕</button></div>
           <div class="battle-body" data-battle-body>
           <div class="field-grid">
-            <label><span>전투 시간</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>초</em></div></label>
-            <label><span>적 코드</span><select id="enemy-code"><option value="">없음</option><option value="풍압">풍압(작열weak)</option><option value="수냉">수냉(전격weak)</option><option value="작열">작열(수냉weak)</option><option value="전격">전격(철갑weak)</option><option value="철갑">철갑(풍압weak)</option></select></label>
-            <label><span>싱크로 레벨</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="싱크로 디바이스 소대에 넣은 니케는 전원이 이 레벨이 됩니다. 계정 육성 상태라 전투 조건 공유 코드에는 담기지 않습니다. ${SYNCHRO_MEASURED_MAX}레벨까지는 실측값이고, 그 위는 같은 성장 곡선을 이어 붙여 계산합니다" /><em>Lv</em></div></label>
-            <label class="toggle-field"><input id="has-core" type="checkbox" /><span class="toggle"></span><span>코어 있음</span></label>
-            <label data-core-size><span>코어 직경</span><div class="input-unit"><input id="core-px" type="number" min="0" max="1000" step="1" value="52" disabled /><em>px</em></div></label>
-            <label class="toggle-field"><input id="has-parts" type="checkbox" /><span class="toggle"></span><span>파괴 가능 파츠</span></label>
+            <label><span>戰鬥時間</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>秒</em></div></label>
+            <label><span>敵代碼</span><select id="enemy-code"><option value="">無</option><option value="풍압">風壓(弱燃燒)</option><option value="수냉">水冷(弱電擊)</option><option value="작열">燃燒(弱水冷)</option><option value="전격">電擊(弱鐵甲)</option><option value="철갑">鐵甲(弱風壓)</option></select></label>
+            <label><span>同步器等級</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="싱크로 디바이스 소대에 넣은 니케는 전원이 이 레벨이 됩니다. 계정 육성 상태라 전투 조건 공유 코드에는 담기지 않습니다. ${SYNCHRO_MEASURED_MAX}레벨까지는 실측값이고, 그 위는 같은 성장 곡선을 이어 붙여 계산합니다" /><em>Lv</em></div></label>
+            <label class="toggle-field"><input id="has-core" type="checkbox" /><span class="toggle"></span><span>有核心</span></label>
+            <label data-core-size><span>核心直徑</span><div class="input-unit"><input id="core-px" type="number" min="0" max="1000" step="1" value="52" disabled /><em>px</em></div></label>
+            <label class="toggle-field"><input id="has-parts" type="checkbox" /><span class="toggle"></span><span>可破壞部位</span></label>
           </div>
           <fieldset class="range-field">
-            <legend>적정거리</legend>
+            <legend>適正距離</legend>
             <div class="range-options" data-optimal-range></div>
             <p class="field-note">고른 무기군의 <b>일반 공격</b>에만 대미지 보너스 +30%가 붙습니다 — 스킬 대미지에는 붙지 않습니다. 적과의 거리에 달린 조건이라 무기군 단위로 켭니다.</p>
           </fieldset>
 
           <!-- 고급 설정 — 자주 손대지 않는 값과 보스 페이즈를 한자리에 접어 둔다. -->
           <button type="button" class="disclosure" data-advanced-battle aria-expanded="false">
-            <span class="disclosure-label">고급 설정</span><span class="disclosure-hint">펼치기</span>
+            <span class="disclosure-label">進階設定</span><span class="disclosure-hint">展開</span>
           </button>
           <div class="disclosure-panel" data-advanced-battle-panel hidden>
             <div class="field-grid">
-              <label><span>적 방어력</span><input id="enemy-def" type="number" min="0" max="999999" step="1" value="31784" /></label>
-              <label><span>난수 시드</span><input id="seed" type="number" min="0" max="2147483647" step="1" value="42" /></label>
-              <label title="게이지 충전만의 시간입니다. 여기에 단계 전환 0.3초와 버스트 쿨 여유가 더해져 실제 공백은 더 깁니다."><span>버스트 게이지 충전</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>초</em></div></label>
-              <label class="toggle-field deck-regen-toggle" title="버스트 쿨이 밀리는 덱만 다른 값으로 재고 싶을 때 켭니다"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>버스트 충전을 덱마다 따로</span></label>
-              <label title="조건이 갖춰진 뒤 실제로 버스트를 누르기까지 걸리는 시간입니다. 버스트 하나하나마다 더해지므로 3단계까지 쓰면 그 세 배만큼 늦어집니다."><span>버스트 반응속도</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>초</em></div></label>
-              <label><span>난수 처리</span><select id="rng-mode"><option value="expected">기대값 (권장)</option><option value="random">난수</option></select></label>
-              <label class="toggle-field" title="족자 구간에는 평타가 빗나가므로 게이지도 차지 않는 것으로 계산합니다. 켜면 그만큼 버스트가 밀립니다."><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>족자 중 버스트 충전 정지</span></label>
+              <label><span>敵方防禦力</span><input id="enemy-def" type="number" min="0" max="999999" step="1" value="31784" /></label>
+              <label><span>隨機種子</span><input id="seed" type="number" min="0" max="2147483647" step="1" value="42" /></label>
+              <label title="게이지 충전만의 시간입니다. 여기에 단계 전환 0.3초와 버스트 쿨 여유가 더해져 실제 공백은 더 깁니다."><span>爆裂量表充能</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>秒</em></div></label>
+              <label class="toggle-field deck-regen-toggle" title="버스트 쿨이 밀리는 덱만 다른 값으로 재고 싶을 때 켭니다"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>爆裂充能各隊分開</span></label>
+              <label title="조건이 갖춰진 뒤 실제로 버스트를 누르기까지 걸리는 시간입니다. 버스트 하나하나마다 더해지므로 3단계까지 쓰면 그 세 배만큼 늦어집니다."><span>爆裂反應速度</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>秒</em></div></label>
+              <label><span>隨機處理</span><select id="rng-mode"><option value="expected">期望值(推薦)</option><option value="random">隨機</option></select></label>
+              <label class="toggle-field" title="족자 구간에는 평타가 빗나가므로 게이지도 차지 않는 것으로 계산합니다. 켜면 그만큼 버스트가 밀립니다."><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>免疫期間停止爆裂充能</span></label>
             </div>
             <div class="deck-regen-grid" data-deck-regen hidden></div>
             <p class="field-note">기대값은 확률 대신 기대치를 태워 <b>같은 설정이면 언제나 같은 값</b>이 나옵니다. 난수는 인게임과 같은 분산을 재현하며 시드에 따라 결과가 흔들립니다.</p>
 
             <fieldset class="range-field">
-              <legend>평타 계수</legend>
+              <legend>普攻係數</legend>
               <div class="coeff-options" data-hit-coeff></div>
               <p class="field-note">실전에서 탄퍼짐으로 빗나가는 탄을 보정합니다. <b>평타에만</b> 곱하며 스킬·버스트와 변신 모드 사격은 조준 판정이라 손대지 않습니다. 기본값은 실측 대조로 뽑은 값이고(SG 0.90), 1.00이면 보정 없음입니다.</p>
             </fieldset>
 
             <fieldset class="range-field phase-field">
-              <legend>보스 페이즈</legend>
+              <legend>Boss 階段</legend>
               <div class="phase-head">
-                <button type="button" class="phase-add" data-phase-add="immune">족자 추가 <b>+</b></button>
-                <button type="button" class="phase-add" data-phase-add="element">속저 추가 <b>+</b></button>
+                <button type="button" class="phase-add" data-phase-add="immune">新增免疫 <b>+</b></button>
+                <button type="button" class="phase-add" data-phase-add="element">新增屬濾 <b>+</b></button>
               </div>
               <div class="phase-list" data-phase-list></div>
               <p class="field-note"><b>족자</b>는 평타만 빗나갑니다. 지속 대미지·스킬 대미지와 평타로 발동한 후속 공격은 계속 들어갑니다. <b>속저</b>는 고른 속성에 <b>우월한</b> 캐릭터의 딜만 통과시킵니다 — 풍압으로 두면 작열 캐릭터만 들어갑니다. 인게임처럼 <b>우월 코드 버프</b>로 우월해진 캐릭터도 통과합니다(라피 : 레드 후드 «부착형 유탄» 등).</p>
@@ -861,7 +861,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         <div class="section-heading compact"><div><h2 id="timeline-heading">전투 타임라인</h2></div></div>
         <div data-timeline-body></div>
       </section>
-      <footer><p>비공식 팬 제작 도구 · 실제 전투 환경과 차이가 있을 수 있습니다.</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
+      <footer><p>非官方粉絲製作工具・與實際戰鬥環境可能有差異。</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
 
       <div class="custom-modal" data-history-modal hidden>
         <div class="custom-card roster-card" role="dialog" aria-label="계산 기록">
@@ -4550,7 +4550,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       for (const source of player.decks) {
         if (!enikkDeckUsable(source)) continue;
         done += 1;
-        setEnikkStatus(`대조 계산 중 · 덱 ${done}/${total}`);
+        setEnikkStatus(`對照計算中 · 隊 ${done}/${total}`);
         const deck: DeckState = { id: 1, squad: [...source.squad], characters: {} };
         for (const name of source.squad) {
           if (roster[name]) deck.characters[name] = cloneOverride(roster[name]!);
@@ -4984,7 +4984,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     .catch((error: unknown) => {
       if (activity !== 'preparing') return;
       activity = 'error';
-      status.textContent = `초기화 실패 · ${error instanceof Error ? error.message : String(error)}`;
+      status.textContent = `初始化失敗 · ${error instanceof Error ? error.message : String(error)}`;
     });
 
   // 기본 정렬이 전투력이라 목록을 열기 전에 미리 받아 둔다. 오는 동안은 이름순으로
@@ -5033,7 +5033,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           cache.set(key, result);
         }
         done += 1;
-        status.textContent = `계산 중 · ${done}/${requests.length}덱`;
+        status.textContent = `計算中 · ${done}/${requests.length} 隊`;
         completed.push({ deckId: deck.id, request, result });
         completed.sort((a, b) => a.deckId - b.deckId);
         renderBatchResult(aggregateDeckResults(completed));

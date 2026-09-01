@@ -446,8 +446,8 @@ describe('calculator UI', () => {
     def.value = '99999'; def.dispatchEvent(new Event('change', { bubbles: true }));
     code.value = '작열'; code.dispatchEvent(new Event('change', { bubbles: true }));
     parts.checked = true; parts.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(summary.textContent).toContain('작열');
-    expect(summary.textContent).toContain('파츠');
+    expect(summary.textContent).toContain('燃燒');
+    expect(summary.textContent).toContain('部位');
 
     root.querySelector<HTMLButtonElement>('[data-reset-enemy]')!.click();
 
@@ -456,9 +456,9 @@ describe('calculator UI', () => {
     expect(parts.checked).toBe(false);
     // 전투 조건이 창으로 들어간 뒤로 이 한 줄이 화면에 남는 유일한 표시다 —
     // 값만 되돌리고 줄을 그대로 두면 «초기화가 안 된다»로 보인다.
-    expect(summary.textContent).not.toContain('작열');
-    expect(summary.textContent).not.toContain('파츠');
-    expect(summary.textContent).toContain('무속성');
+    expect(summary.textContent).not.toContain('燃燒');
+    expect(summary.textContent).not.toContain('部位');
+    expect(summary.textContent).toContain('無屬性');
   });
 
   it('받은 전투 조건 코드를 적용해도 조건 한 줄이 따라온다', () => {
@@ -467,7 +467,7 @@ describe('calculator UI', () => {
     });
 
     const summary = root.querySelector<HTMLElement>('[data-battle-summary]')!;
-    expect(summary.textContent).toContain('무속성');
+    expect(summary.textContent).toContain('無屬性');
 
     root.querySelector<HTMLButtonElement>('[data-battle-share-open]')!.click();
     const input = root.querySelector<HTMLTextAreaElement>('[data-battle-share-in]')!;
@@ -478,8 +478,8 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-battle-share-apply]')!.click();
 
     expect(root.querySelector<HTMLInputElement>('#duration')!.value).toBe('90');
-    expect(summary.textContent).toContain('전격');
-    expect(summary.textContent).toContain('90초');
+    expect(summary.textContent).toContain('電擊');
+    expect(summary.textContent).toContain('90秒');
   });
 
   it('조합 공유는 「이 덱만」으로 열리고, 받은 덱 하나가 다른 덱을 지우지 않는다', () => {
