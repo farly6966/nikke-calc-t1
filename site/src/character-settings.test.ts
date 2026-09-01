@@ -384,9 +384,9 @@ describe('character settings editor', () => {
     // 「tap_fire」라고 적어 두면 아래 체크박스의 「톡톡이」와 같은 것인 줄 모른다.
     expect(recommendedControlText(
       { recommendedControl: { tap_fire: { rate: 3.6, release: 0.03 } }, hasConditionalControl: false },
-    )).toBe('현재 기본 추천: 톡톡이');
+    )).toBe('目前預設推薦:點射');
     expect(recommendedControlText({ recommendedControl: {}, hasConditionalControl: false }))
-      .toBe('현재 기본 추천: 자동 사격');
+      .toBe('目前預設推薦:自動射擊');
   });
 
   it('조합으로 붙는 컨트롤을 누구 때문인지까지 적는다', () => {
@@ -398,17 +398,17 @@ describe('character settings editor', () => {
       conditionalControl: [{ withMembers: ['에이다'], control: { hold: { policy: 'own_full_burst' as const, lead: 0.5 } } }],
     };
     expect(recommendedControlText(defaults, ['아인', '에이다', '미란다']))
-      .toBe('현재 기본 추천: 톡톡이 · 홀드 컨트롤(에이다와 함께라서)');
+      .toBe('目前預設推薦:點射 · 長按操作(與 에이다 同隊)');
     // 그 사람이 빠지면 다시 조건 없는 것만 남는다 — 얼버무리는 말도 붙지 않는다.
     expect(recommendedControlText(defaults, ['아인', '홍련']))
-      .toBe('현재 기본 추천: 톡톡이');
+      .toBe('目前預設推薦:點射');
   });
 
   it('화면이 판정할 수 없는 조건은 예전처럼 알리기만 한다', () => {
     // 같은 단계·자리 번호를 보는 규칙은 내려오지 않는다. 흉내 내면 틀린 값을 적게 된다.
     expect(recommendedControlText(
       { recommendedControl: {}, hasConditionalControl: true }, ['아인'],
-    )).toBe('현재 기본 추천: 자동 사격 · 스쿼드 조합에 따라 추천 컨트롤이 추가됩니다.');
+    )).toBe('目前預設推薦:自動射擊 · 依隊伍組合會追加推薦操作。');
   });
 
   it('차지형인데 톡톡이가 꺼져 있으면 이득이라고 알린다', () => {
@@ -435,13 +435,13 @@ describe('character settings editor', () => {
     };
     const [on] = controlRuleNotes(defaults, ['아인', '에이다']);
     expect(on!.active).toBe(true);
-    expect(on!.headline).toBe('에이다와 함께라서 홀드 컨트롤이 걸려 있습니다.');
+    expect(on!.headline).toBe('與 에이다 同隊,所以已套用 長按操作。');
     expect(on!.help).toBe('에이다와 같은 운용을 함께 씁니다.');
 
     // 아직 아니면 «무엇과 함께 두면 걸리는지»를 알려 준다.
     const [off] = controlRuleNotes(defaults, ['아인', '홍련']);
     expect(off!.active).toBe(false);
-    expect(off!.headline).toBe('에이다와 함께 편성하면 홀드 컨트롤이 자동으로 붙습니다.');
+    expect(off!.headline).toBe('與 에이다 一起編成時,長按操作 會自動套用。');
   });
 
   it('조사를 받침에 맞춰 고른다', () => {
@@ -460,7 +460,7 @@ describe('character settings editor', () => {
       ['미하라 : 본딩 체인', '미란다'],
     );
     expect(note!.help).toBe('');
-    expect(note!.headline).toContain('버스트 엄폐 컨트롤');
+    expect(note!.headline).toContain('爆裂掩護操作');
   });
 
   it('규칙이 없으면 안내도 없다', () => {

@@ -104,10 +104,10 @@ function summaryText(name: string, catalog: SettingsCatalog, value?: CharacterOv
  * 추천 줄에서 「tap_fire」라고 읽고 아래에서 「톡톡이」를 찾으면 같은 것인 줄 모른다.
  */
 export const CONTROL_NAMES: Record<string, string> = {
-  tap_fire: '톡톡이',
-  hold: '홀드 컨트롤',
-  reload: '재장전 컨트롤',
-  cover: '버스트 엄폐 컨트롤',
+  tap_fire: '點射',
+  hold: '長按操作',
+  reload: '裝填操作',
+  cover: '爆裂掩護操作',
 };
 
 /** 컨트롤 키 → 한글. 모르는 키는 그대로 둔다(새 컨트롤이 생겨도 빈칸이 되지 않는다). */
@@ -136,11 +136,11 @@ export function recommendedControlText(
     const who = rule.withMembers.find((member) => roster.has(member));
     if (!who) { unresolved = unresolved || squad === undefined; continue; }
     for (const key of Object.keys(rule.control)) {
-      names.push(`${controlName(key)}(${who}와 함께라서)`);
+      names.push(`${controlName(key)}(與 ${who} 同隊)`);
     }
   }
-  const head = names.length ? `현재 기본 추천: ${names.join(' · ')}` : '현재 기본 추천: 자동 사격';
-  return unresolved ? `${head} · 스쿼드 조합에 따라 추천 컨트롤이 추가됩니다.` : head;
+  const head = names.length ? `目前預設推薦:${names.join(' · ')}` : '目前預設推薦:自動射擊';
+  return unresolved ? `${head} · 依隊伍組合會追加推薦操作。` : head;
 }
 
 /** 조합 조건부 컨트롤 한 줄 — 지금 걸렸는지와, 왜 걸리는지. */
@@ -184,13 +184,13 @@ export function controlRuleNotes(
   return (defaults.conditionalControl ?? []).map((rule) => {
     const names = Object.keys(rule.control).map(controlName).join(' · ');
     const here = rule.withMembers.find((member) => roster.has(member));
-    const who = here ?? rule.withMembers.join(' 또는 ');
-    const subject = withParticle(names, '이', '가');
+    const who = here ?? rule.withMembers.join(' 或 ');
+    const subject = names;
     return {
       active: Boolean(here),
       headline: here
-        ? `${withParticle(who, '과', '와')} 함께라서 ${subject} 걸려 있습니다.`
-        : `${withParticle(who, '과', '와')} 함께 편성하면 ${subject} 자동으로 붙습니다.`,
+        ? `與 ${who} 同隊,所以已套用 ${subject}。`
+        : `與 ${who} 一起編成時,${subject} 會自動套用。`,
       help: rule.help ?? '',
     };
   });
