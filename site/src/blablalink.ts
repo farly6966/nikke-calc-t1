@@ -253,13 +253,13 @@ export function areaToOverrides(
   }
 
   if (unknownCollection > 0) {
-    notes.push(`소장품을 알아보지 못한 니케 ${unknownCollection}종 — 그 니케만 기본 소장품으로 계산합니다.`);
+    notes.push(`無法辨識收藏品的妮姬 ${unknownCollection} 種 — 只有那些妮姬以預設收藏品計算。`);
   }
   if (noCube > 0) {
-    notes.push(`큐브를 끼지 않은 니케 ${noCube}종 — 그 니케만 기본 큐브로 계산합니다.`);
+    notes.push(`沒裝魔方的妮姬 ${noCube} 種 — 只有那些妮姬以預設魔方計算。`);
   }
   if (unmatched.length > 0) {
-    notes.push(`계산기가 아직 다루지 않는 니케 ${unmatched.length}종은 건너뛰었습니다.`);
+    notes.push(`計算機尚未支援的妮姬 ${unmatched.length} 種已略過。`);
   }
 
   return { overrides, matched, unmatched, notes };

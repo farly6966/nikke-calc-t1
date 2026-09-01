@@ -121,7 +121,7 @@ interface CalculatorDependencies {
 
 const element = <T extends Element>(root: ParentNode, selector: string): T => {
   const found = root.querySelector<T>(selector);
-  if (!found) throw new Error(`화면 요소를 찾을 수 없습니다: ${selector}`);
+  if (!found) throw new Error(`找不到畫面元素:${selector}`);
   return found;
 };
 
@@ -803,7 +803,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="field-grid">
             <label><span>戰鬥時間</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>秒</em></div></label>
             <label><span>敵代碼</span><select id="enemy-code"><option value="">無</option><option value="풍압">風壓(弱燃燒)</option><option value="수냉">水冷(弱電擊)</option><option value="작열">燃燒(弱水冷)</option><option value="전격">電擊(弱鐵甲)</option><option value="철갑">鐵甲(弱風壓)</option></select></label>
-            <label><span>同步器等級</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="싱크로 디바이스 소대에 넣은 니케는 전원이 이 레벨이 됩니다. 계정 육성 상태라 전투 조건 공유 코드에는 담기지 않습니다. ${SYNCHRO_MEASURED_MAX}레벨까지는 실측값이고, 그 위는 같은 성장 곡선을 이어 붙여 계산합니다" /><em>Lv</em></div></label>
+            <label><span>同步器等級</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="放進同步器裝置小隊的妮姬,全員都會是這個等級。屬帳號養成狀態,不會包含在戰鬥條件分享代碼裡。${SYNCHRO_MEASURED_MAX} 級以下是實測值,以上以相同成長曲線延伸計算" /><em>Lv</em></div></label>
             <label class="toggle-field"><input id="has-core" type="checkbox" /><span class="toggle"></span><span>有核心</span></label>
             <label data-core-size><span>核心直徑</span><div class="input-unit"><input id="core-px" type="number" min="0" max="1000" step="1" value="52" disabled /><em>px</em></div></label>
             <label class="toggle-field"><input id="has-parts" type="checkbox" /><span class="toggle"></span><span>可破壞部位</span></label>
@@ -811,7 +811,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <fieldset class="range-field">
             <legend>適正距離</legend>
             <div class="range-options" data-optimal-range></div>
-            <p class="field-note">고른 무기군의 <b>일반 공격</b>에만 대미지 보너스 +30%가 붙습니다 — 스킬 대미지에는 붙지 않습니다. 적과의 거리에 달린 조건이라 무기군 단위로 켭니다.</p>
+            <p class="field-note">只有所選武器類型的<b>一般攻擊</b>會加 +30% 傷害加成 — 技能傷害不加。這是取決於與敵人距離的條件,以武器類型為單位開啟。</p>
           </fieldset>
 
           <!-- 고급 설정 — 자주 손대지 않는 값과 보스 페이즈를 한자리에 접어 둔다. -->
@@ -822,19 +822,19 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <div class="field-grid">
               <label><span>敵方防禦力</span><input id="enemy-def" type="number" min="0" max="999999" step="1" value="31784" /></label>
               <label><span>隨機種子</span><input id="seed" type="number" min="0" max="2147483647" step="1" value="42" /></label>
-              <label title="게이지 충전만의 시간입니다. 여기에 단계 전환 0.3초와 버스트 쿨 여유가 더해져 실제 공백은 더 깁니다."><span>爆裂量表充能</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>秒</em></div></label>
-              <label class="toggle-field deck-regen-toggle" title="버스트 쿨이 밀리는 덱만 다른 값으로 재고 싶을 때 켭니다"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>爆裂充能各隊分開</span></label>
-              <label title="조건이 갖춰진 뒤 실제로 버스트를 누르기까지 걸리는 시간입니다. 버스트 하나하나마다 더해지므로 3단계까지 쓰면 그 세 배만큼 늦어집니다."><span>爆裂反應速度</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>秒</em></div></label>
+              <label title="這只是量表充能的時間。再加上階段切換 0.3 秒與爆裂冷卻的餘裕,實際空檔更長。"><span>爆裂量表充能</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>秒</em></div></label>
+              <label class="toggle-field deck-regen-toggle" title="只想對爆裂冷卻被拖延的隊伍用不同值測量時開啟"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>爆裂充能各隊分開</span></label>
+              <label title="條件齊備後到實際按下爆裂所需的時間。每個爆裂各自累加,用到 3 階就慢三倍。"><span>爆裂反應速度</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>秒</em></div></label>
               <label><span>隨機處理</span><select id="rng-mode"><option value="expected">期望值(推薦)</option><option value="random">隨機</option></select></label>
-              <label class="toggle-field" title="족자 구간에는 평타가 빗나가므로 게이지도 차지 않는 것으로 계산합니다. 켜면 그만큼 버스트가 밀립니다."><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>免疫期間停止爆裂充能</span></label>
+              <label class="toggle-field" title="免疫區間普攻會 miss,所以量表也視為不充能計算。開啟後爆裂會相應被拖延。"><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>免疫期間停止爆裂充能</span></label>
             </div>
             <div class="deck-regen-grid" data-deck-regen hidden></div>
-            <p class="field-note">기대값은 확률 대신 기대치를 태워 <b>같은 설정이면 언제나 같은 값</b>이 나옵니다. 난수는 인게임과 같은 분산을 재현하며 시드에 따라 결과가 흔들립니다.</p>
+            <p class="field-note">期望值以期望取代機率,<b>相同設定永遠得到相同值</b>。隨機則重現遊戲內的分散,結果會隨種子浮動。</p>
 
             <fieldset class="range-field">
               <legend>普攻係數</legend>
               <div class="coeff-options" data-hit-coeff></div>
-              <p class="field-note">실전에서 탄퍼짐으로 빗나가는 탄을 보정합니다. <b>평타에만</b> 곱하며 스킬·버스트와 변신 모드 사격은 조준 판정이라 손대지 않습니다. 기본값은 실측 대조로 뽑은 값이고(SG 0.90), 1.00이면 보정 없음입니다.</p>
+              <p class="field-note">校正實戰中因彈道散布而 miss 的彈。<b>只乘在普攻上</b>,技能・爆裂與變身模式射擊屬瞄準判定,不動它。預設值由實測對照取得(SG 0.90),1.00 則無校正。</p>
             </fieldset>
 
             <fieldset class="range-field phase-field">
@@ -844,13 +844,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
                 <button type="button" class="phase-add" data-phase-add="element">新增屬濾 <b>+</b></button>
               </div>
               <div class="phase-list" data-phase-list></div>
-              <p class="field-note"><b>족자</b>는 평타만 빗나갑니다. 지속 대미지·스킬 대미지와 평타로 발동한 후속 공격은 계속 들어갑니다. <b>속저</b>는 고른 속성에 <b>우월한</b> 캐릭터의 딜만 통과시킵니다 — 풍압으로 두면 작열 캐릭터만 들어갑니다. 인게임처럼 <b>우월 코드 버프</b>로 우월해진 캐릭터도 통과합니다(라피 : 레드 후드 «부착형 유탄» 등).</p>
+              <p class="field-note"><b>免疫</b>只讓普攻 miss。持續傷害・技能傷害與普攻觸發的後續攻擊仍會命中。<b>屬濾</b>只讓對所選屬性<b>剋制</b>的角色傷害通過 — 設風壓時只有燃燒角色進得去。和遊戲一樣,靠<b>剋制代碼 buff</b>取得剋制的角色也能通過(Rapi: Red Hood 的《附著型榴彈》等)。</p>
             </fieldset>
           </div>
           <section class="console-editor">
-            <h3>콘솔 <span>전초기지 재활용 연구실</span></h3>
+            <h3>主控台 <span>前哨基地 回收研究室</span></h3>
             <div class="console-grid" data-console-grid></div>
-            <p class="field-note">계정 설정이라 스쿼드 전원에게 같이 적용됩니다. 클래스·기업은 인게임에서 소속별로 따로 크므로 각각 받습니다. 기업은 공격력, 공통·클래스는 체력을 올립니다 — 체력 계수를 쓰는 캐릭터(신데렐라 등)는 공통·클래스도 딜에 반영됩니다.</p>
+            <p class="field-note">屬帳號設定,會一起套用到隊伍全員。職業・企業在遊戲內依所屬分別成長,所以各自輸入。企業提升攻擊力,共通・職業提升生命 — 用生命係數的角色(灰姑娘等)共通・職業也會反映到傷害。</p>
           </section>
           </div>
           </div>
@@ -3158,7 +3158,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         tab.dataset.deckRank = String(rank);
         const head = document.createElement('b');
         head.append(document.createTextNode(deckNameOf(entry.deckId)));
-        head.append(createText('em', `${rank}위`, 'deck-tab-rank'));
+        head.append(createText('em', `第 ${rank} 名`, 'deck-tab-rank'));
         // 덱끼리 견주는 자리라 줄이지 않고 온전한 숫자를 적는다 — «1.14억»으로는
         // 2위와의 차이가 읽히지 않는다.
         tab.append(head, createText('span', Math.round(entry.result.squadTotal).toLocaleString('ko-KR')));
@@ -3206,7 +3206,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         tab.type = 'button';
         tab.className = 'deck-result-tab';
         tab.dataset.timelineTab = String(deckId);
-        tab.append(createText('b', `덱 ${deckId}`));
+        tab.append(createText('b', `隊 ${deckId}`));
         tab.addEventListener('click', () => show(deckId));
         buttons.set(deckId, tab);
         tabs.append(tab);
@@ -3293,28 +3293,28 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     burstCyclesOut.textContent = String(burstCycles);
 
     const { done, total } = progressOf(burstPicks, burstSteps);
-    burstProgress.textContent = `${done} / ${total}칸`;
+    burstProgress.textContent = `${done} / ${total} 格`;
 
     // ── 지금 걸음 ──
     burstNow.replaceChildren();
     burstPicksBox.replaceChildren();
     const step = burstSteps[burstAt];
     if (!step) {
-      burstNow.append(el('p', 'burst-empty', '사이클을 하나 이상 두세요.'));
+      burstNow.append(el('p', 'burst-empty', '請至少設定一個循環。'));
     } else {
       const head = el('div', 'burst-now-head');
       head.append(
-        el('span', 'burst-now-cycle', `${step.cycle}번째 풀버스트`),
-        el('span', `burst-now-stage stage-${step.stage}`, `${step.stage}버`),
+        el('span', 'burst-now-cycle', `第 ${step.cycle} 次滿爆裂`),
+        el('span', `burst-now-stage stage-${step.stage}`, `${step.stage} 爆`),
       );
       const picked = burstPicks[stepKey(step)];
-      head.append(el('span', 'burst-now-pick', picked ? `→ ${picked}` : '→ 자동'));
+      head.append(el('span', 'burst-now-pick', picked ? `→ ${resolveDisplayName(picked)}` : '→ 自動'));
       burstNow.append(head);
 
       const candidates = burstCandidates(step.stage);
       if (candidates.length === 0) {
         burstPicksBox.append(el('p', 'burst-empty',
-          `편성에 ${step.stage}버가 없습니다. 이 단계는 건너뜁니다.`));
+          `編成中沒有 ${step.stage} 爆。這個階段會跳過。`));
       }
       candidates.forEach((name, index) => {
         const button = el('button', 'burst-pick' + (picked === name ? ' is-on' : ''));
@@ -3340,7 +3340,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 「이 단계는 자동으로」 — 고른 것을 무르는 자리다.
       const auto = el('button', 'burst-pick is-auto' + (picked ? '' : ' is-on'));
       (auto as HTMLButtonElement).type = 'button';
-      auto.append(el('span', 'burst-pick-name', '자동'));
+      auto.append(el('span', 'burst-pick-name', '自動'));
       auto.append(el('b', 'burst-pick-key', '0'));
       auto.addEventListener('click', () => pickBurst(null));
       burstPicksBox.append(auto);
@@ -3364,7 +3364,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const slot = el('button', 'burst-slot'
           + (name ? ' is-filled' : '') + (here ? ' is-here' : ''));
         (slot as HTMLButtonElement).type = 'button';
-        slot.append(el('span', `burst-slot-stage stage-${stage}`, `${stage}버`));
+        slot.append(el('span', `burst-slot-stage stage-${stage}`, `${stage} 爆`));
 
         const face = el('span', 'burst-slot-face');
         if (name) {
@@ -3378,9 +3378,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           } else {
             face.textContent = name.slice(0, 2);
           }
-          slot.title = `${cycleNo}번째 ${stage}버 — ${name}`;
+          slot.title = `第 ${cycleNo} 次 ${stage} 爆 — ${resolveDisplayName(name)}`;
         } else {
-          slot.title = `${cycleNo}번째 ${stage}버 — 아직 안 정함(자동)`;
+          slot.title = `第 ${cycleNo} 次 ${stage} 爆 — 尚未指定(自動)`;
         }
         slot.append(face);
         slot.addEventListener('click', () => {
@@ -3409,7 +3409,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   function openBurstOrder(): void {
     const deck = activeDeck();
     if (!deck.squad.some((name) => name.trim())) {
-      showErrors(['버스트 순서를 정하려면 편성을 먼저 채워 주세요.']);
+      showErrors(['要設定爆裂順序,請先填滿編成。']);
       return;
     }
     const kept = sequenceForDeck(deck);
@@ -3420,10 +3420,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       lastBatch?.decks.find((entry) => entry.deckId === deck.id)?.result.timeline);
     burstCycles = kept?.length ?? measured ?? estimateCycles(readBattle().duration);
     burstCyclesNote.textContent = kept
-      ? '적어 둔 순서를 불러왔습니다.'
+      ? '已載入先前記下的順序。'
       : (measured !== null
-        ? `지난 계산에서 풀버스트가 ${measured}번 돌았습니다.`
-        : `전투 ${readBattle().duration}초로 어림한 값입니다. 한 번 계산해 보면 실제 횟수로 맞춰집니다.`);
+        ? `上次計算滿爆裂跑了 ${measured} 次。`
+        : `以戰鬥 ${readBattle().duration} 秒估算的值。計算一次後會校準為實際次數。`);
     burstSteps = stepsFor(burstCycles);
     burstAt = firstUnpicked();
     showBurstMsg('');
@@ -3469,7 +3469,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     saveState();
     renderBurstBadge();
     renderBurstOrder();
-    showBurstMsg('순서를 지웠습니다. 계산기가 평소 순서로 고릅니다.', true);
+    showBurstMsg('已清除順序。計算機會照平常順序選。', true);
   });
 
   // 키보드는 창이 열려 있을 때만 가져간다. 조합키가 눌린 입력은 브라우저 것이다.
@@ -3519,13 +3519,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   let clearAllArmed = false;
   const disarmClearAll = () => {
     clearAllArmed = false;
-    clearAllButton.textContent = '5덱 비우기';
+    clearAllButton.textContent = '清空 5 隊';
     clearAllButton.classList.remove('is-armed');
   };
   clearAllButton.addEventListener('click', () => {
     if (!clearAllArmed) {
       clearAllArmed = true;
-      clearAllButton.textContent = '정말 비웁니다';
+      clearAllButton.textContent = '確定清空';
       clearAllButton.classList.add('is-armed');
       return;
     }
@@ -3543,7 +3543,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     renderDeckTabs();
     renderSquad();
     renderRosterGrid();
-    status.textContent = '다섯 덱을 모두 비웠습니다.';
+    status.textContent = '已清空全部五隊。';
   });
   clearAllButton.addEventListener('blur', disarmClearAll);
 
@@ -3610,7 +3610,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }),
       apply: (item) => {
         applyBattleCode(item.code);
-        showBattleShareMsg(`«${item.name}»을(를) 적용했습니다. 콘솔은 내 값 그대로입니다.`, true);
+        showBattleShareMsg(`已套用「${item.name}」。主控台維持我的值。`, true);
       },
       notify: showBattleShareMsg,
     },
@@ -3632,16 +3632,16 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-battle-share-copy]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(battleShareOut.value);
-      showBattleShareMsg('코드를 복사했습니다.', true);
+      showBattleShareMsg('已複製代碼。', true);
     } catch {
       battleShareOut.select();
-      showBattleShareMsg('자동 복사가 막혀 코드를 선택해 뒀습니다. Ctrl+C로 복사해 주세요.');
+      showBattleShareMsg('自動複製被擋,已幫你選取代碼。請用 Ctrl+C 複製。');
     }
   });
   element<HTMLButtonElement>(root, '[data-battle-share-apply]').addEventListener('click', () => {
     try {
       applyBattleCode(battleShareIn.value);
-      showBattleShareMsg('전투 조건을 적용했습니다. 콘솔은 내 값 그대로입니다.', true);
+      showBattleShareMsg('已套用戰鬥條件。主控台維持我的值。', true);
     } catch (error) {
       showBattleShareMsg(error instanceof Error ? error.message : String(error));
     }
@@ -3711,10 +3711,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   // 정렬은 «내 로스터에서 이 캐릭터가 얼마나 굴려졌나»를 본다. 오버로드 수치가
   // 그 척도라, CSV·프로필로 불러온 내 값이 있으면 그걸 쓰고 없으면 기본 스펙을 쓴다.
   const SORTS: Array<{ key: SortKey; label: string; hint: string }> = [
-    { key: 'power', label: '전투력', hint: '인게임 투력 — 다시 누르면 뒤집습니다' },
-    { key: 'name', label: '이름', hint: '가나다순 — 다시 누르면 뒤집습니다' },
-    { key: 'element', label: '우월코드', hint: '오버로드 우월 코드 대미지 — 다시 누르면 뒤집습니다' },
-    { key: 'elementAtk', label: '우공합', hint: '우월 코드 + 공격력 증가 합 — 다시 누르면 뒤집습니다' },
+    { key: 'power', label: '戰鬥力', hint: '遊戲內戰力 — 再按一次反轉' },
+    { key: 'name', label: '名稱', hint: '依名稱 — 再按一次反轉' },
+    { key: 'element', label: '剋制代碼', hint: '超載剋制代碼傷害 — 再按一次反轉' },
+    { key: 'elementAtk', label: '剋攻合', hint: '剋制代碼 + 攻擊力增加之和 — 再按一次反轉' },
   ];
 
   /** 처음 고를 때의 방향. 이름은 오름차순, 수치는 높은 순이 자연스럽다. */
@@ -3803,7 +3803,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const parts: string[] = [];
     const label = SORTS.find((s) => s.key === sortKey)?.label;
     const pending = sortKey === 'power' && Object.keys(combatPower).length === 0;
-    parts.push(`${label}${pending ? ' 계산중' : sortDesc ? ' ▼' : ' ▲'}`);
+    parts.push(`${label}${pending ? ' 計算中' : sortDesc ? ' ▼' : ' ▲'}`);
     for (const key of ['burst', ...FILTER_GROUPS.map((group) => group.key)] as FilterKey[]) {
       const set = picked[key];
       if (set.size > 0) {
@@ -3923,7 +3923,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     // 「ㅋㄹㅇ」·「라피레드」가 걸리고, 친 이름이 맨 앞에 온다.
     const shown = filterByQuery(narrowed, rosterSearch.value, buildIndex);
     rosterCount.textContent = shown.length === all.length
-      ? `${all.length}명` : `${shown.length} / ${all.length}명`;
+      ? `${all.length} 名` : `${shown.length} / ${all.length} 名`;
     const deck = activeDeck();
     rosterGrid.replaceChildren();
     for (const char of shown) {
@@ -3936,7 +3936,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (takenAt >= 0 && takenAt !== activeSlot) {
         cell.disabled = true;
         cell.classList.add('is-taken');
-        cell.title = `이미 덱 ${deck.id}의 ${takenAt + 1}번에 있습니다`;
+        cell.title = `已在隊伍 ${deck.id} 的第 ${takenAt + 1} 格`;
       }
       const portrait = document.createElement('div');
       portrait.className = 'roster-portrait';
@@ -3956,8 +3956,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (codeIcon) portrait.append(codeIcon);
       if (char.preview) {
         // (임시) — 스킬 미공개라 창작한 값으로 도는 캐릭터. 고르기 전에 보여야 한다.
-        const temp = createText('i', '임시', 'roster-temp');
-        temp.title = '스킬이 공개되지 않아 임의로 창작한 값으로 계산합니다';
+        const temp = createText('i', '暫定', 'roster-temp');
+        temp.title = '技能尚未公開,以任意創作的值計算';
         portrait.append(temp);
       }
       cell.append(
@@ -4030,8 +4030,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     renderRosterGrid();
     // (임시) 캐릭터는 넣는 순간 바로 알린다 — 결과까지 가서야 알면 이미 늦다.
     if (catalogByName.get(name)?.preview) {
-      status.textContent = `${name}은(는) 아직 (임시) 등록입니다 — 스킬이 공개되지 않아 `
-        + '임의로 창작한 값으로 계산합니다. 실제 성능과 무관하니 참고용으로만 봐 주세요.';
+      status.textContent = `${resolveDisplayName(name)} 目前仍是(暫定)登錄 — 技能尚未公開,`
+        + '以任意創作的值計算。與實際性能無關,僅供參考。';
     }
   };
 
@@ -4041,8 +4041,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const filled = deck.squad.filter(Boolean).length;
     const current = deck.squad[activeSlot];
     rosterDesc.textContent = current
-      ? `${activeSlot + 1}번 칸을 ${current} 대신 채웁니다 · ${filled}/5명`
-      : `${activeSlot + 1}번 빈 칸을 채웁니다 · ${filled}/5명`;
+      ? `填入第 ${activeSlot + 1} 格,取代 ${resolveDisplayName(current)} · ${filled}/5 名`
+      : `填入第 ${activeSlot + 1} 個空格 · ${filled}/5 名`;
   };
 
   // 접힌 채로 시작한다 — 무엇으로 재는지 한 줄은 처음부터 적혀 있어야 한다.
@@ -4081,7 +4081,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-clear-cache]').addEventListener('click', () => {
     cache.clear();
     showErrors([]);
-    status.textContent = '저장된 결과를 지웠습니다. 다시 실행하면 새로 계산합니다.';
+    status.textContent = '已清除已儲存的結果。再執行會重新計算。';
   });
   const applyRosterToDecks = () => {
     for (const deck of decks) {
@@ -4095,7 +4095,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const updateRosterNote = (message?: string) => {
     const count = Object.keys(roster).length;
     if (message) rosterNote.textContent = message;
-    else if (count > 0) rosterNote.textContent = `CSV 로스터 ${count}명 적용 중`;
+    else if (count > 0) rosterNote.textContent = `套用 CSV 名單 ${count} 名中`;
     rosterNote.hidden = !message && count === 0;
   };
   rosterInput.addEventListener('change', async () => {
@@ -4105,7 +4105,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const text = await file.text();
       const { overrides, matched, unmatched } = parseRosterCsv(text, settings);
       if (matched.length === 0) {
-        updateRosterNote('CSV에서 지원 캐릭터를 찾지 못했습니다. 정식 명칭이 일치하는지 확인해 주세요.');
+        updateRosterNote('在 CSV 找不到支援的角色。請確認正式名稱是否一致。');
         return;
       }
       roster = overrides;
@@ -4115,11 +4115,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       saveState();
       renderDeckTabs();
       renderSquad();
-      const skipped = unmatched.length > 0 ? ` · 미지원 ${unmatched.length}명 제외` : '';
-      updateRosterNote(`CSV 로스터 ${matched.length}명 적용${skipped}`
-        + ' · 큐브와 호감도는 CSV에 없어 기본값으로 계산합니다(카드의 개별 설정에서 수정)');
+      const skipped = unmatched.length > 0 ? ` · 已排除不支援的 ${unmatched.length} 名` : '';
+      updateRosterNote(`套用 CSV 名單 ${matched.length} 名${skipped}`
+        + ' · 魔方與好感度 CSV 沒有,以預設值計算(可在卡片個別設定修改)');
     } catch (error) {
-      updateRosterNote(`CSV 불러오기 실패: ${error instanceof Error ? error.message : String(error)}`);
+      updateRosterNote(`CSV 匯入失敗:${error instanceof Error ? error.message : String(error)}`);
     } finally {
       rosterInput.value = '';
     }
@@ -4141,13 +4141,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const runSync = async () => {
       const url = blablaUrl.value.trim();
       if (!looksLikeProfileUrl(url)) {
-        setStatus('블라블라링크 프로필 주소를 붙여넣어 주세요.');
+        setStatus('請貼上 Blablalink 個人檔案網址。');
         return;
       }
       const selectedArea = blablaServer.value === '' ? undefined : Number(blablaServer.value);
       blablaSync.disabled = true;
       blablaServer.disabled = true;
-      setStatus('블라블라링크에서 받는 중… 니케가 많으면 몇 초 걸립니다.');
+      setStatus('正在從 Blablalink 取得… 妮姬多時會花幾秒。');
       try {
         const response = await fetch(`${blablaProxy}/sync`, {
           method: 'POST',
@@ -4158,14 +4158,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           }),
         });
         const payload = await response.json() as RawProfile & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? `동기화에 실패했습니다 (${response.status}).`);
+        if (!response.ok) throw new Error(payload.error ?? `同步失敗 (${response.status})。`);
 
         const area = pickArea(payload, selectedArea);
-        if (!area) throw new Error('니케 목록이 비어 있습니다.');
+        if (!area) throw new Error('妮姬清單是空的。');
         const serverLabel = blablaServerLabel(area.area);
         const { overrides, matched, unmatched, notes } = areaToOverrides(area, settings, catalog);
         if (matched.length === 0) {
-          setStatus('계산기가 다루는 니케를 찾지 못했습니다. 프로필이 공개인지 확인해 주세요.');
+          setStatus('找不到計算機支援的妮姬。請確認個人檔案是否公開。');
           return;
         }
 
@@ -4192,12 +4192,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         renderDeckTabs();
         renderSquad();
 
-        const parts = [`블라블라링크 ${serverLabel} ${matched.length}명 적용`];
-        if (unmatched.length > 0) parts.push(`미지원 ${unmatched.length}명 제외`);
-        if (consoleLevels) parts.push('콘솔 레벨 함께 적용');
-        if (accountSynchro !== null) parts.push(`싱크로 ${accountSynchro} 적용`);
+        const parts = [`套用 Blablalink ${serverLabel} ${matched.length} 名`];
+        if (unmatched.length > 0) parts.push(`排除不支援的 ${unmatched.length} 名`);
+        if (consoleLevels) parts.push('一併套用主控台等級');
+        if (accountSynchro !== null) parts.push(`套用同步器 ${accountSynchro}`);
         updateRosterNote(parts.join(' · '));
-        setStatus([`${serverLabel} 서버에서 ${matched.length}명을 불러왔습니다.`, ...notes].join(' '));
+        setStatus([`已從 ${serverLabel} 伺服器載入 ${matched.length} 名。`, ...notes].join(' '));
       } catch (error) {
         setStatus(error instanceof Error ? error.message : String(error));
       } finally {
@@ -4337,7 +4337,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       chip.type = 'button';
       chip.className = 'enikk-exclude-chip';
       chip.dataset.enikkExcludeChip = name;
-      chip.title = `${name} 제외 해제`;
+      chip.title = `解除排除 ${resolveDisplayName(name)}`;
       chip.append(createText('span', name));
       chip.append(createText('b', '✕'));
       chip.addEventListener('click', () => {
@@ -4355,7 +4355,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const name = input.value.trim();
     if (!name) return;
     if (!catalogByName.has(name)) {
-      setEnikkStatus(`«${name}»은(는) 목록에 없는 이름입니다.`);
+      setEnikkStatus(`「${name}」不在清單裡。`);
       return;
     }
     if (!enikkExcluded.includes(name)) {
@@ -4390,12 +4390,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const weakness = WEAKNESS_KO[data.season.weakness] ?? data.season.weakness;
     enikkSummary.hidden = false;
     enikkSummary.replaceChildren();
-    enikkSummary.append(createText('strong', `시즌 ${data.season.raid} · ${data.season.boss}`));
+    enikkSummary.append(createText('strong', `賽季 ${data.season.raid} · ${data.season.boss}`));
     enikkSummary.append(createText('span',
-      `약점 ${weakness} · 플레이어 ${data.players.length}명 · 덱 ${data.decks.toLocaleString('ko-KR')}개`));
+      `弱點 ${weakness} · 玩家 ${data.players.length} 名 · 隊伍 ${data.decks.toLocaleString('ko-KR')} 套`));
     if (data.unknownNames.length > 0) {
       enikkSummary.append(createText('span',
-        `계산기가 모르는 니케 ${data.unknownNames.length}종이 낀 덱은 가져올 수 없습니다 — ${data.unknownNames.slice(0, 5).join(', ')}`,
+        `含有計算機不認識的妮姬 ${data.unknownNames.length} 種的隊伍無法匯入 — ${data.unknownNames.slice(0, 5).join(', ')}`,
         'enikk-note'));
     }
 
@@ -4403,12 +4403,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     enikkList.replaceChildren();
     const head = document.createElement('div');
     head.className = 'enikk-list-head';
-    head.append(createText('h3', `플레이어 ${data.players.length}명 · 총딜 순`));
+    head.append(createText('h3', `玩家 ${data.players.length} 名 · 依總傷害排序`));
     const compareBtn = document.createElement('button');
     compareBtn.type = 'button';
     compareBtn.className = 'roster-import';
-    compareBtn.textContent = `상위 ${COMPARE_TOP}명 대조판 만들기`;
-    compareBtn.title = '상위 10명의 덱을 우리 계산기로 돌려 enikk 실측과 나란히 놓습니다 — 덱 50개라 몇 분 걸립니다';
+    compareBtn.textContent = `製作前 ${COMPARE_TOP} 名對照表`;
+    compareBtn.title = '把前 10 名的隊伍用我們的計算機跑,和 enikk 實測並排 — 50 套隊伍,要幾分鐘';
     compareBtn.addEventListener('click', () => {
       compareBtn.disabled = true;
       void renderCompare().finally(() => { compareBtn.disabled = false; });
@@ -4438,16 +4438,16 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       top.className = 'enikk-player-head';
       top.append(createText('span', `${index + 1}`, 'enikk-rank'));
       top.append(createText('b', player.server, 'enikk-server'));
-      top.append(createText('span', `총 ${formatEok(player.damage)}`, 'enikk-total'));
+      top.append(createText('span', `總 ${formatEok(player.damage)}`, 'enikk-total'));
       const take = document.createElement('button');
       take.type = 'button';
       take.className = 'enikk-use';
       const usable = player.decks.filter(enikkDeckUsable).length;
-      take.textContent = `${usable}덱 가져오기`;
+      take.textContent = `匯入 ${usable} 隊`;
       take.disabled = usable === 0;
       take.title = usable < player.decks.length
-        ? '계산기가 못 다루거나 제외한 니케가 낀 덱은 빼고 가져옵니다'
-        : '이 사람의 덱을 우리 5덱에 그대로 깝니다';
+        ? '會略過含計算機不支援或被排除妮姬的隊伍再匯入'
+        : '把這個人的隊伍原樣鋪到我們的 5 隊';
       take.addEventListener('click', () => applyPlayerToDecks(player));
       top.append(take);
       card.append(top);
@@ -4457,7 +4457,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const blocked = !enikkDeckUsable(deck);
         row.className = 'enikk-deck' + (blocked ? ' is-blocked' : '');
         if (blocked && deck.usable) {
-          row.title = `제외한 니케가 껴 있습니다 — ${deck.squad.filter((n) => enikkExcluded.includes(n)).join(', ')}`;
+          row.title = `含有被排除的妮姬 — ${deck.squad.filter((n) => enikkExcluded.includes(n)).map(resolveDisplayName).join(', ')}`;
         }
         row.append(createText('span', `${n + 1}`, 'enikk-deckno'));
         row.append(enikkPortraits(deck.squad));
@@ -4487,7 +4487,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         b.addEventListener('click', () => jump(page));
         box.append(b);
       };
-      step('‹ 이전', enikkPage - 1, enikkPage === 0);
+      step('‹ 上一頁', enikkPage - 1, enikkPage === 0);
 
       // 번호는 현재 쪽 둘레만 편다. 서른 개를 다 늘어놓으면 폰에서 줄이 넘친다.
       const window_ = new Set<number>([0, pages - 1]);
@@ -4506,8 +4506,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         box.append(b);
         previous = page;
       }
-      step('다음 ›', enikkPage + 1, enikkPage === pages - 1);
-      box.append(createText('span', `${pages}쪽 중 ${enikkPage + 1}쪽`, 'enikk-page-info'));
+      step('下一頁 ›', enikkPage + 1, enikkPage === pages - 1);
+      box.append(createText('span', `第 ${enikkPage + 1} 頁,共 ${pages} 頁`, 'enikk-page-info'));
     };
 
     drawCards();
@@ -4534,11 +4534,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
     enikkCompare.hidden = false;
     enikkCompare.replaceChildren();
-    enikkCompare.append(createText('h3', `상위 ${targets.length}명 대조판`));
+    enikkCompare.append(createText('h3', `前 ${targets.length} 名對照表`));
     enikkCompare.append(createText('p',
-      `덱 ${total}개를 지금 전투 조건과 내 스펙으로 돌려 그 사람의 실제 딜과 나란히 놓습니다. `
-      + '스펙이 다른 사람의 기록이므로 배율은 «얼마나 다른가»를 보는 눈금입니다. '
-      + '같은 편성은 저장된 결과를 다시 쓰므로 뒤로 갈수록 빨라집니다.',
+      `把 ${total} 套隊伍以目前戰鬥條件與我的規格計算,和那個人的實際傷害並排。`
+      + '因為是規格不同者的紀錄,倍率是看「差多少」的刻度。'
+      + '相同編成會重用已儲存的結果,所以越後面越快。',
       'enikk-note'));
 
     const table = document.createElement('div');
@@ -4578,21 +4578,21 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const who = document.createElement('div');
       who.className = 'enikk-who';
       who.append(createText('b', player.server, 'enikk-server'));
-      who.append(createText('span', `${player.decks.filter((d) => d.usable).length}덱`));
+      who.append(createText('span', `${player.decks.filter((d) => d.usable).length} 隊`));
       row.append(who);
       const nums = document.createElement('div');
       nums.className = 'enikk-nums';
-      nums.append(createText('span', `실제 ${formatEok(realTotal)}`));
-      nums.append(createText('span', `시뮬 ${formatEok(simTotal)}`, 'enikk-sim'));
+      nums.append(createText('span', `實際 ${formatEok(realTotal)}`));
+      nums.append(createText('span', `模擬 ${formatEok(simTotal)}`, 'enikk-sim'));
       if (ratio > 0) {
-        const tag = createText('b', `${ratio.toFixed(2)}배`, 'enikk-ratio');
+        const tag = createText('b', `${ratio.toFixed(2)} 倍`, 'enikk-ratio');
         tag.classList.add(ratio > 1.15 || ratio < 0.85 ? 'is-off' : 'is-near');
         nums.append(tag);
       }
       row.append(nums);
       table.append(row);
     }
-    setEnikkStatus(`상위 ${targets.length}명 대조 완료.`);
+    setEnikkStatus(`前 ${targets.length} 名對照完成。`);
   };
 
   const loadEnikk = async (force: boolean) => {
@@ -4600,7 +4600,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const cached = readEnikkCache();
       if (cached) {
         renderEnikk(cached);
-        setEnikkStatus('저장해 둔 결과입니다. 새로 받으려면 «다시 받기»를 누르세요.');
+        setEnikkStatus('這是已儲存的結果。要重新取得請按「重新取得」。');
         enikkLoad.hidden = true;
         enikkRefresh.hidden = false;
         return;
@@ -4613,7 +4613,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const data = await loadEnikkComps(catalog, supported, setEnikkStatus);
       writeEnikkCache(data);
       renderEnikk(data);
-      setEnikkStatus(`플레이어 ${data.players.length}명 · 덱 ${data.decks}개를 읽었습니다.`);
+      setEnikkStatus(`已讀取玩家 ${data.players.length} 名 · 隊伍 ${data.decks} 套。`);
       enikkLoad.hidden = true;
       enikkRefresh.hidden = false;
     } catch (error) {
@@ -4634,7 +4634,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const onlineBox = element<HTMLElement>(root, '[data-online]');
     const onlineText = element<HTMLElement>(root, '[data-online-text]');
     startPresence(SHARE_API, (online) => {
-      onlineText.textContent = `지금 ${online.toLocaleString('ko-KR')}명`;
+      onlineText.textContent = `目前 ${online.toLocaleString('ko-KR')} 名`;
       onlineBox.hidden = false;
     });
   }
@@ -4663,12 +4663,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   for (let n = 1; n <= poolMax; n += 1) {
     const option = document.createElement('option');
     option.value = String(n);
-    option.textContent = `${n}개`;
+    option.textContent = `${n} 個`;
     parallelSize.append(option);
   }
   // 권장값은 칸을 넓히지 않게 설명 쪽에만 적는다 — 토글 줄이 길어지면 줄이 접힌다.
-  parallelSize.title = `띄울 작업 스레드 수. 이 기기 권장 ${poolDefault}개. `
-    + '하나마다 계산 런타임이 떠서 메모리를 50~80MB씩 씁니다.';
+  parallelSize.title = `要開的工作執行緒數。這台裝置建議 ${poolDefault} 個。`
+    + '每一個都會開一份計算執行環境,各吃 50~80MB 記憶體。';
   const applyParallel = (save: boolean) => {
     parallelToggle.checked = parallelOn;
     parallelSize.value = String(parallelCount);
@@ -4713,7 +4713,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       me: () => {
         const battle = readBattle();
         return {
-          name: '내 설정',
+          name: '我的設定',
           synchro: battle.synchroLevel,
           console: battle.console,
           // 가져온 로스터(CSV·블라블라링크)가 내 스펙이다. 없으면 기본 스펙으로 돈다.
@@ -4789,7 +4789,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const go = document.createElement('span');
     go.className = 'link-go';
     go.setAttribute('aria-hidden', 'true');
-    go.textContent = '새 탭에서 열기 ↗';
+    go.textContent = '在新分頁開啟 ↗';
 
     card.append(head, note, go);
     linksGrid.append(card);
@@ -4822,7 +4822,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     customList.replaceChildren();
     const names = Object.keys(customChars);
     if (names.length === 0) return;
-    customList.append(createText('p', '추가된 니케', 'custom-list-title'));
+    customList.append(createText('p', '已新增的妮姬', 'custom-list-title'));
     for (const name of names) {
       const meta = customToMeta(customChars[name]!);
       const row = document.createElement('div');
@@ -4866,9 +4866,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-copy-prompt]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(buildAddPrompt());
-      showCustomMsg('프롬프트를 복사했습니다. 다른 LLM에 붙여넣고 니케 설명을 이어 붙이세요.', true);
+      showCustomMsg('已複製提示詞。貼到別的 LLM,再接上妮姬說明。', true);
     } catch {
-      showCustomMsg('자동 복사에 실패했습니다. 브라우저 권한을 확인하거나 직접 복사해 주세요.');
+      showCustomMsg('自動複製失敗。請確認瀏覽器權限或自行複製。');
     }
   });
   element<HTMLButtonElement>(root, '[data-custom-submit]').addEventListener('click', () => {
@@ -4884,13 +4884,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const ignored = unsupportedEffects(custom.skills);
       if (ignored.length > 0) {
         showCustomMsg(
-          `'${custom.name}' 추가됨. 다만 인식되지 않는 효과가 있어 반영되지 않습니다: `
-          + `${ignored.join(', ')}. 이 효과가 캐릭터의 주력 딜이면 결과가 실제보다 크게 낮게 나옵니다`
-          + `(게이지·모드 전환·조건부 스택형 스킬은 이 방식으로 재현하기 어렵습니다). `
-          + `도움말의 어휘와 대조해 stat·timing·target을 고치면 일부는 반영됩니다.`,
+          `已新增「${custom.name}」。但有無法辨識的效果不會反映:`
+          + `${ignored.join(', ')}。若這些效果是角色的主力輸出,結果會比實際低很多`
+          + `(量表・模式切換・條件堆疊型技能難以用這種方式重現)。`
+          + `對照說明的詞彙修改 stat・timing・target,部分可被反映。`,
         );
       } else {
-        showCustomMsg(`'${custom.name}' 추가됨 · 스쿼드 슬롯에서 선택할 수 있습니다.`, true);
+        showCustomMsg(`已新增「${custom.name}」· 可在隊伍格選擇。`, true);
       }
     } catch (error) {
       showCustomMsg(error instanceof Error ? error.message : String(error));
@@ -4984,7 +4984,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     .then(() => {
       if (activity !== 'preparing') return;
       activity = 'ready';
-      status.textContent = '계산 준비 완료 · 모든 연산은 이 기기에서 실행됩니다.';
+      status.textContent = '計算準備完成 · 所有運算在這台裝置上執行。';
     })
     .catch((error: unknown) => {
       if (activity !== 'preparing') return;

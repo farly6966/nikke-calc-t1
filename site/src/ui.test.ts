@@ -270,8 +270,8 @@ describe('calculator UI', () => {
 
     // 첫 걸음은 1번째 풀버스트의 1버다.
     const now = root.querySelector<HTMLElement>('[data-burst-now]')!;
-    expect(now.textContent).toContain('1번째 풀버스트');
-    expect(now.textContent).toContain('1버');
+    expect(now.textContent).toContain('第 1 次滿爆裂');
+    expect(now.textContent).toContain('1 爆');
 
     // 1버는 리타 하나뿐이라 A와 「자동」(0)만 붙는다.
     const keysOf = () => [...root.querySelectorAll<HTMLElement>('[data-burst-picks] .burst-pick-key')]
@@ -283,7 +283,7 @@ describe('calculator UI', () => {
     expect(firstName).toBe('리타');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
     // 한 칸 골랐으니 다음 걸음(2버)으로 넘어간다.
-    expect(now.textContent).toContain('2버');
+    expect(now.textContent).toContain('2 爆');
     // 2버는 둘이라 A·S가 편성 순서대로 붙는다.
     expect(keysOf()).toEqual(['A', 'S', '0']);
     expect([...root.querySelectorAll<HTMLElement>('[data-burst-picks] .burst-pick-name')]
@@ -312,7 +312,7 @@ describe('calculator UI', () => {
     // 아무것도 안 골라도 칸은 셋이다 — 몇 칸이 남았는지가 보여야 한다.
     expect(slots()).toHaveLength(3);
     expect(slots().map((slot) => slot.querySelector('.burst-slot-stage')?.textContent))
-      .toEqual(['1버', '2버', '3버']);
+      .toEqual(['1 爆', '2 爆', '3 爆']);
     expect(slots().every((slot) => !slot.classList.contains('is-filled'))).toBe(true);
     expect(firstRow().querySelectorAll('img')).toHaveLength(0);
 
@@ -334,8 +334,8 @@ describe('calculator UI', () => {
     // 3번째 사이클의 3버 칸.
     rows[2]!.querySelectorAll<HTMLButtonElement>('.burst-slot')[2]!.click();
 
-    expect(now.textContent).toContain('3번째 풀버스트');
-    expect(now.textContent).toContain('3버');
+    expect(now.textContent).toContain('第 3 次滿爆裂');
+    expect(now.textContent).toContain('3 爆');
     // 지금 서 있는 칸에 표시가 붙는다.
     const here = root.querySelectorAll('[data-burst-list] .burst-slot.is-here');
     expect(here).toHaveLength(1);
@@ -365,15 +365,15 @@ describe('calculator UI', () => {
     const now = root.querySelector<HTMLElement>('[data-burst-now]')!;
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-    expect(now.textContent).toContain('2버');
+    expect(now.textContent).toContain('2 爆');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-    expect(now.textContent).toContain('1버');
-    expect(now.textContent).not.toContain('→ 자동');
+    expect(now.textContent).toContain('1 爆');
+    expect(now.textContent).not.toContain('→ 自動');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '0', bubbles: true }));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-    expect(now.textContent).toContain('→ 자동');
+    expect(now.textContent).toContain('→ 自動');
   });
 
   it('순서를 지우면 덱에서 사라지고 배지도 내려간다', () => {
@@ -614,7 +614,7 @@ describe('calculator UI', () => {
 
     expect(sentBody).toEqual({ profileUrl: url.value, area: 84 });
     expect(root.querySelector<HTMLElement>('[data-blabla-status]')!.textContent)
-      .toContain('글로벌 서버에서 1명을 불러왔습니다.');
+      .toContain('已從 글로벌 伺服器載入 1 名');
   });
 
   it('sets breakthrough from the portrait star stepper and keeps the dropdown in sync', () => {
@@ -879,7 +879,7 @@ describe('calculator UI', () => {
 
     expect(root.querySelector<HTMLButtonElement>('[data-sort="power"]')!.dataset.sortDir).toBe('desc');
     // 오는 동안은 이름순으로 서 있고, 요약이 기다리는 중임을 알린다.
-    expect(summary()).toContain('전투력 계산중');
+    expect(summary()).toContain('戰鬥力 計算中');
     expect(rosterNames(root)).toEqual([...rosterNames(root)].sort((a, b) => a.localeCompare(b, 'ko')));
 
     await flush();
@@ -887,7 +887,7 @@ describe('calculator UI', () => {
     answer({ 나가: 30, 리타: 10, 앨리스: 50 });
     await flush();
 
-    expect(summary()).toContain('전투력 ▼');
+    expect(summary()).toContain('戰鬥力 ▼');
     const byPower = rosterNames(root);
     expect(byPower.indexOf('앨리스')).toBeLessThan(byPower.indexOf('나가'));
     expect(byPower.indexOf('나가')).toBeLessThan(byPower.indexOf('리타'));
@@ -1390,14 +1390,14 @@ describe('calculator UI', () => {
 
     // 25명이면 3쪽, 첫 쪽은 열 명.
     expect(root.querySelectorAll('.enikk-player')).toHaveLength(10);
-    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('3쪽 중 1쪽');
+    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('第 1 頁,共 3 頁');
 
     // 마지막 쪽은 다섯 명만 남는다.
     const last = [...root.querySelectorAll<HTMLButtonElement>('.enikk-page')]
       .find((b) => b.textContent === '3')!;
     last.click();
     expect(root.querySelectorAll('.enikk-player')).toHaveLength(5);
-    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('3쪽 중 3쪽');
+    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('第 3 頁,共 3 頁');
   });
 
   it('ignores an enikk cache left by an older shape instead of crashing', () => {
@@ -1440,11 +1440,11 @@ describe('calculator UI', () => {
 
     expect(root.querySelector('[data-roster-modal]')).toBeNull();
     expect(root.querySelectorAll('[data-roster-cell]')).toHaveLength(catalog.length);
-    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`${catalog.length}명`);
+    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`${catalog.length} 名`);
 
     searchRoster(root, '라피');
     expect(rosterNames(root)).toEqual(['라피 : 레드 후드']);
-    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`1 / ${catalog.length}명`);
+    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`1 / ${catalog.length} 名`);
 
     searchRoster(root, '없는이름');
     expect(root.querySelectorAll('[data-roster-cell]')).toHaveLength(0);
