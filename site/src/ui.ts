@@ -1813,7 +1813,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (char?.image) {
         const image = document.createElement('img');
         image.src = `${import.meta.env.BASE_URL}${char.image}`;
-        image.alt = `${char.name} 초상화`;
+        image.alt = `${char.displayName ?? char.name} 肖像`;
         image.loading = 'lazy';
         portrait.append(image);
       }
@@ -1830,10 +1830,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 판이 닫혀 있으면 어느 칸도 고른 상태로 보이지 않는다 — 고를 상황이 아니면
       // 겨냥한 칸도 없는 게 맞다.
       choose.setAttribute('aria-pressed', String(pickerOpen && activeSlot === index));
-      choose.append(createText('strong', char ? char.name : '빈 칸'));
+      choose.append(createText('strong', char ? (char.displayName ?? char.name) : '空格'));
       choose.append(createText(
         'span',
-        char ? `B${char.burstStage} · ${termZh(char.elementCode)} · ${char.weaponType}` : '눌러서 이 칸에 넣기',
+        char ? `B${char.burstStage} · ${termZh(char.elementCode)} · ${char.weaponType}` : '點此放入此格',
       ));
       choose.addEventListener('click', () => {
         // 같은 칸을 다시 누르면 접는다 — 켜고 끄는 자리가 한 곳이면 헷갈리지 않는다.
@@ -3957,7 +3957,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
       cell.append(
         portrait,
-        createText('strong', char.preview ? `${char.name} (임시)` : char.name),
+        createText('strong', char.preview ? `${char.displayName ?? char.name}(暫定)` : (char.displayName ?? char.name)),
         createText('span', [termZh(char.elementCode), char.weaponType, termZh(char.className)].filter(Boolean).join(' · ')),
       );
       cell.addEventListener('click', () => pickCharacter(char.name));

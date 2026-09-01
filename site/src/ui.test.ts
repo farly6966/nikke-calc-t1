@@ -1109,7 +1109,7 @@ describe('calculator UI', () => {
     expect(root.querySelectorAll('[data-slot-choose] strong')[0]!.textContent).toBe('리타');
     root.querySelector<HTMLButtonElement>('[data-deck-clear]')!.click();
     expect([...root.querySelectorAll('[data-slot-choose] strong')].map((e) => e.textContent))
-      .toEqual(['빈 칸', '빈 칸', '빈 칸', '빈 칸', '빈 칸']);
+      .toEqual(['空格', '空格', '空格', '空格', '空格']);
   });
 
   it('brings the deck you were viewing to deck 1 when five-deck mode is turned off', () => {
