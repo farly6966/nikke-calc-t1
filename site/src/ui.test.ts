@@ -233,8 +233,8 @@ describe('calculator UI', () => {
     // 프리셋과 공유는 같은 창이다 — 단추도 하나로 합쳤다.
     const open = root.querySelector<HTMLButtonElement>('[data-share-open]')!;
     expect(open).not.toBeNull();
-    expect(open.textContent).toContain('프리셋');
-    expect(open.textContent).toContain('조합 공유');
+    expect(open.textContent).toContain('預設');
+    expect(open.textContent).toContain('組合分享');
     expect(root.querySelector('[data-preset-open]')).toBeNull();
     open.click();
 
@@ -410,7 +410,7 @@ describe('calculator UI', () => {
     });
 
     const tab = root.querySelector<HTMLButtonElement>('[data-view-tab="links"]')!;
-    expect(tab.textContent).toBe('외부고리');
+    expect(tab.textContent).toBe('外部連結');
     tab.click();
 
     const panel = root.querySelector<HTMLElement>('[data-view="links"]')!;
@@ -1419,7 +1419,7 @@ describe('calculator UI', () => {
 
     expect(trust.textContent).not.toContain('AI 없음');
     expect(trust.textContent).not.toContain('서버 전송 없음');
-    expect(trust.textContent).toContain(`${catalog.length}명 지원`);
+    expect(trust.textContent).toContain(`支援 ${catalog.length} 名`);
     // 판이 늘 펼쳐져 있으니 열 버튼이 없다.
     expect(root.querySelector('[data-roster-open]')).toBeNull();
   });
@@ -1428,7 +1428,7 @@ describe('calculator UI', () => {
     mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
     const credit = root.querySelector<HTMLAnchorElement>('.trust-row .credit-link')!;
 
-    expect(credit.textContent).toBe('원본 알고리즘 개발자에게 무한한 감사를');
+    expect(credit.textContent).toBe('向原始演算法開發者致上無限感謝');
     expect(credit.href).toBe('https://github.com/Jgaram/nikke-calc');
     // 새 탭으로 열되 opener를 넘기지 않는다.
     expect(credit.target).toBe('_blank');

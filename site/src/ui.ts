@@ -497,18 +497,18 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
-          <h1><span>NIKKE</span> 스쿼드 계산기</h1>
-          <p class="hero-lede">캐릭터별 오버로드와 큐브, 전투 조건을 반영해 프레임 단위 예상 대미지를 계산합니다.</p>
-          <div class="trust-row" aria-label="서비스 특징"><span>${catalog.length}명 지원</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><button type="button" class="notice-open" data-notice-open title="지금까지 무엇이 바뀌었는지 봅니다">업데이트 내역</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="이 계산기의 원본 저장소">원본 알고리즘 개발자에게 무한한 감사를</a></div>
+          <h1><span>NIKKE</span> 隊伍計算機</h1>
+          <p class="hero-lede">依各角色的超載、方塊與戰鬥條件,以每幀為單位計算預期傷害。</p>
+          <div class="trust-row" aria-label="服務特色"><span>支援 ${catalog.length} 名</span><span class="online-now" data-online hidden title="最近 1~2 分鐘內開啟這個計算機的人數。隱藏分頁就不計入"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><button type="button" class="notice-open" data-notice-open title="看看到目前為止改了些什麼">更新紀錄</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="這個計算機的原始儲存庫">向原始演算法開發者致上無限感謝</a></div>
         </div>
         <div class="hero-orbit" aria-hidden="true"><span>01</span><strong>LOCAL<br />SIM</strong></div>
       </header>
 
-      <nav class="view-tabs" aria-label="화면 전환">
-        <button type="button" class="view-tab is-on" data-view-tab="calc" aria-pressed="true">계산기</button>
-        ${blablaProxy ? '<button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">유니온 레이드<b class="tab-beta">BETA</b></button>' : ''}
-        <button type="button" class="view-tab" data-view-tab="enikk" aria-pressed="false">ENIKK 조합 가져오기</button>
-        <button type="button" class="view-tab" data-view-tab="links" aria-pressed="false">외부고리</button>
+      <nav class="view-tabs" aria-label="畫面切換">
+        <button type="button" class="view-tab is-on" data-view-tab="calc" aria-pressed="true">計算機</button>
+        ${blablaProxy ? '<button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">聯盟突襲<b class="tab-beta">BETA</b></button>' : ''}
+        <button type="button" class="view-tab" data-view-tab="enikk" aria-pressed="false">匯入 ENIKK 組合</button>
+        <button type="button" class="view-tab" data-view-tab="links" aria-pressed="false">外部連結</button>
       </nav>
 
       <section class="panel links-panel" data-view="links" aria-labelledby="links-heading" hidden>
@@ -657,32 +657,32 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <form class="calculator-layout" data-view="calc" novalidate>
         <section class="panel squad-panel" aria-labelledby="squad-heading">
           <div class="section-heading">
-            <div><h2 id="squad-heading">편성 및 캐릭터 설정</h2></div>
+            <div><h2 id="squad-heading">編成與角色設定</h2></div>
             <div class="squad-tools">
               <span class="roster-import-group">
-                <label class="roster-import" title="렛츠도로 니케정보 CSV를 불러와 모든 니케 설정에 적용">
+                <label class="roster-import" title="匯入 Let's Doro 妮姬資訊 CSV,套用到所有妮姬設定">
                   <input id="roster-csv" type="file" accept=".csv,text/csv" hidden />
-                  <span>렛츠도로 CSV 불러오기</span>
+                  <span>匯入 Let's Doro CSV</span>
                 </label>
-                <button type="button" class="roster-info" data-doro-open aria-label="렛츠도로 CSV 받는 법" title="렛츠도로에서 CSV 받는 법">i</button>
+                <button type="button" class="roster-info" data-doro-open aria-label="取得 Let's Doro CSV 的方法" title="在 Let's Doro 取得 CSV 的方法">i</button>
               </span>
-              ${blablaProxy ? '<button type="button" class="roster-import" data-blabla-open title="블라블라링크 프로필 URL로 보유 니케의 육성을 한 번에 불러옵니다">블라블라링크 연동</button>' : ''}
-              <button type="button" class="roster-import" data-add-nikke title="미출시·미등록 니케를 직접 추가">새 니케 추가</button>
-              <button type="button" class="roster-import" data-share-open title="편성을 이 브라우저에 이름 붙여 저장하거나, 코드·링크로 주고받습니다. 개인 스펙과 전투 조건은 담기지 않습니다">프리셋 / 조합 공유</button>
-              <button type="button" class="roster-import danger" data-reset-all title="편성·설정·CSV 로스터·추가한 니케·저장된 결과를 모두 지우고 처음 상태로 되돌립니다">완전 초기화</button>
-              <label class="toggle-field mode-toggle" title="다른 덱에서 이미 만져 둔 개별 설정을 편성할 때 그대로 가져옵니다"><input id="carry-settings" type="checkbox" checked /><span class="toggle"></span><span>설정 이어받기</span></label>
-              <label class="toggle-field mode-toggle"><input id="squad-mode" type="checkbox" /><span class="toggle"></span><span>5덱 모드</span></label>
+              ${blablaProxy ? '<button type="button" class="roster-import" data-blabla-open title="用 Blablalink 個人檔案網址,一次匯入持有妮姬的養成狀態">Blablalink 連動</button>' : ''}
+              <button type="button" class="roster-import" data-add-nikke title="手動新增未上市・未收錄的妮姬">新增妮姬</button>
+              <button type="button" class="roster-import" data-share-open title="把編成在這個瀏覽器裡命名儲存,或用代碼・連結互相傳送。個人規格與戰鬥條件不會包含在內">預設 / 組合分享</button>
+              <button type="button" class="roster-import danger" data-reset-all title="清除編成・設定・CSV 名單・新增的妮姬・已儲存的結果,全部回到初始狀態">完全重置</button>
+              <label class="toggle-field mode-toggle" title="編成時沿用其他隊伍已調整過的個別設定"><input id="carry-settings" type="checkbox" checked /><span class="toggle"></span><span>沿用設定</span></label>
+              <label class="toggle-field mode-toggle"><input id="squad-mode" type="checkbox" /><span class="toggle"></span><span>5隊模式</span></label>
             </div>
             <p class="roster-note" data-roster-note hidden></p>
           </div>
           <div class="deck-tabs" data-deck-tabs hidden></div>
           <div class="deck-controls">
-            <button type="button" class="burst-order-open" data-burst-order-open title="사이클마다 1버·2버·3버를 누가 쓸지 직접 정합니다. 정한 만큼만 따르고 그 뒤는 평소 순서로 돌아갑니다"><span class="burst-order-mark" aria-hidden="true">1·2·3</span><span>버스트 순서</span><b class="burst-order-badge" data-burst-order-badge hidden></b></button>
+            <button type="button" class="burst-order-open" data-burst-order-open title="每個循環由誰放 1爆・2爆・3爆,由你自己決定。只依照你指定的部分,之後回到平常的順序"><span class="burst-order-mark" aria-hidden="true">1·2·3</span><span>爆裂順序</span><b class="burst-order-badge" data-burst-order-badge hidden></b></button>
             <span class="deck-moves" data-deck-moves hidden></span>
-            <button type="button" class="deck-clear" data-deck-clear title="지금 보고 있는 덱의 편성과 개별 설정을 비웁니다">덱 비우기</button>
-            <button type="button" class="deck-clear" data-deck-clear-all hidden title="다섯 덱의 편성·개별 설정·이름을 한 번에 비웁니다">5덱 비우기</button>
+            <button type="button" class="deck-clear" data-deck-clear title="清空目前檢視隊伍的編成與個別設定">清空隊伍</button>
+            <button type="button" class="deck-clear" data-deck-clear-all hidden title="一次清空五個隊伍的編成・個別設定・名稱">清空 5 隊</button>
           <div class="deck-copy" data-deck-copy hidden>
-            <button type="button" class="deck-copy-open" data-deck-copy-open>현재 덱 복사</button>
+            <button type="button" class="deck-copy-open" data-deck-copy-open>複製目前隊伍</button>
             <div class="deck-copy-panel" data-deck-copy-panel hidden>
               <p class="deck-copy-title" data-deck-copy-title></p>
               <div class="deck-copy-targets" data-deck-copy-targets></div>
@@ -740,11 +740,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
         <section class="panel settings-panel" aria-labelledby="settings-heading">
           <div class="section-heading compact target-heading">
-            <div><h2 id="settings-heading">전투 조건</h2></div>
+            <div><h2 id="settings-heading">戰鬥條件</h2></div>
             <div class="target-actions">
-              <button type="button" class="reset-enemy" data-battle-share-open title="전투 조건을 코드로 만들어 공유하거나, 받은 코드를 붙여넣어 적용합니다">전투 조건 공유</button>
-              <button type="button" class="reset-enemy" data-reset-enemy>적 수치 초기화</button>
-              <button type="button" class="reset-enemy" data-clear-cache title="같은 조건에 저장된 결과를 지우고 다음 실행부터 새로 계산합니다">저장된 결과 지우기</button>
+              <button type="button" class="reset-enemy" data-battle-share-open title="把戰鬥條件做成代碼分享,或貼上收到的代碼套用">戰鬥條件分享</button>
+              <button type="button" class="reset-enemy" data-reset-enemy>重置敵方數值</button>
+              <button type="button" class="reset-enemy" data-clear-cache title="清除相同條件下已儲存的結果,下次執行起重新計算">清除已存結果</button>
             </div>
           </div>
           <!-- 조건은 한 번 정해 두면 계속 쓰는 값이다. 그 자리에서 펼치면 편성이 화면
@@ -755,45 +755,45 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
                나머지 조건은 한 번 정해 두면 그대로 쓰는 값이라 창 안에 남는다. -->
           <div class="quick-cond" data-quick-cond>
             <label class="quick-code">
-              <span>보스 코드</span>
-              <select data-quick-enemy-code title="적의 코드입니다. 그 코드에 우월한 니케가 대미지 10%를 더 넣습니다">
-                <option value="">없음</option>
-                <option value="풍압">풍압 (작열이 우월)</option>
-                <option value="수냉">수냉 (전격이 우월)</option>
-                <option value="작열">작열 (수냉이 우월)</option>
-                <option value="전격">전격 (철갑이 우월)</option>
-                <option value="철갑">철갑 (풍압이 우월)</option>
+              <span>Boss 代碼</span>
+              <select data-quick-enemy-code title="敵人的屬性代碼。剋制該屬性的妮姬會多打 10% 傷害">
+                <option value="">無</option>
+                <option value="풍압">風壓(燃燒優勢)</option>
+                <option value="수냉">水冷(電擊優勢)</option>
+                <option value="작열">燃燒(水冷優勢)</option>
+                <option value="전격">電擊(鐵甲優勢)</option>
+                <option value="철갑">鐵甲(風壓優勢)</option>
               </select>
             </label>
-            <label class="toggle-field mode-toggle quick-core" title="코어가 있으면 그 자리를 맞힌 탄이 코어 배율을 받습니다">
-              <input type="checkbox" data-quick-core /><span class="toggle"></span><span>코어 있음</span>
+            <label class="toggle-field mode-toggle quick-core" title="有核心時,命中該部位的彈會吃到核心倍率">
+              <input type="checkbox" data-quick-core /><span class="toggle"></span><span>有核心</span>
             </label>
           </div>
           <div class="cond-bar">
             <button type="button" class="battle-open" data-battle-open aria-expanded="false">
-              <span class="battle-open-label">전투 조건</span>
+              <span class="battle-open-label">戰鬥條件</span>
               <span class="battle-summary" data-battle-summary></span>
-              <span class="disclosure-hint" aria-hidden="true">열기 ›</span>
+              <span class="disclosure-hint" aria-hidden="true">展開 ›</span>
             </button>
-            <button class="calculate-button run-inline" type="submit"><span>시뮬레이션 실행</span><b aria-hidden="true">→</b></button>
+            <button class="calculate-button run-inline" type="submit"><span>執行模擬</span><b aria-hidden="true">→</b></button>
           </div>
           <!-- 계산이 얼마나 빨리 끝나는지를 정하는 설정이라 실행 단추 바로 아래에 둔다. -->
           <div class="parallel-row">
-            <label class="toggle-field mode-toggle parallel-pick" title="계산을 여러 작업 스레드에 나눠 돌립니다. 이 기기의 코어를 더 쓰는 대신 5덱 계산이 몇 배 빨라집니다 — 계산은 이 기기에서 도는 것이라 서버 비용과는 무관합니다">
-              <input type="checkbox" data-parallel-toggle checked /><span class="toggle"></span><span>병렬 계산</span>
+            <label class="toggle-field mode-toggle parallel-pick" title="把計算分散到多個工作執行緒。多用這台裝置的核心,換來 5 隊計算快上數倍 — 計算是在你這台裝置上跑,與伺服器成本無關">
+              <input type="checkbox" data-parallel-toggle checked /><span class="toggle"></span><span>並行計算</span>
               <select data-parallel-size></select>
             </label>
           </div>
-          <p class="status" data-status aria-live="polite">계산 엔진 준비 중…</p>
-          <p class="battle-first-note" data-battle-first-note>계산하기 전에 <b>전투 조건을 한 번 확인해 주세요</b> — 몇 초짜리 전투인지, 적 코드가 무엇인지에 따라 결과가 완전히 달라집니다.</p>
+          <p class="status" data-status aria-live="polite">計算引擎準備中…</p>
+          <p class="battle-first-note" data-battle-first-note>計算前請<b>先確認一次戰鬥條件</b> — 依戰鬥長度是幾秒、敵人代碼是什麼,結果會完全不同。</p>
           <!-- 막힌 이유는 누른 단추 바로 아래에서 읽혀야 한다. -->
           <div class="error-box" data-errors hidden role="alert"></div>
 
           <!-- 창은 조건 패널 «안»에 둔다 — 설정 입력을 지켜보는 리스너가 이 패널을
                기준으로 걸려 있어, 밖으로 빼면 값을 바꿔도 저장되지 않는다. -->
           <div class="custom-modal" data-battle-modal hidden>
-          <div class="custom-card battle-card" role="dialog" aria-label="전투 조건">
-          <div class="custom-head"><h2>전투 조건</h2><button type="button" class="custom-close" data-battle-modal-close aria-label="닫기">✕</button></div>
+          <div class="custom-card battle-card" role="dialog" aria-label="戰鬥條件">
+          <div class="custom-head"><h2>戰鬥條件</h2><button type="button" class="custom-close" data-battle-modal-close aria-label="關閉">✕</button></div>
           <div class="battle-body" data-battle-body>
           <div class="field-grid">
             <label><span>전투 시간</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>초</em></div></label>
@@ -853,7 +853,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </section>
 
         <section class="panel result-panel" aria-labelledby="result-heading" data-result-panel>
-          <div class="result-empty"><h2 id="result-heading">전투 결과</h2><div class="radar-mark" aria-hidden="true"><i></i><i></i><i></i></div><p>편성과 조건을 확인한 뒤<br />시뮬레이션을 실행해 주세요.</p></div>
+          <div class="result-empty"><h2 id="result-heading">戰鬥結果</h2><div class="radar-mark" aria-hidden="true"><i></i><i></i><i></i></div><p>確認編成與條件後<br />請執行模擬。</p></div>
         </section>
       </form>
 
@@ -898,7 +898,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
            본 것으로 적어 다시 뜨지 않는다. 「업데이트 내역」으로 언제든 다시 연다. -->
       <div class="custom-modal" data-notice-modal hidden>
         <div class="custom-card notice-card" role="dialog" aria-label="업데이트 내역">
-          <div class="custom-head"><h2>업데이트 내역</h2><button type="button" class="custom-close" data-notice-close aria-label="닫기">✕</button></div>
+          <div class="custom-head"><h2>更新紀錄</h2><button type="button" class="custom-close" data-notice-close aria-label="關閉">✕</button></div>
           <div class="notice-body" data-notice-body></div>
           <div class="deck-copy-actions">
             <button type="button" class="deck-copy-apply" data-notice-dismiss>확인 · 다시 보지 않기</button>
