@@ -950,7 +950,7 @@ describe('calculator UI', () => {
     expect(root.querySelector('[data-filter-chip^="favorite"]')).toBeNull();
     const titles = [...root.querySelectorAll('[data-filter-groups] .filter-title')]
       .map((title) => title.textContent);
-    expect(titles).toEqual(['등급', '클래스', '코드', '무기', '기업']);
+    expect(titles).toEqual(['稀有度', '職業', '屬性', '武器', '企業']);
   });
 
   it('sends the synchro level from the battle panel, and keeps it out of shared codes', async () => {

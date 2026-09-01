@@ -46,6 +46,7 @@ import { mountSharePanel, squadPreview, type SharePanel } from './share-panel';
 import { startPresence } from './presence';
 import { mountUnionRaid, type UnionHandle } from './union-raid';
 import { EXTERNAL_LINKS, hostOf } from './external-links';
+import { termZh, FILTER_TITLE_ZH } from './i18n-terms';
 import {
   BURST_STAGES,
   candidatesFor, cycleLine, cyclesFromTimeline, estimateCycles, HOTKEYS, MAX_CYCLES,
@@ -1832,7 +1833,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       choose.append(createText('strong', char ? char.name : '빈 칸'));
       choose.append(createText(
         'span',
-        char ? `B${char.burstStage} · ${char.elementCode} · ${char.weaponType}` : '눌러서 이 칸에 넣기',
+        char ? `B${char.burstStage} · ${termZh(char.elementCode)} · ${char.weaponType}` : '눌러서 이 칸에 넣기',
       ));
       choose.addEventListener('click', () => {
         // 같은 칸을 다시 누르면 접는다 — 켜고 끄는 자리가 한 곳이면 헷갈리지 않는다.
@@ -3758,8 +3759,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     { key: 'corp', title: '기업', values: ['엘리시온', '미실리스', '테트라', '필그림', '어브노말'] },
   ];
 
+  // 값(필터·직렬화에 쓰는 한국어)은 그대로 두고, 보이는 라벨만 중국어로 바꾼다.
   const labelOf = (key: FilterKey, value: string) =>
-    key === 'burst' ? `B${value}` : value;
+    key === 'burst' ? `B${value}` : termZh(value);
 
   /** 고른 필터 개수. 0이면 뱃지를 감춘다. */
   const pickedCount = (): number =>
@@ -3860,7 +3862,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     for (const group of FILTER_GROUPS) {
       const section = document.createElement('div');
       section.className = 'filter-section';
-      section.append(createText('p', group.title, 'filter-title'));
+      section.append(createText('p', FILTER_TITLE_ZH[group.key] ?? group.title, 'filter-title'));
       const chips = document.createElement('div');
       chips.className = 'filter-chips';
       chips.append(...group.values.map((value) => filterChip(group.key, value)));
@@ -3956,7 +3958,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       cell.append(
         portrait,
         createText('strong', char.preview ? `${char.name} (임시)` : char.name),
-        createText('span', [char.elementCode, char.weaponType, char.className].filter(Boolean).join(' · ')),
+        createText('span', [termZh(char.elementCode), char.weaponType, termZh(char.className)].filter(Boolean).join(' · ')),
       );
       cell.addEventListener('click', () => pickCharacter(char.name));
       // 끌어다 칸에 놓을 수도 있다. 이미 이 덱에 있는 니케는 누를 수 없으니 끌 수도 없다.
@@ -4820,7 +4822,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const meta = customToMeta(customChars[name]!);
       const row = document.createElement('div');
       row.className = 'custom-list-row';
-      row.append(createText('span', `${name} · B${meta.burstStage} · ${meta.elementCode} · ${meta.weaponType}`, 'custom-list-name'));
+      row.append(createText('span', `${name} · B${meta.burstStage} · ${termZh(meta.elementCode)} · ${meta.weaponType}`, 'custom-list-name'));
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'custom-remove';
