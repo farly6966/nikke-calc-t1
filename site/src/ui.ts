@@ -493,7 +493,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   root.innerHTML = `
     <div class="site-shell">
-      <p class="site-notice"><a href="https://gall.dcinside.com/mgallery/board/view/?id=gov&amp;no=6038781" target="_blank" rel="noreferrer">설명서 확인, 문의, 피드백, 착한말 등은 여기로 →</a></p>
+      <p class="site-notice"><a href="https://gall.dcinside.com/mgallery/board/view/?id=gov&amp;no=6038781" target="_blank" rel="noreferrer">查看說明、詢問、意見回饋、鼓勵的話都往這裡 →</a></p>
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
@@ -1668,7 +1668,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     box.className = 'copy-from';
     box.dataset.copyFrom = name;
     const head = document.createElement('summary');
-    head.textContent = '다른 니케에서 베껴오기';
+    head.textContent = '從其他妮姬複製';
     head.title = '이미 키운 니케의 돌파·스킬·오버로드·장비 강화·소장품을 그대로 가져옵니다';
     box.append(head);
 
