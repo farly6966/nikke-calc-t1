@@ -593,7 +593,7 @@ describe('character settings editor', () => {
 
     expect(value?.cube).toEqual({ name: '탄충', level: 15 });
     expect(root.textContent).toContain('攻擊 2,780');
-    expect(root.textContent).toContain('10발 사격 시 탄환 충전 3발 ▲');
+    expect(root.textContent).toContain('每射擊 10 發 補充 3 發子彈 ▲');
     expect(root.textContent).toContain('剋制代碼 19.09%');
   });
 
@@ -604,7 +604,7 @@ describe('character settings editor', () => {
     search.value = '분배';
     search.dispatchEvent(new Event('input'));
     const select = root.querySelector<HTMLSelectElement>('[data-manual-select]')!;
-    expect([...select.options].map((option) => option.text)).toContain('分裂傷害增加');
+    expect([...select.options].map((option) => option.text)).toContain('分攤傷害增加');
 
     select.value = 'split_dmg_pct';
     root.querySelector<HTMLButtonElement>('[data-add-stat]')!.click();

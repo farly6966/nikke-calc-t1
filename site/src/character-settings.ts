@@ -1,4 +1,4 @@
-import { cubeZh } from './i18n-terms';
+import { cubeTemplateZh, cubeZh } from './i18n-terms';
 import { STAT_NAMES } from './stat-names';
 import type {
   BuffTargetRow,
@@ -227,6 +227,9 @@ export function suggestsTapFire(
 
 /** 큐브를 끼지 않은 상태. 데이터가 아니라 화면이 만드는 선택지다. */
 export const NO_CUBE = '없음';
+
+/** 소장품을 안 낀 상태. `collectionStages`의 첫 항목과 같은 값이다(엔진 값). */
+const NO_COLLECTION = '없음';
 
 /** 막바지 최우선의 기본 구간(초). 엔진 기본값(`calculator/customization.py`)과 같다. */
 const ENDGAME_DEFAULT = 20;
@@ -710,7 +713,11 @@ export function renderCharacterSettings(
         label: `珍藏品 ${'★'.repeat(stage)}${'☆'.repeat(3 - stage)}`,
       }))
       : []),
-    ...catalog.collectionStages.map((stage) => ({ value: `stage:${stage}`, label: stage })),
+    // 등급 표기(R5·SR15…)는 그대로 두고, 데이터가 «없음»으로 부르는 «안 낌»만 옮긴다.
+    ...catalog.collectionStages.map((stage) => ({
+      value: `stage:${stage}`,
+      label: stage === NO_COLLECTION ? '未裝備' : stage,
+    })),
   ];
   for (const option of collectionOptions) {
     const node = document.createElement('option');
@@ -831,7 +838,7 @@ export function renderCharacterSettings(
   if (noCube) {
     cubeSummary.textContent = '不裝魔方 — 魔方的數值與剋制屬性效果都不會生效。';
   } else if (level) {
-    const effect = cubeMeta.template.replace('{0}', String(level.effect));
+    const effect = cubeTemplateZh(cubeMeta.template).replace('{0}', String(level.effect));
     cubeSummary.textContent = `攻擊 ${level.atk.toLocaleString('en-US')} · 防禦 ${level.def.toLocaleString('en-US')} · `
       + `生命 ${level.hp.toLocaleString('en-US')} · ${effect} · 剋制代碼 ${level.commonElement}%`;
   }
