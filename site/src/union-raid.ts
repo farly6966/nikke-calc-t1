@@ -603,6 +603,8 @@ export interface UnionDeps {
   catalog: CharacterMeta[];
   simulate: (request: ReturnType<typeof requestForDeck>) => Promise<SimulationResult>;
   imageOf: (name: string) => string | undefined;
+  /** 정본 이름 → 화면에 적을 이름. 초상화 딱지와 이름 조각에만 쓴다. */
+  labelOf: (name: string) => string;
   /** 지금 계산기에 잡아 둔 전투 조건을 코드로. 「가져오기」 단추가 쓴다. */
   currentBattleCode: () => string;
   /** 지금 계산기 덱 하나를 코드로. 인자는 0부터. */
@@ -1185,7 +1187,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             const squads = payload.decks
               .map((entry) => entry.squad.filter((name) => name.trim() !== ''))
               .filter((squad) => squad.length > 0);
-            return squads.length > 0 ? squadPreview(squads, deps.imageOf) : null;
+            return squads.length > 0 ? squadPreview(squads, deps.imageOf, deps.labelOf) : null;
           } catch {
             return null;
           }
@@ -1368,7 +1370,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             open({ kind: 'squad', boss: index, deck: deckIndex }));
           row.append(fromShare);
         }
-        if (deck.squad) row.append(squadPreview([deck.squad.filter(Boolean)], deps.imageOf));
+        if (deck.squad) row.append(squadPreview([deck.squad.filter(Boolean)], deps.imageOf, deps.labelOf));
         if (deck.error) row.append(el('p', 'union-error', deck.error));
         deckBox.append(row);
       });
@@ -1481,7 +1483,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         card.append(el('h4', 'union-report-boss', boss.name));
         for (const row of boss.rows) {
           const line = el('div', 'union-report-row');
-          line.append(squadPreview([row.job.squad.filter(Boolean)], deps.imageOf));
+          line.append(squadPreview([row.job.squad.filter(Boolean)], deps.imageOf, deps.labelOf));
           if (row.damage !== undefined) {
             line.append(el('b', 'union-report-damage', DAMAGE.format(Math.round(row.damage))));
           } else if (row.missing) {

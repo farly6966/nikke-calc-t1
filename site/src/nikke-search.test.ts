@@ -124,3 +124,43 @@ describe('별칭 검색', () => {
     expect(rankOf('세이렌', buildIndex(meta('크라운')))).toBe(NO_MATCH);
   });
 });
+
+// 화면에 보이는 이름(영어·중국어)으로도 찾을 수 있어야 한다. 이것이 없으면
+// 영어 이름만 보이는 화면에서 `rapi`를 쳤을 때 결과가 0이 된다.
+describe('화면 이름 검색', () => {
+  const 라피 = meta('라피', { displayName: 'Rapi' });
+  const 레드후드 = meta('라피 : 레드 후드', { displayName: 'Rapi: Red Hood', elementCode: '작열' });
+  const 크라운 = meta('크라운', { displayName: 'Crown', elementCode: '수냉', className: '지원형' });
+  const SHOWN = [레드후드, 크라운, 라피];
+  const shown = (query: string): string[] =>
+    filterByQuery(SHOWN, query, buildIndex).map((c) => c.name);
+
+  it('영어 이름 첫머리는 한국어 이름 첫머리와 같은 무게다', () => {
+    expect(rankOf('rapi', buildIndex(라피))).toBe(0);
+    expect(rankOf('라피', buildIndex(라피))).toBe(0);
+  });
+
+  it('대소문자를 가리지 않는다', () => {
+    expect(rankOf('RAPI', buildIndex(라피))).toBe(0);
+    expect(rankOf('Crown', buildIndex(크라운))).toBe(0);
+  });
+
+  it('영어로 쳐도 짧고 정확한 이름이 앞에 온다', () => {
+    expect(shown('rapi')).toEqual(['라피', '라피 : 레드 후드']);
+  });
+
+  it('구분자를 지우므로 「red hood」가 «Rapi: Red Hood»를 잡는다', () => {
+    expect(shown('red hood')).toEqual(['라피 : 레드 후드']);
+  });
+
+  it('화면 이름이 없으면 종전 그대로다', () => {
+    expect(rankOf('rapi', buildIndex(meta('라피')))).toBe(NO_MATCH);
+  });
+
+  it('중국어 분류 라벨로도 걸리고, 이름보다 뒤로 밀린다', () => {
+    expect(rankOf('燃燒', buildIndex(레드후드))).toBe(4);
+    expect(rankOf('支援型', buildIndex(크라운))).toBe(4);
+    expect(rankOf('極樂淨土', buildIndex(라피))).toBe(4);
+    expect(shown('水冷')).toEqual(['크라운']);
+  });
+});

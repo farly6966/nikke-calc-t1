@@ -1,3 +1,4 @@
+import { termZh } from './i18n-terms';
 import type { CharacterMeta } from './types';
 
 // 니케 이름 검색. 고르는 판이 늘 펼쳐져 있으므로 «친 이름이 맨 앞에 오는가»가
@@ -33,28 +34,34 @@ export const squash = (text: string): string =>
 
 export interface SearchIndex {
   name: string;
-  /** 구분자를 지운 이름 */
-  key: string;
+  /**
+   * 구분자를 지운 이름들. 한국어 정본과 화면 이름(영어·중국어)을 **같은 무게로**
+   * 담는다 — 화면에 «Rapi»라고 적혀 있는데 `rapi`가 안 걸리면 검색이 아니다.
+   */
+  keys: string[];
   /** 구분자를 지운 초성 */
   cho: string;
   /** 별칭(`수니스`)을 구분자 지운 형태로. 이름과 같은 무게로 친다 */
   aliasKeys: string[];
   /** 별칭의 초성 */
   aliasChos: string[];
-  /** 속성·무기·클래스·기업 — 이름이 아닌 곁가지 */
+  /** 속성·무기·클래스·기업 — 이름이 아닌 곁가지. 한국어와 중국어 라벨을 함께 담는다 */
   tags: string;
 }
 
 export function buildIndex(char: CharacterMeta): SearchIndex {
   const aliases = char.aliases ?? [];
+  const names = [char.name, char.displayName ?? ''];
   return {
     name: char.name,
-    key: squash(char.name),
+    keys: [...new Set(names.map(squash).filter(Boolean))],
     cho: squash(initials(char.name)),
     aliasKeys: aliases.map(squash).filter(Boolean),
     aliasChos: aliases.map((alias) => squash(initials(alias))).filter(Boolean),
     tags: squash([
       char.elementCode, char.weaponType, char.className, char.manufacturer,
+      // 화면이 중국어이므로 «電擊»·«火力型»·«極樂淨土»로도 걸려야 한다.
+      termZh(char.elementCode), termZh(char.className), termZh(char.manufacturer),
       `b${char.burstStage}`,
     ].join(' ')),
   };
@@ -67,9 +74,9 @@ export function rankOf(query: string, index: SearchIndex): number {
   const q = squash(query);
   if (!q) return 0;
   // 별칭은 유저가 일부러 정한 손잡이다 — 이름 첫머리와 같은 무게로 앞에 세운다.
-  if (index.key.startsWith(q) || index.aliasKeys.some((a) => a.startsWith(q))) return 0;
+  if (index.keys.some((k) => k.startsWith(q)) || index.aliasKeys.some((a) => a.startsWith(q))) return 0;
   if (index.cho.startsWith(q) || index.aliasChos.some((a) => a.startsWith(q))) return 1;
-  if (index.key.includes(q) || index.aliasKeys.some((a) => a.includes(q))) return 2;
+  if (index.keys.some((k) => k.includes(q)) || index.aliasKeys.some((a) => a.includes(q))) return 2;
   if (index.cho.includes(q) || index.aliasChos.some((a) => a.includes(q))) return 3;
   if (index.tags.includes(q)) return 4;
   return NO_MATCH;

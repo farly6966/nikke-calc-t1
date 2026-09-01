@@ -57,7 +57,7 @@ export class CalculatorWorkerClient {
     this.worker = workerFactory();
     this.worker.onmessage = (event) => this.handleMessage(event.data);
     this.worker.onerror = (event) => {
-      this.rejectAll(new Error(event.message || '계산 작업 스레드에서 오류가 발생했습니다.'));
+      this.rejectAll(new Error(event.message || '計算執行緒發生錯誤。'));
     };
   }
 
@@ -82,7 +82,7 @@ export class CalculatorWorkerClient {
 
   dispose(): void {
     this.worker.terminate();
-    this.rejectAll(new Error('계산기가 종료되었습니다.'));
+    this.rejectAll(new Error('計算機已關閉。'));
     this.preparePromise = null;
   }
 
@@ -114,11 +114,11 @@ export class CalculatorWorkerClient {
 
     this.pending.delete(response.id);
     if (response.type === 'error') {
-      pending.reject(new Error(String(response.payload ?? '계산에 실패했습니다.')));
+      pending.reject(new Error(String(response.payload ?? '計算失敗。')));
       return;
     }
     if (response.type !== pending.expected) {
-      pending.reject(new Error(`예상하지 못한 계산기 응답: ${response.type}`));
+      pending.reject(new Error(`未預期的計算機回應:${response.type}`));
       return;
     }
     pending.resolve(response.payload);

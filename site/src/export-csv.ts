@@ -33,7 +33,7 @@ Array<Array<string | number>> {
   const bucket = timeline.bucket || 1;
   const digits = bucket < 1 ? 1 : 0;
   const rows: Array<Array<string | number>> = [
-    ['시작(초)', '끝(초)', ...names, '합계', '누적'],
+    ['開始(秒)', '結束(秒)', ...names, '合計', '累計'],
   ];
   let running = 0;
   for (let index = 0; index < timeline.buckets; index += 1) {
@@ -52,7 +52,7 @@ Array<Array<string | number>> {
 export function totalRows(result: SimulationResult, names: string[]):
 Array<Array<string | number>> {
   const rows: Array<Array<string | number>> = [
-    ['캐릭터', '총 대미지', '평타', '평타 히트', '스킬', '스킬 히트', '지분(%)'],
+    ['角色', '總傷害', '普攻', '普攻命中數', '技能', '技能命中數', '貢獻(%)'],
   ];
   const squad = result.squadTotal || 0;
   for (const name of names) {
@@ -65,7 +65,7 @@ Array<Array<string | number>> {
       squad > 0 ? (total / squad * 100).toFixed(2) : '',
     ]);
   }
-  rows.push(['스쿼드 합계', Math.round(squad), '', '', '', '', squad > 0 ? '100.00' : '']);
+  rows.push(['隊伍合計', Math.round(squad), '', '', '', '', squad > 0 ? '100.00' : '']);
   return rows;
 }
 
@@ -75,14 +75,14 @@ Array<Array<string | number>> {
  */
 export function damageCsv(result: SimulationResult, names: string[], note = ''): string {
   const head: Array<Array<string | number>> = [
-    ['NIKKE 스쿼드 계산기 · 정밀 수치'],
-    ['전투 시간(초)', result.duration, '총 히트', result.hitCount],
+    ['NIKKE 隊伍計算機 · 精密數值'],
+    ['戰鬥時間(秒)', result.duration, '總命中數', result.hitCount],
   ];
-  if (note) head.push(['조건', note]);
+  if (note) head.push(['條件', note]);
   const rows = [...head, [], ...totalRows(result, names)];
   if (result.timeline) {
     const bucket = result.timeline.bucket || 1;
-    rows.push([], [`구간별 대미지 (${bucket}초 단위)`], ...perSecondRows(result.timeline, names));
+    rows.push([], [`區間傷害(每 ${bucket}秒)`], ...perSecondRows(result.timeline, names));
   }
   return csvText(rows);
 }
@@ -95,6 +95,6 @@ export const csvBlob = (text: string): Blob =>
 export const csvFileName = (label: string, at = new Date()): string => {
   const stamp = [at.getFullYear(), at.getMonth() + 1, at.getDate()]
     .map((part, index) => (index === 0 ? String(part) : String(part).padStart(2, '0'))).join('');
-  const safe = label.replace(/[\\/:*?"<>|]/g, '').trim() || '계산';
-  return `니케계산기_${safe}_${stamp}.csv`;
+  const safe = label.replace(/[\\/:*?"<>|]/g, '').trim() || '計算';
+  return `妮姬計算機_${safe}_${stamp}.csv`;
 };

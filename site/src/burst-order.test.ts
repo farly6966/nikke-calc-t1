@@ -152,12 +152,12 @@ describe('진행 표시', () => {
 describe('한 줄 요약', () => {
   it('고른 단계만 화살표로 잇는다', () => {
     expect(cycleLine({ 1: ['리타'], 2: ['크라운'], 3: ['앨리스'] }))
-      .toBe('1버 리타 → 2버 크라운 → 3버 앨리스');
-    expect(cycleLine({ 1: [], 2: ['크라운'], 3: [] })).toBe('2버 크라운');
+      .toBe('1爆 리타 → 2爆 크라운 → 3爆 앨리스');
+    expect(cycleLine({ 1: [], 2: ['크라운'], 3: [] })).toBe('2爆 크라운');
   });
 
-  it('빈 사이클은 「자동」이라 적는다', () => {
-    expect(cycleLine({ 1: [], 2: [], 3: [] })).toBe('자동');
-    expect(cycleLine(undefined)).toBe('자동');
+  it('빈 사이클은 「自動」이라 적는다', () => {
+    expect(cycleLine({ 1: [], 2: [], 3: [] })).toBe('自動');
+    expect(cycleLine(undefined)).toBe('自動');
   });
 });

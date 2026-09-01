@@ -421,7 +421,7 @@ describe('calculator UI', () => {
     const cards = [...root.querySelectorAll<HTMLAnchorElement>('.link-card')];
     expect(cards).toHaveLength(4);
     expect(cards.map((card) => card.querySelector('.link-name')?.textContent))
-      .toEqual(['렛츠도로', '딜도로', '솔레 금서고', '도로파티']);
+      .toEqual(["Let's Doro", 'Dildoro', 'Solo Raid History', 'Doro Party']);
     for (const card of cards) {
       expect(card.target).toBe('_blank');
       // 남의 페이지에 우리 창을 넘기지 않는다.
@@ -567,11 +567,11 @@ describe('calculator UI', () => {
     expect(server!.value).toBe('');
     expect([...server!.options].map((option) => [option.value, option.textContent])).toEqual([
       ['', '自動(持有妮姬最多的伺服器)'],
-      ['83', '한국'],
-      ['81', '일본'],
-      ['84', '글로벌'],
-      ['82', '북미'],
-      ['85', '동남아'],
+      ['83', '韓國'],
+      ['81', '日本'],
+      ['84', '全球'],
+      ['82', '北美'],
+      ['85', '東南亞'],
     ]);
   });
 
@@ -614,7 +614,7 @@ describe('calculator UI', () => {
 
     expect(sentBody).toEqual({ profileUrl: url.value, area: 84 });
     expect(root.querySelector<HTMLElement>('[data-blabla-status]')!.textContent)
-      .toContain('已從 글로벌 伺服器載入 1 名');
+      .toContain('已從 全球 伺服器載入 1 名');
   });
 
   it('sets breakthrough from the portrait star stepper and keeps the dropdown in sync', () => {
@@ -1035,7 +1035,7 @@ describe('calculator UI', () => {
     const box = root.querySelector<HTMLInputElement>('[data-detail-damage]')!;
     expect(box.checked).toBe(false);
     const short = rowTotal();
-    expect(short).toMatch(/억$/);                  // 켜기 전에는 줄여 쓴다
+    expect(short).toMatch(/億$/);                  // 켜기 전에는 줄여 쓴다
     box.click();
     const exact = rowTotal();
     expect(exact).not.toBe(short);
@@ -1589,7 +1589,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLFormElement>('form')!.requestSubmit();
     await flush();
 
-    expect(root.querySelector('[data-errors]')?.textContent).toContain('전투 시간은 10~180초여야 합니다.');
+    expect(root.querySelector('[data-errors]')?.textContent).toContain('戰鬥時間必須是 10~180秒。');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -1603,7 +1603,7 @@ describe('calculator UI', () => {
 
     expect(root.querySelector('[data-result-total]')?.textContent).toContain('123,456');
     expect(root.querySelectorAll('[data-character-result]')).toHaveLength(5);
-    expect(root.querySelector('[data-status]')?.textContent).toContain('계산 완료');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('個隊伍計算完成');
     expect(client.lastRequest?.duration).toBe(10);
   });
 
@@ -1700,7 +1700,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(secondClient.simulateCalls).toBe(0);
-    expect(root.querySelector('[data-status]')?.textContent).toContain('저장된 결과');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('已載入儲存的結果');
   });
 
   it('renders a successful result when persistent storage rejects writes', async () => {
@@ -1717,7 +1717,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-result-total]')?.textContent).toContain('123,456');
-    expect(root.querySelector('[data-status]')?.textContent).toContain('계산 완료');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('個隊伍計算完成');
   });
 
   it('removes the preview badge when a preview slot is cleared', () => {
@@ -1922,6 +1922,6 @@ describe('calculator UI', () => {
     deckTabs[1]!.click();
     expect(root.querySelector<HTMLElement>('[data-deck-result]')!.dataset.deckResult).toBe('2');
     expect(root.querySelector('[data-batch-total]')?.textContent).toContain('246,912');
-    expect(root.querySelector('[data-status]')?.textContent).toContain('2개 덱 계산 완료');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('2 個隊伍計算完成');
   });
 });

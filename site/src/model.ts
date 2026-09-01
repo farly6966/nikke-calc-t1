@@ -1,4 +1,5 @@
 import { sequenceForDeck, trimSequence } from './burst-order';
+import { termZh } from './i18n-terms';
 import type {
   BatchResult,
   BattleSettings,
@@ -149,63 +150,63 @@ export function validateRequest(request: SimulationRequest): string[] {
   const squad = request.squad.map((name) => name.trim()).filter(Boolean);
 
   if (squad.length === 0) {
-    errors.push('스쿼드에 캐릭터를 1명 이상 편성해 주세요.');
+    errors.push('請至少編成 1 名角色。');
   } else if (squad.length > 5) {
-    errors.push('스쿼드는 최대 5명까지 편성할 수 있습니다.');
+    errors.push('一隊最多只能編成 5 名角色。');
   }
   if (new Set(squad).size !== squad.length) {
-    errors.push('같은 캐릭터를 두 번 편성할 수 없습니다.');
+    errors.push('同一名角色不能編成兩次。');
   }
   if (!integerInRange(request.duration, 10, 180)) {
-    errors.push('전투 시간은 10~180초여야 합니다.');
+    errors.push('戰鬥時間必須是 10~180秒。');
   }
   if (request.synchroLevel !== undefined && !integerInRange(request.synchroLevel, 1, SYNCHRO_MAX)) {
-    errors.push(`싱크로 레벨은 1~${SYNCHRO_MAX}이어야 합니다.`);
+    errors.push(`同步器等級必須是 1~${SYNCHRO_MAX}。`);
   }
   if (!integerInRange(request.enemyDef, 0, 999_999)) {
-    errors.push('적 방어력은 0~999999여야 합니다.');
+    errors.push('敵方防禦力必須是 0~999999。');
   }
   if (!integerInRange(request.corePx, 0, 1_000)) {
-    errors.push('코어 직경은 0~1000px여야 합니다.');
+    errors.push('核心直徑必須是 0~1000px。');
   }
   if (!integerInRange(request.seed, 0, 2_147_483_647)) {
-    errors.push('시드는 0~2147483647 사이의 정수여야 합니다.');
+    errors.push('種子必須是 0~2147483647 之間的整數。');
   }
   if (request.burstRegenTime !== undefined
       && !(Number.isFinite(request.burstRegenTime)
         && request.burstRegenTime >= 0 && request.burstRegenTime <= 20)) {
-    errors.push('버스트 게이지 충전 시간은 0~20초여야 합니다.');
+    errors.push('爆裂量表充能時間必須是 0~20秒。');
   }
   if (request.burstReaction !== undefined
       && !(Number.isFinite(request.burstReaction)
         && request.burstReaction >= 0 && request.burstReaction <= 3)) {
-    errors.push('버스트 반응속도는 0~3초여야 합니다.');
+    errors.push('爆裂反應速度必須是 0~3秒。');
   }
   // 보스 페이즈 — 시작이 끝보다 뒤면 조용히 뒤집지 않고 막는다. 엔진도 같은 규칙이다.
   const windows: Array<[{ from: number; to: number }, string]> = [
-    ...(request.immuneWindows ?? []).map((w) => [w, '족자'] as [typeof w, string]),
-    ...(request.elementWindows ?? []).map((w) => [w, '속저'] as [typeof w, string]),
+    ...(request.immuneWindows ?? []).map((w) => [w, '免疫'] as [typeof w, string]),
+    ...(request.elementWindows ?? []).map((w) => [w, '屬濾'] as [typeof w, string]),
   ];
   for (const [w, label] of windows) {
     if (!Number.isFinite(w.from) || !Number.isFinite(w.to)
         || w.from < 0 || w.to > 180 || w.from < 0) {
-      errors.push(`${label} 구간은 0~180초여야 합니다.`);
+      errors.push(`${label} 區間必須是 0~180秒。`);
     } else if (w.from >= w.to) {
-      errors.push(`${label} 구간은 시작이 끝보다 앞서야 합니다 (${w.from}~${w.to}).`);
+      errors.push(`${label} 區間的開始必須早於結束(${w.from}~${w.to})。`);
     }
   }
 
   if (request.console) {
     const levels: Array<[number, string]> = [
-      [request.console.common_level, '공통'],
+      [request.console.common_level, '共通'],
       ...Object.entries(request.console.class_level)
-        .map(([bucket, level]) => [level, `클래스(${bucket})`] as [number, string]),
+        .map(([bucket, level]) => [level, `職業(${termZh(bucket)})`] as [number, string]),
       ...Object.entries(request.console.company_level)
-        .map(([bucket, level]) => [level, `기업(${bucket})`] as [number, string]),
+        .map(([bucket, level]) => [level, `企業(${termZh(bucket)})`] as [number, string]),
     ];
     for (const [level, label] of levels) {
       if (!integerInRange(level, 0, 1_000)) {
-        errors.push(`${label} 콘솔 레벨은 0~1000 사이의 정수여야 합니다.`);
+        errors.push(`${label} 主控台等級必須是 0~1000 之間的整數。`);
       }
     }
   }
@@ -222,16 +223,16 @@ export function validateDecks(decks: DeckState[]): string[] {
   const errors: string[] = [];
   const nonEmpty = decks.filter((deck) => deck.squad.some((name) => name.trim()));
   if (nonEmpty.length === 0) {
-    errors.push('캐릭터가 편성된 덱이 하나 이상 필요합니다.');
+    errors.push('至少需要一個有編成角色的隊伍。');
     return errors;
   }
   for (const deck of nonEmpty) {
     const names = deck.squad.map((name) => name.trim()).filter(Boolean);
     if (names.length > 5) {
-      errors.push(`덱 ${deck.id}: 캐릭터는 최대 5명까지 편성할 수 있습니다.`);
+      errors.push(`隊 ${deck.id}:最多只能編成 5 名角色。`);
     }
     if (new Set(names).size !== names.length) {
-      errors.push(`덱 ${deck.id}: 같은 캐릭터를 두 번 편성할 수 없습니다.`);
+      errors.push(`隊 ${deck.id}:同一名角色不能編成兩次。`);
     }
   }
   return errors;
@@ -288,13 +289,13 @@ export function aggregateDeckResults(decks: DeckResultEntry[]): BatchResult {
 
 export function formatDamage(value: number): string {
   if (Math.abs(value) >= 1_000_000) {
-    return `${(value / 100_000_000).toFixed(2)}억`;
+    return `${(value / 100_000_000).toFixed(2)}億`;
   }
   return Math.round(value).toLocaleString('en-US');
 }
 
 export function formatDps(value: number): string {
-  return `${formatDamage(value)}/초`;
+  return `${formatDamage(value)}/秒`;
 }
 
 /**
@@ -309,4 +310,4 @@ export const formatExactDamage = (value: number): string =>
 
 /** 줄이지 않은 초당 대미지. 소수점 한 자리까지 — 정수로 자르면 덱 간 차이가 묻힌다. */
 export const formatExactDps = (value: number): string =>
-  `${(Math.round(value * 10) / 10).toLocaleString('en-US', { minimumFractionDigits: 1 })}/초`;
+  `${(Math.round(value * 10) / 10).toLocaleString('en-US', { minimumFractionDigits: 1 })}/秒`;

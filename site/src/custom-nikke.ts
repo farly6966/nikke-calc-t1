@@ -13,68 +13,71 @@ const CLASSES = ['화력형', '방어형', '지원형'];
 
 // 다른 LLM에 붙여넣을 프롬프트. 우리 엔진이 요구하는 JSON 스키마 + 실제 예시.
 export function buildAddPrompt(): string {
-  return `너는 모바일 게임 "승리의 여신: 니케"의 캐릭터 데이터를 JSON으로 변환하는 도구다.
-아래에 내가 붙여넣을 니케 1명의 이름·스탯·스킬 설명을 읽고, 정확히 아래 스키마의 JSON 객체 하나만 출력해라(코드블록·설명 없이 JSON만).
+  return `你是一個把手機遊戲《勝利女神:妮姬》的角色資料轉成 JSON 的工具。
+讀我接下來貼上的 1 名妮姬的名稱・數值・技能說明,只輸出一個完全符合下面 schema 的 JSON 物件(不要程式碼區塊、不要說明,只要 JSON)。
 
-## nikke(스탯) 필드
-공통(모든 무기):
+**下面 schema 裡的韓文值(전격・화력형・스킬1 等)是引擎的識別值,要原樣照抄,不可翻譯。**
+
+## nikke(數值)欄位
+共通(所有武器):
   "rarity": "SSR | SR | R",
   "element_code": "전격 | 작열 | 수냉 | 풍압 | 철갑",
   "class": "화력형 | 방어형 | 지원형",
   "manufacturer": "엘리시온 | 미실리스 | 테트라 | 필그림 | 어브노멀",
   "weapon_type": "AR | SMG | MG | SR | RL | SG",
   "burst_stage": 1 | 2 | 3,
-  "burst_cooldown": 초(예: 20, 40),
-  "max_ammo": 기본 장탄 수,
-  "reload_time": 재장전 초,
-  "fire_rate": 초당 발사 수,
-  "pellets": 산탄 수(SG만 2 이상, 아니면 1),
-  "muzzles": 총구 수(대개 1),
-  "damage_coeff": 1발 대미지 계수(%표기 그대로 숫자)
-무기 유형별 추가 필드(중요):
-  · 연사형(AR·SMG·MG·SG): "core_dmg_mult": 코어 대미지 배율(%, 예 200)
-  · 차지형(SR·RL): "charge_time": 풀차지까지 걸리는 초(예 앨리스 1.5, 대부분 RL 1.0),
-                   "full_charge_mult": 풀차지 대미지 배율(%, 예 250·350)
-    (차지형은 charge_time·full_charge_mult가 반드시 필요하다.)
+  "burst_cooldown": 秒(例:20、40),
+  "max_ammo": 基本裝彈數,
+  "reload_time": 裝填秒數,
+  "fire_rate": 每秒發射數,
+  "pellets": 散彈數(只有 SG 會 2 以上,否則為 1),
+  "muzzles": 槍口數(通常為 1),
+  "damage_coeff": 單發傷害係數(照 % 標示直接寫數字)
+依武器類型的追加欄位(重要):
+  · 連射型(AR・SMG・MG・SG): "core_dmg_mult": 核心傷害倍率(%,例 200)
+  · 蓄力型(SR・RL): "charge_time": 到滿蓄力所需秒數(例 Alice 1.5,多數 RL 1.0),
+                   "full_charge_mult": 滿蓄力傷害倍率(%,例 250・350)
+    (蓄力型一定要有 charge_time 與 full_charge_mult。)
 
-## skills(스킬 배열) 필드
-각 원소:
+## skills(技能陣列)欄位
+每個元素:
   "source": "스킬1 | 스킬2 | 버스트스킬",
   "type": "buff | damage",
-  "name": "효과 이름",
-  "trigger": { "timing": ["발동 시점"], "condition": ["조건(없으면 빈 배열)"] },
-  "target": "대상",
-  "stat": "효과 종류",
+  "name": "效果名稱",
+  "trigger": { "timing": ["發動時機"], "condition": ["條件(沒有就給空陣列)"] },
+  "target": "對象",
+  "stat": "效果種類",
   "polarity": "beneficial | harmful",
   "max_stack": 1,
-  "values": { "1": 최저레벨값, "10": 만렙값 }   // 레벨별 값이 있을 때
-  // 레벨 무관 고정값이면 "values" 대신 "fixed_value": 숫자
-  "duration": 지속초(즉발/영구는 생략 또는 -1)
+  "values": { "1": 最低等級值, "10": 滿級值 }   // 有分等級的值時
+  // 與等級無關的固定值,就用 "fixed_value": 數字 取代 "values"
+  "duration": 持續秒數(即時發動/永久則省略或填 -1)
 
-**엔진은 아래 목록에 없는 stat·timing·target은 무시한다(효과 없음). 반드시 아래 값만 써라.**
-확실하지 않으면 가장 가까운 값으로 매핑하고, 도저히 못 맞추는 효과(게이지·모드 전환·복잡한
-스택 조건 등 특수 메커니즘)는 **그 효과 자체를 빼라**(억지로 넣지 마라).
+**引擎會忽略不在下列清單中的 stat・timing・target(視為沒有效果)。務必只用下面的值。**
+不確定時就對應到最接近的值;真的對不上的效果(量表・模式切換・複雜的疊層條件等特殊機制)
+**請把那個效果整個拿掉**(不要硬塞)。
 
-timing(발동 시점): battle_start, full_burst_start, full_burst_start_count:N, full_burst_start_exact:N, full_burst_end, burst_cast, burst_cast_count:N, last_bullet, last_bullet_fire, hit_count:N, full_charge_hit, passive
-target(대상): self, all_allies, all_allies_excl_self, all_enemies, target, same_target, allies:N, allies_top_atk:N, allies_weapon:<무기>, allies_class:공격|방어|지원, allies_code:<속성>, allies_code_weapon:<속성>:<무기>, enemies_top_atk:N
-buff stat(type "buff"): atk_pct, atk_flat, atk_dmg_pct, normal_atk_dmg_pct, crit_rate, crit_dmg, core_dmg_pct, element_bonus_pct, burst_dmg_pct, pierce_dmg_pct, charge_dmg_pct, charge_dmg_mag_pct, charge_speed_pct, max_ammo_pct, max_ammo_flat, reload_speed_pct, attack_speed_pct, accuracy_pct, def_pct, def_ignore_pct, enemy_def_down_pct, received_dmg(적이 받는 대미지 증가 %), burst_cooldown(초, 감소는 음수)
-damage stat(type "damage", values는 대미지 계수 %): bonus_damage, burst_damage, damage
-주의: '받는 대미지 증가'는 received_dmg다(received_dmg_pct 아님). 무기명 대응 — 소총=AR, 스나이퍼=SR, 머신건=MG, 기관단총=SMG, 샷건=SG, 로켓=RL.
+timing(發動時機): battle_start, full_burst_start, full_burst_start_count:N, full_burst_start_exact:N, full_burst_end, burst_cast, burst_cast_count:N, last_bullet, last_bullet_fire, hit_count:N, full_charge_hit, passive
+target(對象): self, all_allies, all_allies_excl_self, all_enemies, target, same_target, allies:N, allies_top_atk:N, allies_weapon:<武器>, allies_class:공격|방어|지원, allies_code:<屬性>, allies_code_weapon:<屬性>:<武器>, enemies_top_atk:N
+buff stat(type "buff"): atk_pct, atk_flat, atk_dmg_pct, normal_atk_dmg_pct, crit_rate, crit_dmg, core_dmg_pct, element_bonus_pct, burst_dmg_pct, pierce_dmg_pct, charge_dmg_pct, charge_dmg_mag_pct, charge_speed_pct, max_ammo_pct, max_ammo_flat, reload_speed_pct, attack_speed_pct, accuracy_pct, def_pct, def_ignore_pct, enemy_def_down_pct, received_dmg(敵人受到的傷害增加 %), burst_cooldown(秒,減少填負數)
+damage stat(type "damage",values 是傷害係數 %): bonus_damage, burst_damage, damage
+注意:「受到的傷害增加」是 received_dmg(不是 received_dmg_pct)。武器名對應 — 步槍=AR, 狙擊槍=SR, 機槍=MG, 衝鋒槍=SMG, 霰彈槍=SG, 火箭筒=RL。
+※ allies_class 的值 공격|방어|지원 即「攻擊|防禦|支援」,但要原樣寫韓文。
 
-## 참고 예시
-연사형(프리바티, AR):
+## 參考範例
+連射型(Privaty, AR):
 {"name":"프리바티","nikke":{"rarity":"SSR","element_code":"수냉","class":"화력형","manufacturer":"테트라","weapon_type":"AR","burst_stage":3,"burst_cooldown":40,"max_ammo":60,"reload_time":1.0,"fire_rate":12.0,"pellets":1,"muzzles":1,"damage_coeff":13.65,"core_dmg_mult":200.0},"skills":[
 {"source":"스킬1","type":"buff","name":"EX 매거진","trigger":{"timing":["full_burst_start"],"condition":[]},"target":"all_allies","stat":"atk_pct","polarity":"beneficial","max_stack":1,"values":{"1":18.77,"10":23.61},"duration":10.0},
 {"source":"버스트스킬","type":"damage","name":"AK 미사일","trigger":{"timing":["burst_cast"],"condition":[]},"target":"all_enemies","stat":"burst_damage","values":{"1":831.79,"10":1407.64}}
 ]}
-차지형(앨리스, SR):
+蓄力型(Alice, SR):
 {"name":"앨리스 예시","nikke":{"rarity":"SSR","element_code":"작열","class":"화력형","manufacturer":"테트라","weapon_type":"SR","burst_stage":3,"burst_cooldown":40,"max_ammo":6,"reload_time":2.0,"fire_rate":1.0,"pellets":1,"muzzles":1,"damage_coeff":41.36,"charge_time":1.5,"full_charge_mult":350.0},"skills":[
 {"source":"버스트스킬","type":"buff","name":"공격 버프","trigger":{"timing":["burst_cast"],"condition":[]},"target":"self","stat":"atk_pct","polarity":"beneficial","max_stack":1,"values":{"1":50.0,"10":90.0},"duration":10.0}
 ]}
 
-이제 아래 니케를 변환해라. 확실하지 않은 값은 합리적으로 추정하되 스키마는 반드시 지켜라:
+現在請轉換下面這名妮姬。不確定的值可以合理推估,但 schema 一定要遵守:
 
-[여기에 니케 이름과 스킬 설명을 붙여넣으세요]`;
+[請在這裡貼上妮姬的名稱與技能說明]`;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -115,7 +118,7 @@ export function unsupportedEffects(skills: unknown[]): string[] {
     const target = String(skill.target ?? '');
     const trigger = isRecord(skill.trigger) ? skill.trigger : {};
     const timings = Array.isArray(trigger.timing) ? trigger.timing.map(String) : [];
-    const name = String(skill.name ?? '(이름 없음)');
+    const name = String(skill.name ?? '(未命名)');
     const statOk = skill.type === 'damage'
       ? DAMAGE_STATS.has(prefix(stat))
       : BUFF_STATS.has(stat);
@@ -132,30 +135,30 @@ export function parseCustomInput(text: string): CustomCharacter {
   try {
     data = JSON.parse(text.trim());
   } catch {
-    throw new Error('JSON 형식이 아닙니다. LLM이 준 JSON만 붙여넣어 주세요.');
+    throw new Error('這不是 JSON 格式。請只貼上 LLM 給的 JSON。');
   }
-  if (!isRecord(data)) throw new Error('최상위는 객체여야 합니다.');
+  if (!isRecord(data)) throw new Error('最外層必須是物件。');
   const name = typeof data.name === 'string' ? data.name.trim() : '';
-  if (!name) throw new Error('name(이름)이 필요합니다.');
-  if (!isRecord(data.nikke)) throw new Error('nikke(스탯) 객체가 필요합니다.');
-  if (!Array.isArray(data.skills)) throw new Error('skills(스킬 배열)가 필요합니다.');
+  if (!name) throw new Error('需要 name(名稱)。');
+  if (!isRecord(data.nikke)) throw new Error('需要 nikke(數值)物件。');
+  if (!Array.isArray(data.skills)) throw new Error('需要 skills(技能陣列)。');
 
   const nikke = data.nikke;
   const required = ['rarity', 'element_code', 'class', 'weapon_type', 'burst_stage',
     'burst_cooldown', 'max_ammo', 'reload_time', 'fire_rate', 'damage_coeff'];
   const missing = required.filter((f) => nikke[f] === undefined || nikke[f] === null);
-  if (missing.length > 0) throw new Error(`nikke에 누락된 항목: ${missing.join(', ')}`);
+  if (missing.length > 0) throw new Error(`nikke 缺少這些項目:${missing.join(', ')}`);
   if (!WEAPONS.includes(String(nikke.weapon_type))) {
-    throw new Error(`weapon_type은 ${WEAPONS.join('/')} 중 하나여야 합니다.`);
+    throw new Error(`weapon_type 必須是 ${WEAPONS.join('/')} 其中之一。`);
   }
   if (!CODES.includes(String(nikke.element_code))) {
-    throw new Error(`element_code는 ${CODES.join('/')} 중 하나여야 합니다.`);
+    throw new Error(`element_code 必須是 ${CODES.join('/')} 其中之一。`);
   }
   if (!CLASSES.includes(String(nikke.class))) {
-    throw new Error(`class는 ${CLASSES.join('/')} 중 하나여야 합니다.`);
+    throw new Error(`class 必須是 ${CLASSES.join('/')} 其中之一。`);
   }
   if (![1, 2, 3].includes(Number(nikke.burst_stage))) {
-    throw new Error('burst_stage는 1, 2, 3 중 하나여야 합니다.');
+    throw new Error('burst_stage 必須是 1、2、3 其中之一。');
   }
 
   // 엔진 기본값 보정 (누락 허용 필드)
@@ -176,10 +179,10 @@ export function parseCustomInput(text: string): CustomCharacter {
 
 const growthOptionsFor = (rarity: string): { options: GrowthOption[]; max: number; def: number } => {
   const label = (v: number): string =>
-    v === 0 ? '명함' : v <= 3 ? `${v}돌` : `코강 ${v - 3}`;
+    v === 0 ? '無突破' : v <= 3 ? `${v}突破` : `核心強化 ${v - 3}`;
   const affinity = (v: number): number => (v === 0 ? 10 : v === 1 ? 20 : 30);
   if (rarity === 'R') {
-    return { options: [{ value: 0, label: '명함', affinity: 10 }], max: 0, def: 0 };
+    return { options: [{ value: 0, label: '無突破', affinity: 10 }], max: 0, def: 0 };
   }
   const max = rarity === 'SR' ? 2 : 10;
   const options = Array.from({ length: max + 1 }, (_, v) => ({ value: v, label: label(v), affinity: affinity(v) }));

@@ -111,17 +111,17 @@ describe('generated browser runtime', () => {
     expect(settings.characters['리타']!.growthOptions).toHaveLength(11);
     expect(settings.characters['리타']!.growthOptions[0]).toEqual({
       value: 0,
-      label: '명함',
+      label: '無突破',
       affinity: 10,
     });
     expect(settings.characters['리타']!.growthOptions[3]).toEqual({
       value: 3,
-      label: '3돌',
+      label: '3突破',
       affinity: 30,
     });
     expect(settings.characters['리타']!.growthOptions[10]).toEqual({
       value: 10,
-      label: '코강 7',
+      label: '核心強化 7',
       affinity: 30,
     });
     expect(settings.characters['크라운']!.growthOptions[3]!.affinity).toBe(40);

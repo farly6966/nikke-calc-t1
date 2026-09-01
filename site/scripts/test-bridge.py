@@ -582,7 +582,7 @@ class BrowserBridgeTest(unittest.TestCase):
 
         got = run(3)
         miranda = got["미란다"][0]
-        self.assertEqual(miranda["label"], "크확 대상")
+        self.assertEqual(miranda["label"], "暴擊率對象")
         self.assertGreater(miranda["count"], 0)
         # 자신 제외 공격력 1위에게 간다 — 스쿼드 안의 다른 캐릭터여야 한다.
         self.assertTrue(miranda["targets"])
@@ -591,7 +591,7 @@ class BrowserBridgeTest(unittest.TestCase):
             self.assertIn(name, squad)
 
         rebellio = got["리버렐리오"][0]
-        self.assertEqual(rebellio["label"], "차분한 수심 대상")
+        self.assertEqual(rebellio["label"], "《차분한 수심》對象")
         self.assertTrue(rebellio["targets"])
         for name in rebellio["targets"]:
             self.assertIn(name, squad)

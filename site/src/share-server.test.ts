@@ -61,7 +61,7 @@ describe('share server client', () => {
   it('falls back to a readable message when the body is not JSON', async () => {
     const fetcher = (async () => new Response('nope', { status: 502 })) as unknown as typeof fetch;
     await expect(new ShareServer('https://share.example.com', fetcher).list('boss'))
-      .rejects.toThrow('서버가 응답하지 않았습니다 (502).');
+      .rejects.toThrow('伺服器沒有回應(502)。');
   });
 });
 
@@ -89,7 +89,7 @@ describe('auto summaries', () => {
       { squad: ['', '', '', '', ''] },
     ];
     expect(summarizeSquad(decks, false)).toBe('리타/크라운');
-    expect(summarizeSquad(decks, true)).toBe('2덱 · 4명');
+    expect(summarizeSquad(decks, true)).toBe('2 隊 · 4 名');
     // 5덱 모드라도 실제로 한 덱만 찼으면 이름이 더 쓸모 있다.
     expect(summarizeSquad([decks[0]!], true)).toBe('리타/크라운');
 

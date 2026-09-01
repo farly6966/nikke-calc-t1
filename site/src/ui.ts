@@ -59,6 +59,16 @@ import { createTimelineBlock } from './timeline';
 // 화면 표시용 이름 해석기 — mountCalculator에서 catalog로 채운다.
 // 그 전(모듈 로드 직후)에는 원래 이름을 그대로 돌려준다.
 let resolveDisplayName = (name: string): string => name;
+
+/**
+ * 엔진이 만든 이탈 보고에 적힌 이름을 화면 이름으로. 블록은 그대로 두고
+ * **`[이름]`만** 바꾼다 — 엔진 키 경로(`console.class_level.화력형`)는 데이터다.
+ */
+const shownDeviations = (text: string): string =>
+  text.replace(/\[([^\][\n]+)\]/g, (whole, name: string) => {
+    const shown = resolveDisplayName(name);
+    return shown === name ? whole : `[${shown}]`;
+  });
 import {
   aggregateDeckResults,
   cacheKey,
@@ -1794,7 +1804,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const moves = document.createElement('div');
       moves.className = 'slot-moves';
       for (const [delta, label, title] of [
-        [-1, '‹', '왼쪽으로'], [1, '›', '오른쪽으로'],
+        [-1, '‹', '往左'], [1, '›', '往右'],
       ] as const) {
         const move = document.createElement('button');
         move.type = 'button';
@@ -2045,7 +2055,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const axisGroup = (axis: 'class' | 'company', title: string) => group(
       title,
       consoleBuckets(axis).map((bucket) => {
-        const [wrap, input] = field(bucket, CONSOLE_DEFAULTS[axis]);
+        // 값(엔진에 보내는 한국어 소속명)은 그대로 두고 보이는 글자만 바꾼다.
+        const [wrap, input] = field(termZh(bucket), CONSOLE_DEFAULTS[axis]);
         input.dataset.consoleBucket = `${axis}:${bucket}`;
         consoleInputs[axis].set(bucket, input);
         return wrap;
@@ -2661,7 +2672,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'preset-remove';
-      remove.textContent = '삭제';
+      remove.textContent = '刪除';
       remove.addEventListener('click', () => {
         calcHistory = calcHistory.filter((item) => item.at !== entry.at);
         persistHistory();
@@ -2849,7 +2860,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           return squadPreview(decks, (name) => {
             const image = catalogByName.get(name)?.image;
             return image ? `${import.meta.env.BASE_URL}${image}` : undefined;
-          });
+          }, resolveDisplayName);
         } catch {
           return null;
         }
@@ -2934,9 +2945,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         enemyCode: battle.enemyCode,
         corePx: battle.coreEnabled ? battle.corePx : 0,
         hasParts: battle.hasParts,
-        siteUrl: 'moris-kr.github.io/nikke-calc',
+        siteUrl: 'farly6966.github.io/nikke-calc-t1',
         // 덱에 붙인 이름을 이미지에도 잇는다 — 자료를 모을 때 한 장으로 끝나게.
         deckNames: Object.fromEntries(decks.map((deck) => [deck.id, deckLabelFull(deck)])),
+        // 그림에도 화면과 같은 이름이 적혀야 한다 — 커뮤니티에 그대로 붙여넣는 그림이다.
+        displayNames: Object.fromEntries(
+          [...new Set(names)].filter(Boolean)
+            .map((name) => [name, catalogByName.get(name)?.displayName ?? name]),
+        ),
       };
       const canvas = renderReport(batch, meta, portraits);
       reportBlob = await canvasToBlob(canvas);
@@ -3124,10 +3140,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       facts.className = 'result-facts';
       facts.append(
         createText('span', `${entry.result.duration}秒 戰鬥`),
-        createText('span', `${entry.result.hitCount.toLocaleString('ko-KR')} 히트`),
-        createText('span', `시드 ${entry.request.seed}`),
+        createText('span', `${entry.result.hitCount.toLocaleString('zh-TW')} 次命中`),
+        createText('span', `種子 ${entry.request.seed}`),
       );
-      section.append(facts, createText('pre', entry.result.deviations, 'deviations'));
+      section.append(facts, createText('pre', shownDeviations(entry.result.deviations), 'deviations'));
       host.append(section);
     };
 
@@ -3180,11 +3196,15 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     for (const entry of batch.decks) {
       // 버스트 핀에 쓸 초상화. 캔버스가 직접 그리므로 URL만 넘긴다.
       const portraitUrls: Record<string, string> = {};
+      // 타임라인은 카탈로그를 모르므로 화면 이름을 함께 넘긴다 — 범례·툴팁이
+      // 한국어 정본 이름을 그대로 적으면 화면에서 그 사람만 낯설어진다.
+      const timelineNames: Record<string, string> = {};
       for (const name of entry.request.squad) {
-        const image = catalogByName.get(name)?.image;
-        if (image) portraitUrls[name] = `${import.meta.env.BASE_URL}${image}`;
+        const meta = catalogByName.get(name);
+        if (meta?.image) portraitUrls[name] = `${import.meta.env.BASE_URL}${meta.image}`;
+        if (meta?.displayName) timelineNames[name] = meta.displayName;
       }
-      const timelineBlock = createTimelineBlock(entry, portraitUrls);
+      const timelineBlock = createTimelineBlock(entry, portraitUrls, timelineNames);
       if (timelineBlock) blocks.set(entry.deckId, timelineBlock);
     }
     if (blocks.size > 1) {
@@ -3757,11 +3777,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   /** 버스트만 판 밖에 있다 — 값은 여기 두고 그리는 자리만 다르다. */
   const BURST_VALUES = ['1', '2', '3', 'A'];
   const FILTER_GROUPS: Array<{ key: FilterKey; title: string; values: string[] }> = [
-    { key: 'rarity', title: '등급', values: ['SSR', 'SR', 'R'] },
-    { key: 'class', title: '클래스', values: ['화력형', '방어형', '지원형'] },
-    { key: 'code', title: '코드', values: ['작열', '수냉', '풍압', '전격', '철갑'] },
-    { key: 'weapon', title: '무기', values: ['AR', 'SMG', 'SG', 'SR', 'RL', 'MG'] },
-    { key: 'corp', title: '기업', values: ['엘리시온', '미실리스', '테트라', '필그림', '어브노말'] },
+    { key: 'rarity', title: '稀有度', values: ['SSR', 'SR', 'R'] },
+    { key: 'class', title: '職業', values: ['화력형', '방어형', '지원형'] },
+    { key: 'code', title: '屬性', values: ['작열', '수냉', '풍압', '전격', '철갑'] },
+    { key: 'weapon', title: '武器', values: ['AR', 'SMG', 'SG', 'SR', 'RL', 'MG'] },
+    { key: 'corp', title: '企業', values: ['엘리시온', '미실리스', '테트라', '필그림', '어브노말'] },
   ];
 
   // 값(필터·직렬화에 쓰는 한국어)은 그대로 두고, 보이는 라벨만 중국어로 바꾼다.
@@ -3773,7 +3793,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     Object.values(picked).reduce((sum, set) => sum + set.size, 0);
 
   function sortRoster(list: CharacterMeta[]): void {
-    const byName = (a: CharacterMeta, b: CharacterMeta) => a.name.localeCompare(b.name, 'ko');
+    // 화면에 보이는 이름으로 세운다 — 영어 이름이 적혀 있는데 한국어 가나다순으로
+    // 늘어서면 「이름순」이라는 말이 거짓이 된다.
+    const byName = (a: CharacterMeta, b: CharacterMeta) =>
+      (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name, 'zh-Hant');
     const flip = sortDesc ? -1 : 1;
     if (sortKey === 'name') { list.sort((a, b) => flip * byName(a, b)); return; }
     const scoreOf = (char: CharacterMeta): number => {
@@ -3906,7 +3929,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   const renderRosterGrid = () => {
     // 직접 추가한 니케까지 포함해 지금 고를 수 있는 전체를 보여준다.
-    const all = [...catalogByName.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    const all = [...catalogByName.values()]
+      .sort((a, b) => (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name, 'zh-Hant'));
     const narrowed = all.filter((char) => {
       const meta = settings.characters[char.name];
       const hit = (key: FilterKey, value: string | undefined) =>
@@ -4703,6 +4727,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const image = catalogByName.get(name)?.image;
         return image ? `${import.meta.env.BASE_URL}${image}` : undefined;
       },
+      labelOf: resolveDisplayName,
       currentBattleCode: () => encodeBattleCode(readBattle(), settings.normalHitCoeff),
       currentDeckCode: (index) => {
         const deck = decks[index];
@@ -4750,7 +4775,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const cached = readEnikkCache();
       if (cached) {
         renderEnikk(cached);
-        setEnikkStatus('저장해 둔 결과입니다. 새로 받으려면 «다시 받기»를 누르세요.');
+        setEnikkStatus('這是先前儲存的結果。想重新取得請按《重新取得》。');
         enikkLoad.hidden = true;
         enikkRefresh.hidden = false;
       }
@@ -4831,7 +4856,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'custom-remove';
-      remove.textContent = '삭제';
+      remove.textContent = '刪除';
       remove.addEventListener('click', () => {
         delete customChars[name];
         saveCustom();
@@ -5011,7 +5036,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       request: requestForDeck(deck, battle, Object.keys(custom).length > 0 ? custom : undefined),
     }));
     for (const { deck, request } of requests) {
-      validation.push(...validateRequest(request).map((message) => `덱 ${deck.id}: ${message}`));
+      validation.push(...validateRequest(request).map((message) => `隊 ${deck.id}:${message}`));
     }
     showErrors([...new Set(validation)]);
     if (validation.length > 0) return;
@@ -5063,23 +5088,23 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
       activity = cachedCount === requests.length ? 'cached' : 'complete';
       status.textContent = cachedCount === requests.length
-        ? '저장된 결과를 불러왔습니다.'
-        : `${requests.length}개 덱 계산 완료 · 같은 조건은 이 기기에 저장됩니다.`;
+        ? '已載入儲存的結果。'
+        : `${requests.length} 個隊伍計算完成 · 相同條件會存在這台裝置上。`;
     } catch (error) {
       if (completed.length > 0) renderBatchResult(aggregateDeckResults(completed));
       const failedEntry = requests[failedIndex >= 0 ? failedIndex : completed.length];
       const failed = failedEntry?.deck.id;
       const detail = cleanEngineError(error instanceof Error ? error.message : String(error));
-      const messages = [`덱 ${failed ?? '?'} 계산 실패: ${detail}`];
+      const messages = [`隊 ${failed ?? '?'} 計算失敗:${detail}`];
       const hasBurstOverride = failedEntry
         ? Object.values(failedEntry.deck.characters).some((custom) => custom.burst)
         : false;
       if (hasBurstOverride) {
-        messages.push('이 조합은 버스트 운용 지정을 지원하지 않을 수 있습니다. 해당 캐릭터의 버스트 운용을 \'자동\'으로 바꿔 다시 실행해 주세요.');
+        messages.push('這個組合可能不支援指定爆裂運用。請把該角色的爆裂運用改回《自動》後再執行一次。');
       }
       showErrors(messages);
       activity = 'error';
-      status.textContent = '계산에 실패했습니다. 입력값을 확인하고 다시 실행해 주세요.';
+      status.textContent = '計算失敗。請確認輸入值後再執行一次。';
     } finally {
       submit.disabled = false;
       submit.classList.remove('is-running');

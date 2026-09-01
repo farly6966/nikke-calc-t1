@@ -53,7 +53,7 @@ describe('parseCustomInput', () => {
     expect(() => parseCustomInput(JSON.stringify(badWeapon))).toThrow(/weapon_type/);
     const missing = JSON.parse(validJson);
     delete missing.nikke.max_ammo;
-    expect(() => parseCustomInput(JSON.stringify(missing))).toThrow(/누락/);
+    expect(() => parseCustomInput(JSON.stringify(missing))).toThrow(/缺少/);
   });
 });
 
@@ -98,6 +98,6 @@ describe('buildAddPrompt', () => {
     const prompt = buildAddPrompt();
     expect(prompt).toContain('"skills"');
     expect(prompt).toContain('프리바티');
-    expect(prompt).toContain('[여기에 니케 이름과 스킬 설명을 붙여넣으세요]');
+    expect(prompt).toContain('[請在這裡貼上妮姬的名稱與技能說明]');
   });
 });

@@ -428,11 +428,11 @@ def preview_note(names: list[str]) -> str:
     carded = [n for n in pv if n not in made]
     parts = []
     if carded:
-        parts.append(f"[프리뷰 · 미검증] {', '.join(carded)} — 출시 전 카드(스킬 레벨 10) 기준. "
-                     "인게임 검증 전이므로 수치·발동 조건이 바뀔 수 있다")
+        parts.append(f"[預覽 · 未驗證] {', '.join(carded)} — 依上市前的卡面(技能等級 10)計算。"
+                     "尚未在遊戲內驗證,數值與發動條件都可能改變")
     if made:
-        parts.append(f"[임시 · 창작] {', '.join(made)} — 스킬이 공개되지 않아 임의로 창작한 "
-                     "값으로 계산했다. 실제 성능과 무관하다")
+        parts.append(f"[暫定 · 創作] {', '.join(made)} — 技能尚未公開,以任意創作的值計算,"
+                     "與實際性能無關")
     return " / ".join(parts)
 
 
@@ -604,6 +604,16 @@ def squad_deviations(squad: list[dict], profile: GrowthProfile | None = None
             if (d := char_deviations(c, members, profile))}
 
 
+# 화면용 표기. `_fmt`와 `char_deviations`의 값은 **건드리지 않는다** — 스냅샷
+# 기준선(`context/baseline/*.json`)이 그 문자열을 그대로 담고 있어, 바꾸면 29개
+# 기준선이 통째로 흔들린다. 바꾸는 것은 사람이 읽는 이 블록뿐이다.
+_SRC_ZH = {"레이어": "分層", "지정": "指定"}
+
+
+def _shown(text: str) -> str:
+    return "無" if text == "없음" else text
+
+
 def format_deviations(squad: list[dict], indent: str = "",
                       profile: GrowthProfile | None = None) -> str:
     """기준선 이탈을 사람이 읽는 블록으로. 이탈이 없으면 그렇다고 한 줄로 알린다.
@@ -620,13 +630,14 @@ def format_deviations(squad: list[dict], indent: str = "",
         head += [f"{indent}⚠ {n}"
                  for n in profile.notes(names) + profile.cube_notes(squad)]
     dev = squad_deviations(squad, profile)
-    label = "프로필(2.5층)" if profile is not None else "기본 스펙(1층)"
+    label = "養成檔案" if profile is not None else "基本規格"
     if not dev:
         if profile is not None:
-            return "\n".join(head + [f"{indent}프로필 그대로 — 추가 지정 없음."])
-        return "\n".join(head + [f"{indent}기본 스펙(1층) 그대로 — 컨트롤 자동 · 공통 장비 옵션."])
-    lines = head + [f"{indent}⚠ {label} 이탈 {len(dev)}명 —"]
+            return "\n".join(head + [f"{indent}與養成檔案相同 — 沒有額外指定。"])
+        return "\n".join(head + [f"{indent}與基本規格相同 — 操作自動 · 共通裝備選項。"])
+    lines = head + [f"{indent}⚠ 偏離{label} {len(dev)} 名 —"]
     for nm, items in dev.items():
         for k, b, c, src in items:
-            lines.append(f"{indent}  [{nm}] {k}: {_fmt(b)} → {_fmt(c)}  ({src})")
+            lines.append(f"{indent}  [{nm}] {k}: {_shown(_fmt(b))} → {_shown(_fmt(c))}"
+                         f"  ({_SRC_ZH.get(src, src)})")
     return "\n".join(lines)

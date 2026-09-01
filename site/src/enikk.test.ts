@@ -23,8 +23,8 @@ const player = (
 
 describe('formatEok', () => {
   it('억 단위로 읽는다 — enikk의 B 표기를 그대로 쓰지 않는다', () => {
-    expect(formatEok(6_254_535_716)).toBe('62.5억');
-    expect(formatEok(42_083_871_002)).toBe('420.8억');
+    expect(formatEok(6_254_535_716)).toBe('62.5億');
+    expect(formatEok(42_083_871_002)).toBe('420.8億');
     expect(formatEok(0)).toBe('0');
   });
 });
