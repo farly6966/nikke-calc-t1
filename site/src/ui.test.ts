@@ -243,7 +243,7 @@ describe('calculator UI', () => {
     // 창 하나가 저장(프리셋)과 주고받기(코드·링크)를 같이 맡는다.
     expect(root.querySelector('[data-preset-name]')).not.toBeNull();
     expect(root.querySelector('[data-share-out]')).not.toBeNull();
-    expect(modal.textContent).toContain('개인 스펙과 전투 조건은 담기지 않습니다');
+    expect(modal.textContent).toContain('個人規格與戰鬥條件不會被包含');
 
     const name = root.querySelector<HTMLInputElement>('[data-preset-name]')!;
     name.value = '솔레 1군';
@@ -430,7 +430,7 @@ describe('calculator UI', () => {
       expect(card.href.startsWith('https://')).toBe(true);
     }
     // 우리가 운영하는 곳이 아니라는 사실이 화면에 적혀 있어야 한다.
-    expect(panel.textContent).toContain('우리가 운영하지 않습니다');
+    expect(panel.textContent).toContain('不是我們營運的');
   });
 
   it('적 수치를 초기화하면 조건 한 줄도 함께 바뀐다', () => {
@@ -499,13 +499,13 @@ describe('calculator UI', () => {
     const scope = root.querySelector<HTMLElement>('[data-share-scope]')!;
     expect(scope).not.toBeNull();
     // 기본은 「이 덱만」이다 — 덱 하나를 옮기는 일이 판 전체를 옮기는 일보다 잦다.
-    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('이 덱만');
+    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('只有這隊');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
       .toContain('덱 1에만 들어갑니다');
 
     // 「5덱 전부」로 바꾸면 안내도 따라 바뀐다.
     root.querySelector<HTMLButtonElement>('[data-share-scope-pick="all"]')!.click();
-    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('5덱 전부');
+    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('全部 5 隊');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
       .toContain('판 전체가 바뀝니다');
   });
@@ -540,7 +540,7 @@ describe('calculator UI', () => {
     expect(root.querySelector('[data-union-set-apply]')).not.toBeNull();
     // 명단이 담기지 않는다는 사실은 화면에 적혀 있어야 한다 — 남의 계정 정보다.
     const step = root.querySelector<HTMLElement>('[data-union-step="3"]')!;
-    expect(step.textContent).toContain('유니온원 명단은 담기지 않습니다');
+    expect(step.textContent).toContain('聯盟成員名單不會被包含');
   });
 
   it('공유 서버 주소가 없으면 「공유에서 판 고르기」를 감춘다', () => {
@@ -566,7 +566,7 @@ describe('calculator UI', () => {
     expect(server).not.toBeNull();
     expect(server!.value).toBe('');
     expect([...server!.options].map((option) => [option.value, option.textContent])).toEqual([
-      ['', '자동 (보유 니케가 가장 많은 서버)'],
+      ['', '自動(持有妮姬最多的伺服器)'],
       ['83', '한국'],
       ['81', '일본'],
       ['84', '글로벌'],

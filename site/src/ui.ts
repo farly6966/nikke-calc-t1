@@ -518,66 +518,66 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
       <section class="panel links-panel" data-view="links" aria-labelledby="links-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">LINKS</p><h2 id="links-heading">외부고리</h2></div>
+          <div><p class="step">LINKS</p><h2 id="links-heading">外部連結</h2></div>
         </div>
-        <p class="links-lede">니케를 굴리는 데 쓰는 <b>다른 사람들의 도구</b>입니다. 새 탭에서 열립니다.</p>
-        <p class="links-warn"><b>여기 적힌 곳은 우리가 운영하지 않습니다.</b> 계산기에 넣어 둔 값이나 계정 정보가 저쪽으로 넘어가지 않고, 저쪽 내용·주소가 바뀌어도 우리가 알지 못합니다.</p>
+        <p class="links-lede">玩妮姬會用到的<b>其他人做的工具</b>。會在新分頁開啟。</p>
+        <p class="links-warn"><b>這裡列出的地方不是我們營運的。</b>計算機裡填的值或帳號資訊不會傳到那邊;那邊的內容・網址變了我們也不會知道。</p>
         <div class="links-grid" data-links-grid></div>
       </section>
 
       ${blablaProxy ? `
       <section class="panel union-panel" data-view="union" aria-labelledby="union-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">UNION</p><h2 id="union-heading">유니온 레이드 <b class="beta-tag">BETA</b></h2></div>
+          <div><p class="step">UNION</p><h2 id="union-heading">聯盟突襲 <b class="beta-tag">BETA</b></h2></div>
         </div>
-        <div class="union-modes" role="group" aria-label="계산 대상">
-          <button type="button" class="union-mode is-on" data-union-mode="union" aria-pressed="true">유니온</button>
-          <button type="button" class="union-mode" data-union-mode="personal" aria-pressed="false">개인용</button>
+        <div class="union-modes" role="group" aria-label="計算對象">
+          <button type="button" class="union-mode is-on" data-union-mode="union" aria-pressed="true">聯盟</button>
+          <button type="button" class="union-mode" data-union-mode="personal" aria-pressed="false">個人用</button>
         </div>
-        <p class="union-lede" data-union-lede-union>유니온원 <b>각자의 실제 스펙과 싱크로 레벨</b>로 같은 보스·같은 덱을 돌려, 누가 얼마나 기여할 수 있는지 견줍니다. 니케 목록을 공개한 사람만 계산할 수 있습니다.</p>
-        <p class="union-lede" data-union-lede-personal hidden><b>내 스펙만</b> 씁니다. 명단을 가져올 필요 없이, 보스마다 다른 전투 조건을 걸고 덱을 세 개까지 돌려 한눈에 견줍니다 — 계산기에 잡아 둔 싱크로·콘솔·니케 육성을 그대로 씁니다. <b>싱크로는 이 표에서 바로 고칠 수 있습니다</b>(블라블라링크를 연동했다면 계정 값이 들어옵니다).</p>
+        <p class="union-lede" data-union-lede-union>用聯盟成員<b>各自的實際規格與同步器等級</b>,跑同一個 Boss・同一套隊伍,比較誰能貢獻多少。只有公開妮姬清單的人才能計算。</p>
+        <p class="union-lede" data-union-lede-personal hidden>只用<b>我自己的規格</b>。不必匯入名單,每個 Boss 掛不同戰鬥條件、最多跑三套隊伍一眼比較 — 沿用計算機裡的同步器・主控台・妮姬養成。<b>同步器可以直接在這張表裡改</b>(有連動 Blablalink 的話會帶入帳號值)。</p>
 
         <div class="union-step" data-union-step="1">
-          <h3>유니온 명단 가져오기</h3>
-          <p class="field-note">유니온원 명단은 <b>지휘관님 로그인으로만</b> 열립니다(우리 서버로는 막혀 있습니다). 그래서 한 번만 직접 떠 오시면 됩니다 — 쿠키나 비밀번호는 저희가 만지지 않습니다.</p>
+          <h3>匯入聯盟名單</h3>
+          <p class="field-note">聯盟成員名單<b>只能用指揮官本人的登入</b>取得(我們的伺服器擋著)。所以請你自己撈一次就好 — cookie 或密碼我們都不會碰。</p>
           <ol class="union-guide">
-            <li>블라블라링크에 로그인한 채 <b>유니온 스퀘어</b>를 엽니다.</li>
-            <li><kbd>F12</kbd> → <b>Console</b> 탭에 아래 내용을 붙여넣고 <kbd>Enter</kbd>.</li>
-            <li>명단이 클립보드에 담깁니다. 아래 상자에 붙여넣으세요.</li>
-            <li>클립보드가 막혀 있으면 <b>페이지에 상자가 뜨고 내용이 전부 선택돼 있습니다</b> — <kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd>로 복사한 뒤 <b>✕</b>나 <kbd>Esc</kbd>, 또는 상자 바깥을 눌러 닫으면 됩니다.</li>
+            <li>在登入 Blablalink 的狀態下,打開<b>聯盟廣場</b>。</li>
+            <li><kbd>F12</kbd> → 在 <b>Console</b> 分頁貼上下面的內容,按 <kbd>Enter</kbd>。</li>
+            <li>名單會複製到剪貼簿。貼到下面的框裡。</li>
+            <li>如果剪貼簿被擋住,<b>頁面會跳出一個框、內容已全選</b> — 用 <kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd> 複製後,按 <b>✕</b> 或 <kbd>Esc</kbd>、或點框外即可關閉。</li>
           </ol>
           <textarea class="union-snippet" data-union-snippet rows="3" readonly spellcheck="false"></textarea>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-copy>스니펫 복사</button>
+            <button type="button" class="roster-import" data-union-copy>複製程式碼片段</button>
           </div>
-          <textarea class="union-paste" data-union-paste rows="3" placeholder="여기에 명단을 붙여넣으세요" spellcheck="false"></textarea>
+          <textarea class="union-paste" data-union-paste rows="3" placeholder="把名單貼在這裡" spellcheck="false"></textarea>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-read>명단 읽기</button>
+            <button type="button" class="roster-import" data-union-read>讀取名單</button>
             <span class="union-status" data-union-list-status></span>
           </div>
         </div>
 
         <div class="union-step" data-union-step="2" hidden>
-          <h3>공개여부 확인</h3>
-          <p class="field-note">한 명씩 실제로 조회해 봐야 알 수 있습니다. 셋씩 동시에 부르며, 공개한 사람은 니케 상세까지 함께 받아 둡니다.</p>
+          <h3>確認公開狀態</h3>
+          <p class="field-note">要一個一個實際查詢才知道。每次同時查三個,公開的人會連妮姬詳情一起收下。</p>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-scan>공개여부 스캔</button>
-            <button type="button" class="roster-import" data-union-scan-stop hidden>중단</button>
+            <button type="button" class="roster-import" data-union-scan>掃描公開狀態</button>
+            <button type="button" class="roster-import" data-union-scan-stop hidden>中斷</button>
             <span class="union-status" data-union-scan-status></span>
           </div>
           <div class="union-progress" data-union-scan-progress hidden><i></i></div>
 
           <details class="union-direct">
-            <summary>내 브라우저로 직접 긁기 — 「유니온원에게만 공개」까지 봅니다</summary>
-            <p class="field-note">위 스캔은 저희 서버를 거칩니다. 저희 계정은 이 유니온 소속이 아니라서, <b>「유니온원에게만 공개」로 둔 사람은 영원히 비공개로 보입니다</b>. 지휘관님 브라우저로 직접 긁으면 그분들까지 보입니다 — 서버를 안 거치는 쪽이 편한 분께도 이 길이 낫습니다.</p>
-            <p class="field-note">유니온원 수만큼 조회하므로 <b>32명이면 2~3분</b> 걸리고, 진행 상황이 콘솔에 한 줄씩 찍힙니다. 다 되면 위와 같은 방법으로 복사해 아래에 붙여넣으세요.</p>
+            <summary>用我的瀏覽器自行擷取 — 連「僅對聯盟成員公開」也看得到</summary>
+            <p class="field-note">上面的掃描會經過我們的伺服器。我們的帳號不屬於這個聯盟,所以<b>設「僅對聯盟成員公開」的人會永遠顯示為未公開</b>。用指揮官的瀏覽器自行擷取就連他們也看得到 — 不想經過伺服器的人也建議走這條路。</p>
+            <p class="field-note">會依聯盟人數逐一查詢,<b>32 人約 2~3 分鐘</b>,進度會在 console 一行一行印出。完成後用上面同樣的方法複製,貼到下面。</p>
             <textarea class="union-snippet" data-union-direct-snippet rows="3" readonly spellcheck="false"></textarea>
             <div class="union-actions">
-              <button type="button" class="roster-import" data-union-direct-copy>직접 긁기 스니펫 복사</button>
+              <button type="button" class="roster-import" data-union-direct-copy>複製自行擷取程式碼</button>
             </div>
-            <textarea class="union-paste" data-union-direct-paste rows="3" placeholder="직접 긁은 자료를 여기에 붙여넣으세요 (NKU1-…)" spellcheck="false"></textarea>
+            <textarea class="union-paste" data-union-direct-paste rows="3" placeholder="把自行擷取的資料貼在這裡 (NKU1-…)" spellcheck="false"></textarea>
             <div class="union-actions">
-              <button type="button" class="roster-import" data-union-direct-read>직접 긁은 자료 읽기</button>
+              <button type="button" class="roster-import" data-union-direct-read>讀取自行擷取的資料</button>
               <span class="union-status" data-union-direct-status></span>
             </div>
           </details>
@@ -585,34 +585,34 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="union-members" data-union-members></div>
           <div class="union-ask" data-union-ask hidden>
             <p data-union-ask-text></p>
-            <button type="button" class="roster-import" data-union-pick-all>공개된 사람 전부 고르기</button>
-            <button type="button" class="roster-import" data-union-pick-none>전부 해제</button>
+            <button type="button" class="roster-import" data-union-pick-all>選擇所有公開的人</button>
+            <button type="button" class="roster-import" data-union-pick-none>全部取消</button>
           </div>
         </div>
 
         <div class="union-step" data-union-step="3" hidden>
-          <h3>보스와 덱</h3>
-          <p class="field-note">보스는 <b>전투 조건 코드</b>(NK3-), 덱은 <b>조합 코드</b>(NK2-)로 채웁니다. 계산기에 잡아 둔 설정을 가져오거나, <b>공유 목록에서 골라</b> 넣을 수도 있습니다. 체크를 끈 보스는 계산하지 않습니다 — 풍압엔 강한데 전격엔 약한 사람이 있으니까요.</p>
+          <h3>Boss 與隊伍</h3>
+          <p class="field-note">Boss 用<b>戰鬥條件代碼</b>(NK3-)、隊伍用<b>組合代碼</b>(NK2-)填入。可以帶入計算機裡的設定,或<b>從分享清單選</b>。取消勾選的 Boss 不計算 — 因為有人對風壓強、對電擊弱。</p>
           <div class="union-board-bar">
-            <span class="union-board-label">판 전체</span>
-            <button type="button" class="roster-import" data-union-set-share>공유에서 판 고르기</button>
-            <button type="button" class="roster-import" data-union-set-paste>판 코드 붙여넣기</button>
-            <button type="button" class="roster-import" data-union-set-copy>이 판 코드 복사</button>
+            <span class="union-board-label">整個盤面</span>
+            <button type="button" class="roster-import" data-union-set-share>從分享選盤面</button>
+            <button type="button" class="roster-import" data-union-set-paste>貼上盤面代碼</button>
+            <button type="button" class="roster-import" data-union-set-copy>複製此盤面代碼</button>
             <span class="union-status" data-union-set-status></span>
           </div>
-          <p class="field-note">보스 다섯과 각 칸의 덱까지 <b>한 코드</b>(NK4-)에 담깁니다 — 지난 시즌 판을 통째로 옮기거나 유니온방에 뿌릴 때 스무 번 붙여넣지 않아도 됩니다. <b>유니온원 명단은 담기지 않습니다.</b></p>
+          <p class="field-note">五個 Boss 與每格的隊伍都裝進<b>一個代碼</b>(NK4-) — 整套搬移上季盤面、或發到聯盟群時,不必貼二十次。<b>聯盟成員名單不會被包含。</b></p>
           <div class="union-set-box" data-union-set-box hidden>
-            <textarea class="custom-json" data-union-set-code rows="3" placeholder="판 코드 (NK4-…)"></textarea>
+            <textarea class="custom-json" data-union-set-code rows="3" placeholder="盤面代碼 (NK4-…)"></textarea>
             <div class="deck-copy-actions">
-              <button type="button" class="deck-copy-apply" data-union-set-apply>이 판 적용</button>
-              <button type="button" class="deck-copy-cancel" data-union-set-close>닫기</button>
+              <button type="button" class="deck-copy-apply" data-union-set-apply>套用此盤面</button>
+              <button type="button" class="deck-copy-cancel" data-union-set-close>關閉</button>
             </div>
           </div>
           <div class="union-bosses" data-union-bosses></div>
 
           <div class="custom-modal" data-union-share-modal hidden>
-            <div class="custom-card share-card" role="dialog" aria-label="공유에서 고르기">
-              <div class="custom-head"><h2 data-union-share-title>공유에서 고르기</h2><button type="button" class="custom-close" data-union-share-close aria-label="닫기">✕</button></div>
+            <div class="custom-card share-card" role="dialog" aria-label="從分享選擇">
+              <div class="custom-head"><h2 data-union-share-title>從分享選擇</h2><button type="button" class="custom-close" data-union-share-close aria-label="關閉">✕</button></div>
               <p class="custom-desc" data-union-share-desc></p>
               <div data-union-share-body></div>
               <p class="custom-msg" data-union-share-msg hidden></p>
@@ -621,11 +621,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </div>
 
         <div class="union-step" data-union-step="4" hidden>
-          <h3>시뮬레이션</h3>
-          <p class="field-note">유니온원 × 보스 × 덱을 하나씩 돌립니다. <b>오래 걸리니 창을 열어 둔 채 기다려 주세요</b> — 결과는 나오는 대로 아래에 쌓입니다.</p>
+          <h3>模擬</h3>
+          <p class="field-note">聯盟成員 × Boss × 隊伍逐一計算。<b>會花不少時間,請開著視窗等候</b> — 結果會一邊算一邊往下累積。</p>
           <div class="union-actions">
-            <button type="button" class="roster-import union-run" data-union-run disabled>시뮬레이션 실행</button>
-            <button type="button" class="roster-import" data-union-stop hidden>중단</button>
+            <button type="button" class="roster-import union-run" data-union-run disabled>執行模擬</button>
+            <button type="button" class="roster-import" data-union-stop hidden>中斷</button>
             <span class="union-status" data-union-run-status></span>
           </div>
           <div class="union-progress" data-union-run-progress hidden><i></i></div>
@@ -635,24 +635,24 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
       <section class="panel enikk-panel" data-view="enikk" aria-labelledby="enikk-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">ENIKK</p><h2 id="enikk-heading">ENIKK 조합 가져오기</h2></div>
+          <div><p class="step">ENIKK</p><h2 id="enikk-heading">匯入 ENIKK 組合</h2></div>
         </div>
-        <p class="enikk-lede">enikk.app 솔로레이드 랭킹에서 <b>그 사람이 실제로 쓴 5덱을 통째로</b> 가져옵니다. 최신 시즌 상위 <b>300명</b>(KR·JP·GLOBAL·NA·TW-HK·SEA 각 50명)이 대상이고, 누르면 우리 5덱에 그대로 깔립니다.</p>
-        <p class="enikk-warn" data-enikk-warn>불러오는 데 <b>5~10초쯤</b> 걸립니다 — enikk에서 300명분을 한 번에 받아오기 때문입니다. 받아온 뒤에는 이 브라우저에 저장해 두고 다시 받지 않습니다.</p>
+        <p class="enikk-lede">從 enikk.app 單人突襲排行榜,<b>整套匯入那個人實際用的 5 隊</b>。對象是最新賽季前 <b>300 名</b>(KR・JP・GLOBAL・NA・TW-HK・SEA 各 50 名),按下去就直接鋪到我們的 5 隊。</p>
+        <p class="enikk-warn" data-enikk-warn>載入約需 <b>5~10 秒</b> — 因為要從 enikk 一次拿 300 人份。拿到之後會存在這個瀏覽器,不會再重抓。</p>
         <div class="enikk-actions">
-          <button type="button" class="roster-import" data-enikk-load>조합 가져오기</button>
-          <button type="button" class="roster-import" data-enikk-refresh hidden>다시 받기</button>
+          <button type="button" class="roster-import" data-enikk-load>匯入組合</button>
+          <button type="button" class="roster-import" data-enikk-refresh hidden>重新取得</button>
           <span class="enikk-status" data-enikk-status></span>
         </div>
         <div class="enikk-exclude">
-          <label class="enikk-exclude-label" for="enikk-exclude">제외할 니케</label>
+          <label class="enikk-exclude-label" for="enikk-exclude">要排除的妮姬</label>
           <div class="enikk-exclude-row">
-            <input id="enikk-exclude" type="search" list="enikk-exclude-list" placeholder="안 가진 니케 이름을 넣으세요" autocomplete="off" data-enikk-exclude-input />
+            <input id="enikk-exclude" type="search" list="enikk-exclude-list" placeholder="輸入你沒有的妮姬名稱" autocomplete="off" data-enikk-exclude-input />
             <datalist id="enikk-exclude-list" data-enikk-exclude-options></datalist>
-            <button type="button" class="roster-import" data-enikk-exclude-add>추가</button>
+            <button type="button" class="roster-import" data-enikk-exclude-add>新增</button>
           </div>
           <div class="enikk-exclude-chips" data-enikk-exclude-chips></div>
-          <p class="field-note">넣은 니케가 낀 덱은 <b>가져오기에서 빠집니다</b>. 그 니케가 없어도 짤 수 있는 조합만 남기려는 것입니다.</p>
+          <p class="field-note">含有你填入妮姬的隊伍會<b>從匯入中排除</b>。目的是只留下沒有那隻妮姬也能組出的隊伍。</p>
         </div>
         <div class="enikk-summary" data-enikk-summary hidden></div>
         <div class="enikk-compare" data-enikk-compare hidden></div>
@@ -692,37 +692,37 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
               <p class="deck-copy-title" data-deck-copy-title></p>
               <div class="deck-copy-targets" data-deck-copy-targets></div>
               <div class="deck-copy-actions">
-                <button type="button" class="deck-copy-apply" data-deck-copy-apply>복사</button>
-                <button type="button" class="deck-copy-cancel" data-deck-copy-cancel>취소</button>
+                <button type="button" class="deck-copy-apply" data-deck-copy-apply>複製</button>
+                <button type="button" class="deck-copy-cancel" data-deck-copy-cancel>取消</button>
               </div>
             </div>
           </div>
           </div>
-          <p class="deck-note" data-deck-note hidden>덱 사이에는 같은 캐릭터를 다시 편성할 수 있습니다.</p>
+          <p class="deck-note" data-deck-note hidden>不同隊伍之間可以重複編成同一個角色。</p>
           <div class="squad-grid" data-squad-grid></div>
 
           <!-- 니케 고르기. 창을 띄우지 않고 늘 펼쳐 두고, 검색은 이 판을 거른다.
                「이름을 쳤는데 아무 일도 안 일어난다」가 지적된 지점이라, 결과를
                감추는 자리를 없앴다. -->
-          <section class="picker" aria-label="니케 고르기" data-picker hidden>
+          <section class="picker" aria-label="選擇妮姬" data-picker hidden>
             <div class="picker-head">
-              <h3>니케 고르기 <span data-roster-count></span></h3>
+              <h3>選擇妮姬 <span data-roster-count></span></h3>
               <p class="picker-target" data-roster-desc></p>
-              <button type="button" class="picker-close" data-picker-close aria-label="니케 고르기 닫기" title="닫기 (Esc)">✕</button>
+              <button type="button" class="picker-close" data-picker-close aria-label="關閉選擇妮姬" title="關閉 (Esc)">✕</button>
             </div>
-            <input type="search" class="roster-search" data-roster-search placeholder="이름 · 초성 · 속성으로 찾기 (ㄹㅍ, 라피레드, 전격)" autocomplete="off" aria-label="니케 이름 검색" />
+            <input type="search" class="roster-search" data-roster-search placeholder="搜尋妮姬(名稱・屬性;也支援韓文/別名)" autocomplete="off" aria-label="搜尋妮姬名稱" />
             <!-- 정렬·필터는 판을 눌러 펼친다. 칩을 늘 깔아 두면 목록이 화면 밖으로
                  밀리고, 필터가 몇 개 걸렸는지도 한눈에 안 들어온다. -->
             <div class="picker-bar">
               <button type="button" class="filter-open" data-filter-open aria-expanded="false">
-                <span>정렬 및 필터</span>
+                <span>排序與篩選</span>
                 <b class="filter-badge" data-filter-badge hidden></b>
                 <span class="filter-caret" aria-hidden="true">▾</span>
               </button>
               <!-- 버스트는 가장 자주 거르는 축이라 판 안에 넣지 않는다 — 판을 펼치지
                    않고 바로 누를 수 있어야 한다. -->
               <div class="filter-chips burst-chips" data-burst-group></div>
-              <button type="button" class="filter-reset" data-filter-reset hidden>필터 지우기</button>
+              <button type="button" class="filter-reset" data-filter-reset hidden>清除篩選</button>
               <span class="filter-summary" data-filter-summary></span>
             </div>
             <!-- 판은 목록을 밀어내지 않고 그 «위에» 얹힌다. 밀어내면 펼칠 때마다
@@ -730,16 +730,16 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <div class="picker-body">
               <div class="filter-panel" data-filter-panel hidden>
                 <div class="filter-section">
-                  <p class="filter-title">정렬</p>
+                  <p class="filter-title">排序</p>
                   <div class="filter-chips" data-sort-group></div>
                 </div>
                 <div class="filter-rule"></div>
-                <p class="filter-title">필터</p>
+                <p class="filter-title">篩選</p>
                 <div class="filter-groups" data-filter-groups></div>
               </div>
               <div class="picker-scroll"><div class="roster-grid" data-roster-grid></div></div>
             </div>
-            <p class="roster-empty" data-roster-empty hidden>검색과 일치하는 니케가 없습니다.</p>
+            <p class="roster-empty" data-roster-empty hidden>沒有符合搜尋的妮姬。</p>
           </section>
         </section>
 
@@ -863,36 +863,36 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       </form>
 
       <section class="panel timeline-panel" data-view="calc" aria-labelledby="timeline-heading" data-timeline-panel hidden>
-        <div class="section-heading compact"><div><h2 id="timeline-heading">전투 타임라인</h2></div></div>
+        <div class="section-heading compact"><div><h2 id="timeline-heading">戰鬥時間軸</h2></div></div>
         <div data-timeline-body></div>
       </section>
       <footer><p>非官方粉絲製作工具・與實際戰鬥環境可能有差異。</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
 
       <div class="custom-modal" data-history-modal hidden>
-        <div class="custom-card roster-card" role="dialog" aria-label="계산 기록">
-          <div class="custom-head"><h2>계산 기록</h2><button type="button" class="custom-close" data-history-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">결과에서 «결과 저장»을 누른 시점의 편성과 수치가 이 브라우저에 남습니다. 편성을 되살려 그때 조합으로 돌아갈 수 있습니다. <b>수치는 그때의 스펙·전투 조건으로 낸 값</b>이라, 지금 설정과 다르면 다시 계산해야 맞습니다.</p>
+        <div class="custom-card roster-card" role="dialog" aria-label="計算紀錄">
+          <div class="custom-head"><h2>計算紀錄</h2><button type="button" class="custom-close" data-history-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在結果按下「儲存結果」的當下,那時的編成與數值會留在這個瀏覽器。可以復原編成、回到當時的組合。<b>數值是用當時的規格・戰鬥條件算出來的</b>,和現在設定不同時要重新計算才準。</p>
           <div class="history-list" data-history-list></div>
         </div>
       </div>
 
       <div class="custom-modal" data-battle-share-modal hidden>
-        <div class="custom-card share-card" role="dialog" aria-label="전투 조건 공유">
-          <div class="custom-head"><h2>전투 조건 공유</h2><button type="button" class="custom-close" data-battle-share-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">전투 시간·적 코드·코어·족자·속저·난수 처리 같은 <b>«어떤 상황에서 쟀나»</b>를 주고받습니다. <b>콘솔과 싱크로 레벨은 담기지 않습니다</b> — 계정 육성 상태라 남의 값이 딸려 오면 자기 스펙으로 잰 결과가 아니게 됩니다. 편성과 개인 스펙도 담기지 않습니다(그쪽은 «조합 공유»).</p>
+        <div class="custom-card share-card" role="dialog" aria-label="戰鬥條件分享">
+          <div class="custom-head"><h2>戰鬥條件分享</h2><button type="button" class="custom-close" data-battle-share-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">交換的是<b>「在什麼情況下測的」</b>,像戰鬥時間・敵代碼・核心・免疫・屬濾・隨機處理。<b>主控台與同步器等級不會被包含</b> — 那是帳號養成狀態,帶了別人的值就不是用自己規格測的結果了。編成與個人規格也不包含(那要用「組合分享」)。</p>
           ${SHARE_API ? '<div class="share-tabs" data-battle-share-tabs></div>' : ''}
           <div class="share-pane" data-battle-share-pane="upload" hidden></div>
           <div class="share-pane" data-battle-share-pane="list" hidden></div>
           <div class="share-pane" data-battle-share-pane="code">
             <div class="squad-code-block">
-              <h4>내 전투 조건 코드</h4>
+              <h4>我的戰鬥條件代碼</h4>
               <textarea class="share-out" data-battle-share-out readonly rows="3"></textarea>
-              <button type="button" class="share-copy" data-battle-share-copy>코드 복사</button>
+              <button type="button" class="share-copy" data-battle-share-copy>複製代碼</button>
             </div>
             <div class="squad-code-block">
-              <h4>받은 코드 적용</h4>
-              <textarea class="share-in" data-battle-share-in rows="3" placeholder="NK3- 로 시작하는 코드를 붙여넣으세요"></textarea>
-              <button type="button" class="share-apply" data-battle-share-apply>적용</button>
+              <h4>套用收到的代碼</h4>
+              <textarea class="share-in" data-battle-share-in rows="3" placeholder="貼上以 NK3- 開頭的代碼"></textarea>
+              <button type="button" class="share-apply" data-battle-share-apply>套用</button>
             </div>
           </div>
           <p class="share-msg" data-battle-share-msg hidden></p>
@@ -902,11 +902,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <!-- 업데이트 공지. 새 내용이 있을 때 처음 들어오면 한 번 뜨고, 닫으면 그 판을
            본 것으로 적어 다시 뜨지 않는다. 「업데이트 내역」으로 언제든 다시 연다. -->
       <div class="custom-modal" data-notice-modal hidden>
-        <div class="custom-card notice-card" role="dialog" aria-label="업데이트 내역">
+        <div class="custom-card notice-card" role="dialog" aria-label="更新紀錄">
           <div class="custom-head"><h2>更新紀錄</h2><button type="button" class="custom-close" data-notice-close aria-label="關閉">✕</button></div>
           <div class="notice-body" data-notice-body></div>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-notice-dismiss>확인 · 다시 보지 않기</button>
+            <button type="button" class="deck-copy-apply" data-notice-dismiss>確認・不再顯示</button>
           </div>
         </div>
       </div>
@@ -914,32 +914,32 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <!-- 캐릭터 설정 뭉치를 띄우는 창. 카드가 좁아 그 자리에서 펼치면 다섯 장이
            서로를 밀어낸다 — 필터 판과 같은 방식으로 창을 띄운다. -->
       <div class="custom-modal" data-char-panel-modal hidden>
-        <div class="custom-card char-panel-card" role="dialog" aria-label="캐릭터 설정">
-          <div class="custom-head"><h2 data-char-panel-title>캐릭터 설정</h2><button type="button" class="custom-close" data-char-panel-close aria-label="닫기">✕</button></div>
+        <div class="custom-card char-panel-card" role="dialog" aria-label="角色設定">
+          <div class="custom-head"><h2 data-char-panel-title>角色設定</h2><button type="button" class="custom-close" data-char-panel-close aria-label="關閉">✕</button></div>
           <div class="char-panel-body" data-char-panel-body></div>
         </div>
       </div>
 
       <div class="custom-modal" data-buff-order-modal hidden>
-        <div class="custom-card buff-order-card" role="dialog" aria-label="버프 대상 순서">
-          <div class="custom-head"><h2 data-buff-order-title>버프 대상 순서</h2><button type="button" class="custom-close" data-buff-order-close aria-label="닫기">✕</button></div>
+        <div class="custom-card buff-order-card" role="dialog" aria-label="Buff 對象順序">
+          <div class="custom-head"><h2 data-buff-order-title>Buff 對象順序</h2><button type="button" class="custom-close" data-buff-order-close aria-label="關閉">✕</button></div>
           <p class="custom-desc" data-buff-order-desc></p>
           <div class="buff-order-list" data-buff-order-list></div>
         </div>
       </div>
 
       <div class="custom-modal" data-burst-order-modal hidden>
-        <div class="custom-card burst-order-card" role="dialog" aria-label="버스트 순서">
-          <div class="custom-head"><h2>버스트 순서</h2><button type="button" class="custom-close" data-burst-order-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">사이클마다 <b>1버 → 2버 → 3버</b>를 누가 쓸지 직접 정합니다. <b>정한 사이클까지만 따릅니다</b> — 전투가 더 길면 그 뒤는 계산기가 평소 순서로 고릅니다. 초상화를 누르거나 <b>A·S·D·F·G</b> 키로 고르고, <b>←</b>로 한 칸 되돌립니다.</p>
+        <div class="custom-card burst-order-card" role="dialog" aria-label="爆裂順序">
+          <div class="custom-head"><h2>爆裂順序</h2><button type="button" class="custom-close" data-burst-order-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">每個循環由你自己決定<b>1爆 → 2爆 → 3爆</b>由誰放。<b>只依照你指定的循環數</b> — 戰鬥更長時,之後由計算機照平常順序選。點頭像或用 <b>A・S・D・F・G</b> 鍵選,<b>←</b> 退回一格。</p>
           <div class="burst-order-bar">
-            <label class="burst-cycles">풀버스트 횟수
-              <button type="button" class="burst-step-btn" data-burst-cycles-down aria-label="한 사이클 줄이기">−</button>
+            <label class="burst-cycles">滿爆裂次數
+              <button type="button" class="burst-step-btn" data-burst-cycles-down aria-label="減少一個循環">−</button>
               <output data-burst-cycles>0</output>
-              <button type="button" class="burst-step-btn" data-burst-cycles-up aria-label="한 사이클 늘리기">+</button>
+              <button type="button" class="burst-step-btn" data-burst-cycles-up aria-label="增加一個循環">+</button>
             </label>
             <span class="burst-order-progress" data-burst-progress></span>
-            <button type="button" class="roster-import" data-burst-order-reset>처음부터</button>
+            <button type="button" class="roster-import" data-burst-order-reset>從頭開始</button>
           </div>
           <p class="burst-order-hint" data-burst-cycles-note></p>
           <div class="burst-now" data-burst-now></div>
@@ -947,20 +947,20 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="burst-order-list" data-burst-list></div>
           <p class="custom-msg" data-burst-order-msg hidden></p>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-burst-order-save>이 순서로 두기</button>
-            <button type="button" class="deck-copy-cancel" data-burst-order-clear>순서 지우기(자동)</button>
+            <button type="button" class="deck-copy-apply" data-burst-order-save>就用這個順序</button>
+            <button type="button" class="deck-copy-cancel" data-burst-order-clear>清除順序(自動)</button>
           </div>
         </div>
       </div>
 
       <div class="custom-modal" data-share-modal hidden>
-        <div class="custom-card share-card" role="dialog" aria-label="프리셋 / 조합 공유">
-          <div class="custom-head"><h2>프리셋 / 조합 공유</h2><button type="button" class="custom-close" data-share-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">누가 편성됐는지(캐릭터 조합)만 주고받습니다. <b>오버로드·공격력·돌파 같은 개인 스펙과 전투 조건은 담기지 않습니다</b> — 적용하면 캐릭터만 바뀌고 스펙은 각자 자기 설정(CSV 로스터를 넣었다면 그 값)이 그대로 쓰입니다. ${SHARE_API ? '<b>서버로는 «올리기»를 누를 때만 전송됩니다.</b>' : '서버로 전송되지 않습니다.'}</p>
+        <div class="custom-card share-card" role="dialog" aria-label="預設 / 組合分享">
+          <div class="custom-head"><h2>預設 / 組合分享</h2><button type="button" class="custom-close" data-share-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">只交換誰被編成(角色組合)。<b>超載・攻擊力・突破等個人規格與戰鬥條件不會被包含</b> — 套用後只換角色,規格仍用各自的設定(有匯入 CSV 名單的話就用那個值)。${SHARE_API ? '<b>只有按「上傳」時才會傳到伺服器。</b>' : '不會傳到伺服器。'}</p>
           <div class="share-scope" data-share-scope>
-            <span class="share-scope-label">범위</span>
-            <button type="button" class="share-scope-pick is-on" data-share-scope-pick="one">이 덱만</button>
-            <button type="button" class="share-scope-pick" data-share-scope-pick="all">5덱 전부</button>
+            <span class="share-scope-label">範圍</span>
+            <button type="button" class="share-scope-pick is-on" data-share-scope-pick="one">只有這隊</button>
+            <button type="button" class="share-scope-pick" data-share-scope-pick="all">全部 5 隊</button>
             <span class="share-scope-note" data-share-scope-note></span>
           </div>
           ${SHARE_API ? '<div class="share-tabs" data-share-tabs></div>' : ''}
@@ -968,25 +968,25 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="share-pane" data-share-pane="list" hidden></div>
           <div class="share-pane" data-share-pane="code">
           <div class="squad-code-block">
-            <h4>내 조합 코드</h4>
+            <h4>我的組合代碼</h4>
             <textarea class="custom-json" data-share-out rows="3" readonly></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-copy>코드 복사</button></div>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-copy>複製代碼</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>공유 링크</h4>
+            <h4>分享連結</h4>
             <textarea class="custom-json" data-share-url rows="2" readonly></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-url-copy>링크 복사</button></div>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-url-copy>複製連結</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>받은 코드 적용</h4>
-            <textarea class="custom-json" data-share-in rows="3" placeholder="받은 조합 코드나 공유 링크를 붙여넣으세요"></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-apply>이 조합 적용</button></div>
+            <h4>套用收到的代碼</h4>
+            <textarea class="custom-json" data-share-in rows="3" placeholder="貼上收到的組合代碼或分享連結"></textarea>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-apply>套用此組合</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>이 브라우저에 저장</h4>
+            <h4>儲存到這個瀏覽器</h4>
             <div class="preset-row">
-              <input type="text" class="preset-name" data-preset-name placeholder="프리셋 이름 (예: 수냉 솔레 1덱)" maxlength="40" />
-              <button type="button" class="deck-copy-apply" data-preset-save>저장</button>
+              <input type="text" class="preset-name" data-preset-name placeholder="預設名稱 (例: 水冷單刷 1隊)" maxlength="40" />
+              <button type="button" class="deck-copy-apply" data-preset-save>儲存</button>
             </div>
             <div class="preset-list" data-preset-list></div>
           </div>
@@ -996,97 +996,97 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       </div>
 
       <div class="custom-modal" data-report-modal hidden>
-        <div class="custom-card report-card" role="dialog" aria-label="보고서 이미지">
-          <div class="custom-head"><h2>보고서 이미지</h2><button type="button" class="custom-close" data-report-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">아래 이미지를 복사해 커뮤니티에 바로 붙여넣을 수 있습니다. 복사가 막히면 PNG로 저장하거나, 이미지를 우클릭해 복사해도 됩니다. 이 브라우저 안에서만 만들어집니다.</p>
+        <div class="custom-card report-card" role="dialog" aria-label="報告圖片">
+          <div class="custom-head"><h2>報告圖片</h2><button type="button" class="custom-close" data-report-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">可以複製下面的圖片直接貼到社群。複製被擋時,可以存成 PNG,或對圖片按右鍵複製。只在這個瀏覽器裡產生。</p>
           <div class="report-preview" data-report-preview></div>
           <p class="report-msg" data-report-msg hidden></p>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-report-copy>이미지 복사</button>
-            <button type="button" class="deck-copy-cancel" data-report-save>PNG 저장</button>
+            <button type="button" class="deck-copy-apply" data-report-copy>複製圖片</button>
+            <button type="button" class="deck-copy-cancel" data-report-save>儲存 PNG</button>
           </div>
         </div>
       </div>
 
       <div class="custom-modal" data-reset-modal hidden>
-        <div class="custom-card reset-card" role="dialog" aria-label="완전 초기화 확인">
-          <div class="custom-head"><h2>완전 초기화</h2><button type="button" class="custom-close" data-reset-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">아래 항목을 모두 지우고 처음 상태로 되돌립니다. 되돌릴 수 없습니다.</p>
+        <div class="custom-card reset-card" role="dialog" aria-label="完全重置確認">
+          <div class="custom-head"><h2>完全重置</h2><button type="button" class="custom-close" data-reset-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">清除以下所有項目,回到初始狀態。無法復原。</p>
           <ul class="reset-list">
-            <li>모든 덱의 편성과 캐릭터별 설정</li>
-            <li>CSV로 불러온 로스터</li>
-            <li>직접 추가한 니케</li>
-            <li>저장된 계산 결과</li>
-            <li>전투 조건</li>
+            <li>所有隊伍的編成與各角色設定</li>
+            <li>用 CSV 匯入的名單</li>
+            <li>手動新增的妮姬</li>
+            <li>已儲存的計算結果</li>
+            <li>戰鬥條件</li>
           </ul>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply danger" data-reset-confirm>초기화</button>
-            <button type="button" class="deck-copy-cancel" data-reset-cancel>취소</button>
+            <button type="button" class="deck-copy-apply danger" data-reset-confirm>重置</button>
+            <button type="button" class="deck-copy-cancel" data-reset-cancel>取消</button>
           </div>
         </div>
       </div>
 
       ${blablaProxy ? `
       <div class="custom-modal" data-blabla-modal hidden>
-        <div class="custom-card doro-card" role="dialog" aria-label="블라블라링크 연동">
-          <div class="custom-head"><h2>블라블라링크 연동</h2><button type="button" class="custom-close" data-blabla-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">블라블라링크에서 <b>내 프로필 주소</b>를 복사해 넣으면 보유 니케의 육성 상태를 한 번에 가져옵니다. 돌파·코강·스킬·오버로드·장비 강화에 더해, CSV에는 없는 <b>큐브와 소장품</b>까지 들어옵니다.</p>
-          <p class="custom-desc"><a href="https://www.blablalink.com/user" target="_blank" rel="noreferrer noopener">blablalink.com/user</a> 에 들어가면 주소창에 뜨는 주소가 그것입니다. 블라블라링크에서 <b>프로필과 니케 목록을 공개</b>로 바꿔야 조회됩니다 — 하나라도 비공개면 막힙니다. 전초기지까지 공개하면 콘솔(재활용 연구실) 레벨도 함께 들어옵니다.</p>
+        <div class="custom-card doro-card" role="dialog" aria-label="Blablalink 連動">
+          <div class="custom-head"><h2>Blablalink 連動</h2><button type="button" class="custom-close" data-blabla-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在 Blablalink 複製<b>我的個人檔案網址</b>貼進來,就能一次匯入持有妮姬的養成狀態。除了突破・核心強化・技能・超載・裝備強化,還包含 CSV 沒有的<b>魔方與收藏品</b>。</p>
+          <p class="custom-desc">進入 <a href="https://www.blablalink.com/user" target="_blank" rel="noreferrer noopener">blablalink.com/user</a>,網址列出現的網址就是它。要在 Blablalink 把<b>個人檔案與妮姬清單設為公開</b>才查得到 — 有一項未公開就會被擋。連前哨基地都公開的話,主控台(回收研究室)等級也會一起帶入。</p>
           <div class="blabla-row">
-            <select class="blabla-server" data-blabla-server aria-label="블라블라링크 서버">
-              <option value="">자동 (보유 니케가 가장 많은 서버)</option>
+            <select class="blabla-server" data-blabla-server aria-label="Blablalink 伺服器">
+              <option value="">自動(持有妮姬最多的伺服器)</option>
               ${BLABLA_SERVERS.map(({ area, label }) => `<option value="${area}">${label}</option>`).join('')}
             </select>
             <input type="url" class="blabla-url" data-blabla-url placeholder="https://www.blablalink.com/user?openid=..." spellcheck="false" />
-            <button type="button" class="roster-import" data-blabla-sync>동기화</button>
+            <button type="button" class="roster-import" data-blabla-sync>同步</button>
           </div>
           <p class="custom-desc blabla-status" data-blabla-status hidden></p>
-          <p class="custom-desc">받아 온 값은 이 브라우저에만 저장됩니다. 호감도는 계산기가 돌파 단계에서 끌어내므로 따로 반영하지 않습니다.</p>
+          <p class="custom-desc">取得的值只存在這個瀏覽器。好感度由計算機從突破階段推導,不另外反映。</p>
         </div>
       </div>` : ''}
       <div class="custom-modal" data-doro-modal hidden>
-        <div class="custom-card doro-card" role="dialog" aria-label="렛츠도로 CSV 받는 법">
-          <div class="custom-head"><h2>렛츠도로 CSV 받는 법</h2><button type="button" class="custom-close" data-doro-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">렛츠도로 <b>니케 정보</b> 페이지에서 목록 오른쪽 아래 <b>내려받기 아이콘</b>을 누르면 CSV가 저장됩니다. 그 파일을 <b>렛츠도로 CSV 불러오기</b>로 넣으면 보유 니케 설정이 한 번에 적용됩니다.</p>
-          <p class="doro-link"><a href="https://letsdoro.com/mypage?tab=nikke" target="_blank" rel="noreferrer">letsdoro.com 니케 정보 열기 ↗</a></p>
-          <p class="field-note">CSV에는 <b>큐브와 호감도</b>가 들어 있지 않습니다 — 그 둘은 기본값(기본 큐브 · 돌파별 최대 호감도)으로 계산하며, 카드의 <b>개별 설정</b>에서 실제 값으로 고칠 수 있습니다.</p>
-          <img class="doro-shot" src="${import.meta.env.BASE_URL}letsdoro-csv.png" alt="렛츠도로 니케 정보 페이지에서 CSV 내려받기 위치" loading="lazy" />
+        <div class="custom-card doro-card" role="dialog" aria-label="取得 Let's Doro CSV 的方法">
+          <div class="custom-head"><h2>取得 Let's Doro CSV 的方法</h2><button type="button" class="custom-close" data-doro-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在 Let's Doro <b>妮姬資訊</b>頁面,按清單右下的<b>下載圖示</b>就會存下 CSV。把那個檔用<b>匯入 Let's Doro CSV</b>放進來,持有妮姬的設定就會一次套用。</p>
+          <p class="doro-link"><a href="https://letsdoro.com/mypage?tab=nikke" target="_blank" rel="noreferrer">開啟 letsdoro.com 妮姬資訊 ↗</a></p>
+          <p class="field-note">CSV 裡<b>不含魔方與好感度</b> — 這兩者以預設值(預設魔方・各突破最大好感度)計算,可在卡片的<b>個別設定</b>改成實際值。</p>
+          <img class="doro-shot" src="${import.meta.env.BASE_URL}letsdoro-csv.png" alt="Let's Doro 妮姬資訊頁面的 CSV 下載位置" loading="lazy" />
         </div>
       </div>
 
       <div class="custom-modal" data-custom-modal hidden>
-        <div class="custom-card" role="dialog" aria-label="새 니케 추가">
-          <div class="custom-head"><h2>새 니케 추가</h2><button type="button" class="custom-close" data-custom-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">미출시·미등록 니케를 직접 추가합니다. 서버로 전송되지 않고 이 브라우저에만 저장됩니다.</p>
+        <div class="custom-card" role="dialog" aria-label="新增妮姬">
+          <div class="custom-head"><h2>新增妮姬</h2><button type="button" class="custom-close" data-custom-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">手動新增未上市・未收錄的妮姬。不會傳到伺服器,只存在這個瀏覽器。</p>
           <ol class="custom-steps">
-            <li>아래 <b>프롬프트 복사</b>를 눌러 다른 LLM(챗봇)에 붙여넣고, 그 아래에 니케 이름·스킬 설명을 붙여 결과 JSON을 받으세요.</li>
-            <li>받은 JSON을 아래 칸에 붙여넣고 <b>추가</b>를 누르세요. 또는 <b>직접 입력 도움말</b>을 보고 손으로 작성해도 됩니다.</li>
+            <li>按下面的<b>複製提示詞</b>貼到別的 LLM(聊天機器人),再在下面附上妮姬名稱・技能說明,取得結果 JSON。</li>
+            <li>把拿到的 JSON 貼到下面的框,按<b>新增</b>。或看<b>手動輸入說明</b>自己寫也可以。</li>
           </ol>
           <div class="custom-caution">
-            <b>참고하세요</b>
+            <b>請注意</b>
             <ul>
-              <li>특이하거나 복잡한 스킬(조건부 발동·게이지·모드 전환·스택 조건 등)은 계산에 <b>반영되지 않습니다.</b> 기본 사격·버프·버스트 위주로만 근사됩니다. 그런 스킬이 주력 딜인 캐릭터(예: 게이지로 대미지가 커지는 캐릭터)는 <b>결과가 실제보다 훨씬 낮게</b> 나오니 참고만 하세요.</li>
-              <li>LLM 성능에 따라 <b>정확한 변환이 어려울 수 있으니 참고용</b>으로 쓰고, 값을 직접 확인·보정하시길 권합니다.</li>
-              <li>가능하면 아래 <b>직접 입력 도움말</b>을 보고 사람이 직접 값을 넣는 편이 정확합니다.</li>
+              <li>特殊或複雜的技能(條件發動・量表・模式切換・堆疊條件等)<b>不會反映到計算</b>。只以基本射擊・buff・爆裂為主做近似。這類技能是主力輸出的角色(例:靠量表放大傷害的角色)<b>結果會比實際低很多</b>,僅供參考。</li>
+              <li>依 LLM 效能,<b>可能難以精準轉換,請當參考用</b>,建議自行確認・校正數值。</li>
+              <li>可以的話,看下面的<b>手動輸入說明</b>由人親自填值最準。</li>
             </ul>
           </div>
           <details class="custom-help">
-            <summary>직접 입력 도움말 (스키마 · 사람이 작성할 때)</summary>
+            <summary>手動輸入說明(schema・人工填寫時)</summary>
             <div class="custom-help-body">
-              <p><b>최상위</b>: <code>{ "name": "정식 명칭", "nikke": {…스탯}, "skills": [ …효과 ] }</code></p>
-              <p><b>nikke 공통</b>: rarity(SSR/SR/R) · element_code(전격/작열/수냉/풍압/철갑) · class(화력형/방어형/지원형) · manufacturer(엘리시온/미실리스/테트라/필그림/어브노멀) · weapon_type(AR/SMG/MG/SR/RL/SG) · burst_stage(1~3) · burst_cooldown(초) · max_ammo · reload_time(초) · fire_rate(초당 발사) · pellets(SG만 2↑) · muzzles(대개 1) · damage_coeff(1발 계수 %)</p>
-              <p><b>무기별 추가</b>: 연사형(AR·SMG·MG·SG)은 <code>core_dmg_mult</code>(코어 %, 예 200). 차지형(SR·RL)은 <code>charge_time</code>(풀차지 초, 예 1.0~1.5)과 <code>full_charge_mult</code>(풀차지 %, 예 250·350). 차지형에 안 넣으면 각각 1.0·250으로 기본 적용됩니다.</p>
-              <p><b>skills 각 원소</b>: source(스킬1/스킬2/버스트스킬) · type(buff 또는 damage) · name · trigger:{ timing:[…], condition:[…] } · target · stat · polarity(beneficial/harmful) · max_stack(대개 1) · values:{ "1":값, "10":값 } 또는 fixed_value:값 · duration(지속 초, 즉발/영구는 생략 또는 -1)</p>
-              <p><b>인식되는 timing</b>: battle_start · full_burst_start · full_burst_start_count:N · full_burst_end · burst_cast · burst_cast_count:N · last_bullet · last_bullet_fire · hit_count:N · full_charge_hit · passive</p>
-              <p><b>인식되는 target</b>: self · all_allies · all_allies_excl_self · all_enemies · target · same_target · allies:N · allies_top_atk:N · allies_weapon:&lt;무기&gt; · allies_class:공격|방어|지원 · allies_code:&lt;속성&gt; · allies_code_weapon:&lt;속성&gt;:&lt;무기&gt; · enemies_top_atk:N</p>
-              <p><b>인식되는 buff stat</b>: atk_pct · atk_flat · atk_dmg_pct · normal_atk_dmg_pct · crit_rate · crit_dmg · core_dmg_pct · element_bonus_pct · burst_dmg_pct · pierce_dmg_pct · charge_dmg_pct · charge_speed_pct · max_ammo_pct · max_ammo_flat · reload_speed_pct · attack_speed_pct · accuracy_pct · def_pct · def_ignore_pct · enemy_def_down_pct · received_dmg(적이 받는 대미지 증가) · burst_cooldown(초)</p>
-              <p><b>damage stat</b>(type이 damage): bonus_damage · burst_damage · damage (values가 대미지 계수)</p>
-              <p class="custom-help-note">목록에 없는 stat·timing·target은 계산에서 무시됩니다. 애매하면 가장 가까운 표준값을 쓰세요.</p>
+              <p><b>最上層</b>: <code>{ "name": "正式名稱", "nikke": {…數值}, "skills": [ …效果 ] }</code></p>
+              <p><b>nikke 共通</b>: rarity(SSR/SR/R) · element_code(전격/작열/수냉/풍압/철갑) · class(화력형/방어형/지원형) · manufacturer(엘리시온/미실리스/테트라/필그림/어브노멀) · weapon_type(AR/SMG/MG/SR/RL/SG) · burst_stage(1~3) · burst_cooldown(秒) · max_ammo · reload_time(秒) · fire_rate(每秒發射) · pellets(僅 SG 2↑) · muzzles(通常 1) · damage_coeff(單發係數 %)</p>
+              <p><b>各武器額外</b>: 連射型(AR·SMG·MG·SG)用 <code>core_dmg_mult</code>(核心 %,例 200)。蓄力型(SR·RL)用 <code>charge_time</code>(滿蓄力秒,例 1.0~1.5)與 <code>full_charge_mult</code>(滿蓄力 %,例 250·350)。蓄力型不填時各自以 1.0・250 為預設。</p>
+              <p><b>skills 各元素</b>: source(스킬1/스킬2/버스트스킬) · type(buff 或 damage) · name · trigger:{ timing:[…], condition:[…] } · target · stat · polarity(beneficial/harmful) · max_stack(通常 1) · values:{ "1":值, "10":值 } 或 fixed_value:值 · duration(持續秒,即發/永久可省略或 -1)</p>
+              <p><b>可辨識的 timing</b>: battle_start · full_burst_start · full_burst_start_count:N · full_burst_end · burst_cast · burst_cast_count:N · last_bullet · last_bullet_fire · hit_count:N · full_charge_hit · passive</p>
+              <p><b>可辨識的 target</b>: self · all_allies · all_allies_excl_self · all_enemies · target · same_target · allies:N · allies_top_atk:N · allies_weapon:&lt;武器&gt; · allies_class:공격|방어|지원 · allies_code:&lt;屬性&gt; · allies_code_weapon:&lt;屬性&gt;:&lt;武器&gt; · enemies_top_atk:N</p>
+              <p><b>可辨識的 buff stat</b>: atk_pct · atk_flat · atk_dmg_pct · normal_atk_dmg_pct · crit_rate · crit_dmg · core_dmg_pct · element_bonus_pct · burst_dmg_pct · pierce_dmg_pct · charge_dmg_pct · charge_speed_pct · max_ammo_pct · max_ammo_flat · reload_speed_pct · attack_speed_pct · accuracy_pct · def_pct · def_ignore_pct · enemy_def_down_pct · received_dmg(敵方受到傷害增加) · burst_cooldown(秒)</p>
+              <p><b>damage stat</b>(type 為 damage): bonus_damage · burst_damage · damage (values 為傷害係數)</p>
+              <p class="custom-help-note">清單中沒有的 stat・timing・target 會在計算中被忽略。不確定時請用最接近的標準值。</p>
             </div>
           </details>
-          <button type="button" class="custom-btn" data-copy-prompt>① 프롬프트 복사</button>
-          <textarea class="custom-json" data-custom-json placeholder="② 여기에 결과 JSON을 붙여넣거나, 도움말을 보고 직접 작성하세요" rows="8"></textarea>
-          <div class="custom-actions"><button type="button" class="custom-btn primary" data-custom-submit>추가</button></div>
+          <button type="button" class="custom-btn" data-copy-prompt>① 複製提示詞</button>
+          <textarea class="custom-json" data-custom-json placeholder="② 把結果 JSON 貼在這裡,或看說明自己寫" rows="8"></textarea>
+          <div class="custom-actions"><button type="button" class="custom-btn primary" data-custom-submit>新增</button></div>
           <p class="custom-msg" data-custom-msg hidden></p>
           <div class="custom-list" data-custom-list></div>
         </div>
