@@ -187,6 +187,9 @@ export interface DeckState {
 
 export interface CharacterMeta {
   name: string;
+  // 화면 표시용 이름(영어/중국어 등). 없으면 name을 그대로 쓴다. 이름은 언제나
+  // name(한국어)이 정본이고 엔진·키·검색은 name을 쓴다 — displayName은 표시 전용.
+  displayName?: string;
   burstStage: string;
   elementCode: string;
   weaponType: string;

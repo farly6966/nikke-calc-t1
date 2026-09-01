@@ -46,6 +46,7 @@ import { mountSharePanel, squadPreview, type SharePanel } from './share-panel';
 import { startPresence } from './presence';
 import { mountUnionRaid, type UnionHandle } from './union-raid';
 import { EXTERNAL_LINKS, hostOf } from './external-links';
+import { termZh, FILTER_TITLE_ZH } from './i18n-terms';
 import {
   BURST_STAGES,
   candidatesFor, cycleLine, cyclesFromTimeline, estimateCycles, HOTKEYS, MAX_CYCLES,
@@ -54,6 +55,10 @@ import {
 } from './burst-order';
 import { ShareServer, summarizeBattle, summarizeSquad } from './share-server';
 import { createTimelineBlock } from './timeline';
+
+// 화면 표시용 이름 해석기 — mountCalculator에서 catalog로 채운다.
+// 그 전(모듈 로드 직후)에는 원래 이름을 그대로 돌려준다.
+let resolveDisplayName = (name: string): string => name;
 import {
   aggregateDeckResults,
   cacheKey,
@@ -116,7 +121,7 @@ interface CalculatorDependencies {
 
 const element = <T extends Element>(root: ParentNode, selector: string): T => {
   const found = root.querySelector<T>(selector);
-  if (!found) throw new Error(`화면 요소를 찾을 수 없습니다: ${selector}`);
+  if (!found) throw new Error(`找不到畫面元素:${selector}`);
   return found;
 };
 
@@ -222,7 +227,7 @@ function renderCharacterRows(
     const head = document.createElement('p');
     head.className = 'result-row-name';
     head.append(
-      createText('b', name),
+      createText('b', resolveDisplayName(name)),
       createText('span', `${share.toFixed(1)}% · ${fmt.dps(value / entry.result.duration)}`),
     );
     const track = document.createElement('div');
@@ -275,11 +280,11 @@ function renderCharacterCards(
       image.loading = 'lazy';
       portrait.append(image);
     }
-    if (rank) portrait.append(createText('b', `${rank}위`, 'result-rank-badge'));
+    if (rank) portrait.append(createText('b', `第 ${rank} 名`, 'result-rank-badge'));
     card.append(portrait);
 
-    card.append(createText('h3', name));
-    card.append(createText('span', `${share.toFixed(1)}% 기여`, 'result-card-share'));
+    card.append(createText('h3', resolveDisplayName(name)));
+    card.append(createText('span', `${share.toFixed(1)}% 貢獻`, 'result-card-share'));
     card.append(createText('strong', fmt.dmg(value)));
     card.append(createText('small', fmt.dps(value / entry.result.duration)));
 
@@ -300,8 +305,8 @@ function renderCharacterCards(
       const normalPct = breakdown.normal / value * 100;
       const skillPct = breakdown.skill / value * 100;
       const summary = document.createElement('summary');
-      summary.append(createText('span', `평타 ${normalPct.toFixed(0)}%`, 'legend-normal'));
-      summary.append(createText('span', `스킬 ${skillPct.toFixed(0)}%`, 'legend-skill'));
+      summary.append(createText('span', `普攻 ${normalPct.toFixed(0)}%`, 'legend-normal'));
+      summary.append(createText('span', `技能 ${skillPct.toFixed(0)}%`, 'legend-skill'));
       details.append(summary);
 
       const splitTrack = document.createElement('div');
@@ -318,8 +323,8 @@ function renderCharacterCards(
       const legend = document.createElement('p');
       legend.className = 'split-legend';
       legend.append(
-        createText('span', `평타 ${fmt.dmg(breakdown.normal)}`, 'legend-normal'),
-        createText('span', `스킬 ${fmt.dmg(breakdown.skill)}`, 'legend-skill'),
+        createText('span', `普攻 ${fmt.dmg(breakdown.normal)}`, 'legend-normal'),
+        createText('span', `技能 ${fmt.dmg(breakdown.skill)}`, 'legend-skill'),
       );
       details.append(legend);
 
@@ -330,7 +335,7 @@ function renderCharacterCards(
           const item = document.createElement('li');
           item.append(
             createText('span', skill.name),
-            createText('span', `${fmt.dmg(skill.damage)} · ${(skill.damage / value * 100).toFixed(1)}% · ${skill.hits}히트`),
+            createText('span', `${fmt.dmg(skill.damage)} · ${(skill.damage / value * 100).toFixed(1)}% · ${skill.hits} 命中`),
           );
           list.append(item);
         }
@@ -358,6 +363,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   let unionHandle: UnionHandle | null = null;
   const cache = new ResultCache(storage, version, 30);
   const catalogByName = new Map(catalog.map((char) => [char.name, char]));
+  resolveDisplayName = (name) => catalogByName.get(name)?.displayName ?? name;
   const decks = Array.from({ length: 5 }, (_, index) => emptyDeck(index + 1));
   decks[0]!.squad = initialSquad(catalog);
   let activeDeckId = 1;
@@ -492,86 +498,86 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   root.innerHTML = `
     <div class="site-shell">
-      <p class="site-notice"><a href="https://gall.dcinside.com/mgallery/board/view/?id=gov&amp;no=6038781" target="_blank" rel="noreferrer">설명서 확인, 문의, 피드백, 착한말 등은 여기로 →</a></p>
+      <p class="site-notice"><a href="https://gall.dcinside.com/mgallery/board/view/?id=gov&amp;no=6038781" target="_blank" rel="noreferrer">查看說明、詢問、意見回饋、鼓勵的話都往這裡 →</a></p>
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
-          <h1><span>NIKKE</span> 스쿼드 계산기</h1>
-          <p class="hero-lede">캐릭터별 오버로드와 큐브, 전투 조건을 반영해 프레임 단위 예상 대미지를 계산합니다.</p>
-          <div class="trust-row" aria-label="서비스 특징"><span>${catalog.length}명 지원</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><button type="button" class="notice-open" data-notice-open title="지금까지 무엇이 바뀌었는지 봅니다">업데이트 내역</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="이 계산기의 원본 저장소">원본 알고리즘 개발자에게 무한한 감사를</a></div>
+          <h1><span>NIKKE</span> 隊伍計算機</h1>
+          <p class="hero-lede">依各角色的超載、魔方與戰鬥條件,以每幀為單位計算預期傷害。</p>
+          <div class="trust-row" aria-label="服務特色"><span>支援 ${catalog.length} 名</span><span class="online-now" data-online hidden title="最近 1~2 分鐘內開啟這個計算機的人數。隱藏分頁就不計入"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><button type="button" class="notice-open" data-notice-open title="看看到目前為止改了些什麼">更新紀錄</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="這個計算機的原始儲存庫">向原始演算法開發者致上無限感謝</a></div>
         </div>
         <div class="hero-orbit" aria-hidden="true"><span>01</span><strong>LOCAL<br />SIM</strong></div>
       </header>
 
-      <nav class="view-tabs" aria-label="화면 전환">
-        <button type="button" class="view-tab is-on" data-view-tab="calc" aria-pressed="true">계산기</button>
-        ${blablaProxy ? '<button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">유니온 레이드<b class="tab-beta">BETA</b></button>' : ''}
-        <button type="button" class="view-tab" data-view-tab="enikk" aria-pressed="false">ENIKK 조합 가져오기</button>
-        <button type="button" class="view-tab" data-view-tab="links" aria-pressed="false">외부고리</button>
+      <nav class="view-tabs" aria-label="畫面切換">
+        <button type="button" class="view-tab is-on" data-view-tab="calc" aria-pressed="true">計算機</button>
+        ${blablaProxy ? '<button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">聯盟突襲<b class="tab-beta">BETA</b></button>' : ''}
+        <button type="button" class="view-tab" data-view-tab="enikk" aria-pressed="false">匯入 ENIKK 組合</button>
+        <button type="button" class="view-tab" data-view-tab="links" aria-pressed="false">外部連結</button>
       </nav>
 
       <section class="panel links-panel" data-view="links" aria-labelledby="links-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">LINKS</p><h2 id="links-heading">외부고리</h2></div>
+          <div><p class="step">LINKS</p><h2 id="links-heading">外部連結</h2></div>
         </div>
-        <p class="links-lede">니케를 굴리는 데 쓰는 <b>다른 사람들의 도구</b>입니다. 새 탭에서 열립니다.</p>
-        <p class="links-warn"><b>여기 적힌 곳은 우리가 운영하지 않습니다.</b> 계산기에 넣어 둔 값이나 계정 정보가 저쪽으로 넘어가지 않고, 저쪽 내용·주소가 바뀌어도 우리가 알지 못합니다.</p>
+        <p class="links-lede">玩妮姬會用到的<b>其他人做的工具</b>。會在新分頁開啟。</p>
+        <p class="links-warn"><b>這裡列出的地方不是我們營運的。</b>計算機裡填的值或帳號資訊不會傳到那邊;那邊的內容・網址變了我們也不會知道。</p>
         <div class="links-grid" data-links-grid></div>
       </section>
 
       ${blablaProxy ? `
       <section class="panel union-panel" data-view="union" aria-labelledby="union-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">UNION</p><h2 id="union-heading">유니온 레이드 <b class="beta-tag">BETA</b></h2></div>
+          <div><p class="step">UNION</p><h2 id="union-heading">聯盟突襲 <b class="beta-tag">BETA</b></h2></div>
         </div>
-        <div class="union-modes" role="group" aria-label="계산 대상">
-          <button type="button" class="union-mode is-on" data-union-mode="union" aria-pressed="true">유니온</button>
-          <button type="button" class="union-mode" data-union-mode="personal" aria-pressed="false">개인용</button>
+        <div class="union-modes" role="group" aria-label="計算對象">
+          <button type="button" class="union-mode is-on" data-union-mode="union" aria-pressed="true">聯盟</button>
+          <button type="button" class="union-mode" data-union-mode="personal" aria-pressed="false">個人用</button>
         </div>
-        <p class="union-lede" data-union-lede-union>유니온원 <b>각자의 실제 스펙과 싱크로 레벨</b>로 같은 보스·같은 덱을 돌려, 누가 얼마나 기여할 수 있는지 견줍니다. 니케 목록을 공개한 사람만 계산할 수 있습니다.</p>
-        <p class="union-lede" data-union-lede-personal hidden><b>내 스펙만</b> 씁니다. 명단을 가져올 필요 없이, 보스마다 다른 전투 조건을 걸고 덱을 세 개까지 돌려 한눈에 견줍니다 — 계산기에 잡아 둔 싱크로·콘솔·니케 육성을 그대로 씁니다. <b>싱크로는 이 표에서 바로 고칠 수 있습니다</b>(블라블라링크를 연동했다면 계정 값이 들어옵니다).</p>
+        <p class="union-lede" data-union-lede-union>用聯盟成員<b>各自的實際規格與同步器等級</b>,跑同一個 Boss・同一套隊伍,比較誰能貢獻多少。只有公開妮姬清單的人才能計算。</p>
+        <p class="union-lede" data-union-lede-personal hidden>只用<b>我自己的規格</b>。不必匯入名單,每個 Boss 掛不同戰鬥條件、最多跑三套隊伍一眼比較 — 沿用計算機裡的同步器・主控台・妮姬養成。<b>同步器可以直接在這張表裡改</b>(有連動 Blablalink 的話會帶入帳號值)。</p>
 
         <div class="union-step" data-union-step="1">
-          <h3>유니온 명단 가져오기</h3>
-          <p class="field-note">유니온원 명단은 <b>지휘관님 로그인으로만</b> 열립니다(우리 서버로는 막혀 있습니다). 그래서 한 번만 직접 떠 오시면 됩니다 — 쿠키나 비밀번호는 저희가 만지지 않습니다.</p>
+          <h3>匯入聯盟名單</h3>
+          <p class="field-note">聯盟成員名單<b>只能用指揮官本人的登入</b>取得(我們的伺服器擋著)。所以請你自己撈一次就好 — cookie 或密碼我們都不會碰。</p>
           <ol class="union-guide">
-            <li>블라블라링크에 로그인한 채 <b>유니온 스퀘어</b>를 엽니다.</li>
-            <li><kbd>F12</kbd> → <b>Console</b> 탭에 아래 내용을 붙여넣고 <kbd>Enter</kbd>.</li>
-            <li>명단이 클립보드에 담깁니다. 아래 상자에 붙여넣으세요.</li>
-            <li>클립보드가 막혀 있으면 <b>페이지에 상자가 뜨고 내용이 전부 선택돼 있습니다</b> — <kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd>로 복사한 뒤 <b>✕</b>나 <kbd>Esc</kbd>, 또는 상자 바깥을 눌러 닫으면 됩니다.</li>
+            <li>在登入 Blablalink 的狀態下,打開<b>聯盟廣場</b>。</li>
+            <li><kbd>F12</kbd> → 在 <b>Console</b> 分頁貼上下面的內容,按 <kbd>Enter</kbd>。</li>
+            <li>名單會複製到剪貼簿。貼到下面的框裡。</li>
+            <li>如果剪貼簿被擋住,<b>頁面會跳出一個框、內容已全選</b> — 用 <kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd> 複製後,按 <b>✕</b> 或 <kbd>Esc</kbd>、或點框外即可關閉。</li>
           </ol>
           <textarea class="union-snippet" data-union-snippet rows="3" readonly spellcheck="false"></textarea>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-copy>스니펫 복사</button>
+            <button type="button" class="roster-import" data-union-copy>複製程式碼片段</button>
           </div>
-          <textarea class="union-paste" data-union-paste rows="3" placeholder="여기에 명단을 붙여넣으세요" spellcheck="false"></textarea>
+          <textarea class="union-paste" data-union-paste rows="3" placeholder="把名單貼在這裡" spellcheck="false"></textarea>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-read>명단 읽기</button>
+            <button type="button" class="roster-import" data-union-read>讀取名單</button>
             <span class="union-status" data-union-list-status></span>
           </div>
         </div>
 
         <div class="union-step" data-union-step="2" hidden>
-          <h3>공개여부 확인</h3>
-          <p class="field-note">한 명씩 실제로 조회해 봐야 알 수 있습니다. 셋씩 동시에 부르며, 공개한 사람은 니케 상세까지 함께 받아 둡니다.</p>
+          <h3>確認公開狀態</h3>
+          <p class="field-note">要一個一個實際查詢才知道。每次同時查三個,公開的人會連妮姬詳情一起收下。</p>
           <div class="union-actions">
-            <button type="button" class="roster-import" data-union-scan>공개여부 스캔</button>
-            <button type="button" class="roster-import" data-union-scan-stop hidden>중단</button>
+            <button type="button" class="roster-import" data-union-scan>掃描公開狀態</button>
+            <button type="button" class="roster-import" data-union-scan-stop hidden>中斷</button>
             <span class="union-status" data-union-scan-status></span>
           </div>
           <div class="union-progress" data-union-scan-progress hidden><i></i></div>
 
           <details class="union-direct">
-            <summary>내 브라우저로 직접 긁기 — 「유니온원에게만 공개」까지 봅니다</summary>
-            <p class="field-note">위 스캔은 저희 서버를 거칩니다. 저희 계정은 이 유니온 소속이 아니라서, <b>「유니온원에게만 공개」로 둔 사람은 영원히 비공개로 보입니다</b>. 지휘관님 브라우저로 직접 긁으면 그분들까지 보입니다 — 서버를 안 거치는 쪽이 편한 분께도 이 길이 낫습니다.</p>
-            <p class="field-note">유니온원 수만큼 조회하므로 <b>32명이면 2~3분</b> 걸리고, 진행 상황이 콘솔에 한 줄씩 찍힙니다. 다 되면 위와 같은 방법으로 복사해 아래에 붙여넣으세요.</p>
+            <summary>用我的瀏覽器自行擷取 — 連「僅對聯盟成員公開」也看得到</summary>
+            <p class="field-note">上面的掃描會經過我們的伺服器。我們的帳號不屬於這個聯盟,所以<b>設「僅對聯盟成員公開」的人會永遠顯示為未公開</b>。用指揮官的瀏覽器自行擷取就連他們也看得到 — 不想經過伺服器的人也建議走這條路。</p>
+            <p class="field-note">會依聯盟人數逐一查詢,<b>32 人約 2~3 分鐘</b>,進度會在 console 一行一行印出。完成後用上面同樣的方法複製,貼到下面。</p>
             <textarea class="union-snippet" data-union-direct-snippet rows="3" readonly spellcheck="false"></textarea>
             <div class="union-actions">
-              <button type="button" class="roster-import" data-union-direct-copy>직접 긁기 스니펫 복사</button>
+              <button type="button" class="roster-import" data-union-direct-copy>複製自行擷取程式碼</button>
             </div>
-            <textarea class="union-paste" data-union-direct-paste rows="3" placeholder="직접 긁은 자료를 여기에 붙여넣으세요 (NKU1-…)" spellcheck="false"></textarea>
+            <textarea class="union-paste" data-union-direct-paste rows="3" placeholder="把自行擷取的資料貼在這裡 (NKU1-…)" spellcheck="false"></textarea>
             <div class="union-actions">
-              <button type="button" class="roster-import" data-union-direct-read>직접 긁은 자료 읽기</button>
+              <button type="button" class="roster-import" data-union-direct-read>讀取自行擷取的資料</button>
               <span class="union-status" data-union-direct-status></span>
             </div>
           </details>
@@ -579,34 +585,34 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="union-members" data-union-members></div>
           <div class="union-ask" data-union-ask hidden>
             <p data-union-ask-text></p>
-            <button type="button" class="roster-import" data-union-pick-all>공개된 사람 전부 고르기</button>
-            <button type="button" class="roster-import" data-union-pick-none>전부 해제</button>
+            <button type="button" class="roster-import" data-union-pick-all>選擇所有公開的人</button>
+            <button type="button" class="roster-import" data-union-pick-none>全部取消</button>
           </div>
         </div>
 
         <div class="union-step" data-union-step="3" hidden>
-          <h3>보스와 덱</h3>
-          <p class="field-note">보스는 <b>전투 조건 코드</b>(NK3-), 덱은 <b>조합 코드</b>(NK2-)로 채웁니다. 계산기에 잡아 둔 설정을 가져오거나, <b>공유 목록에서 골라</b> 넣을 수도 있습니다. 체크를 끈 보스는 계산하지 않습니다 — 풍압엔 강한데 전격엔 약한 사람이 있으니까요.</p>
+          <h3>Boss 與隊伍</h3>
+          <p class="field-note">Boss 用<b>戰鬥條件代碼</b>(NK3-)、隊伍用<b>組合代碼</b>(NK2-)填入。可以帶入計算機裡的設定,或<b>從分享清單選</b>。取消勾選的 Boss 不計算 — 因為有人對風壓強、對電擊弱。</p>
           <div class="union-board-bar">
-            <span class="union-board-label">판 전체</span>
-            <button type="button" class="roster-import" data-union-set-share>공유에서 판 고르기</button>
-            <button type="button" class="roster-import" data-union-set-paste>판 코드 붙여넣기</button>
-            <button type="button" class="roster-import" data-union-set-copy>이 판 코드 복사</button>
+            <span class="union-board-label">整個盤面</span>
+            <button type="button" class="roster-import" data-union-set-share>從分享選盤面</button>
+            <button type="button" class="roster-import" data-union-set-paste>貼上盤面代碼</button>
+            <button type="button" class="roster-import" data-union-set-copy>複製此盤面代碼</button>
             <span class="union-status" data-union-set-status></span>
           </div>
-          <p class="field-note">보스 다섯과 각 칸의 덱까지 <b>한 코드</b>(NK4-)에 담깁니다 — 지난 시즌 판을 통째로 옮기거나 유니온방에 뿌릴 때 스무 번 붙여넣지 않아도 됩니다. <b>유니온원 명단은 담기지 않습니다.</b></p>
+          <p class="field-note">五個 Boss 與每格的隊伍都裝進<b>一個代碼</b>(NK4-) — 整套搬移上季盤面、或發到聯盟群時,不必貼二十次。<b>聯盟成員名單不會被包含。</b></p>
           <div class="union-set-box" data-union-set-box hidden>
-            <textarea class="custom-json" data-union-set-code rows="3" placeholder="판 코드 (NK4-…)"></textarea>
+            <textarea class="custom-json" data-union-set-code rows="3" placeholder="盤面代碼 (NK4-…)"></textarea>
             <div class="deck-copy-actions">
-              <button type="button" class="deck-copy-apply" data-union-set-apply>이 판 적용</button>
-              <button type="button" class="deck-copy-cancel" data-union-set-close>닫기</button>
+              <button type="button" class="deck-copy-apply" data-union-set-apply>套用此盤面</button>
+              <button type="button" class="deck-copy-cancel" data-union-set-close>關閉</button>
             </div>
           </div>
           <div class="union-bosses" data-union-bosses></div>
 
           <div class="custom-modal" data-union-share-modal hidden>
-            <div class="custom-card share-card" role="dialog" aria-label="공유에서 고르기">
-              <div class="custom-head"><h2 data-union-share-title>공유에서 고르기</h2><button type="button" class="custom-close" data-union-share-close aria-label="닫기">✕</button></div>
+            <div class="custom-card share-card" role="dialog" aria-label="從分享選擇">
+              <div class="custom-head"><h2 data-union-share-title>從分享選擇</h2><button type="button" class="custom-close" data-union-share-close aria-label="關閉">✕</button></div>
               <p class="custom-desc" data-union-share-desc></p>
               <div data-union-share-body></div>
               <p class="custom-msg" data-union-share-msg hidden></p>
@@ -615,11 +621,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </div>
 
         <div class="union-step" data-union-step="4" hidden>
-          <h3>시뮬레이션</h3>
-          <p class="field-note">유니온원 × 보스 × 덱을 하나씩 돌립니다. <b>오래 걸리니 창을 열어 둔 채 기다려 주세요</b> — 결과는 나오는 대로 아래에 쌓입니다.</p>
+          <h3>模擬</h3>
+          <p class="field-note">聯盟成員 × Boss × 隊伍逐一計算。<b>會花不少時間,請開著視窗等候</b> — 結果會一邊算一邊往下累積。</p>
           <div class="union-actions">
-            <button type="button" class="roster-import union-run" data-union-run disabled>시뮬레이션 실행</button>
-            <button type="button" class="roster-import" data-union-stop hidden>중단</button>
+            <button type="button" class="roster-import union-run" data-union-run disabled>執行模擬</button>
+            <button type="button" class="roster-import" data-union-stop hidden>中斷</button>
             <span class="union-status" data-union-run-status></span>
           </div>
           <div class="union-progress" data-union-run-progress hidden><i></i></div>
@@ -629,24 +635,24 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
       <section class="panel enikk-panel" data-view="enikk" aria-labelledby="enikk-heading" hidden>
         <div class="section-heading">
-          <div><p class="step">ENIKK</p><h2 id="enikk-heading">ENIKK 조합 가져오기</h2></div>
+          <div><p class="step">ENIKK</p><h2 id="enikk-heading">匯入 ENIKK 組合</h2></div>
         </div>
-        <p class="enikk-lede">enikk.app 솔로레이드 랭킹에서 <b>그 사람이 실제로 쓴 5덱을 통째로</b> 가져옵니다. 최신 시즌 상위 <b>300명</b>(KR·JP·GLOBAL·NA·TW-HK·SEA 각 50명)이 대상이고, 누르면 우리 5덱에 그대로 깔립니다.</p>
-        <p class="enikk-warn" data-enikk-warn>불러오는 데 <b>5~10초쯤</b> 걸립니다 — enikk에서 300명분을 한 번에 받아오기 때문입니다. 받아온 뒤에는 이 브라우저에 저장해 두고 다시 받지 않습니다.</p>
+        <p class="enikk-lede">從 enikk.app 單人突襲排行榜,<b>整套匯入那個人實際用的 5 隊</b>。對象是最新賽季前 <b>300 名</b>(KR・JP・GLOBAL・NA・TW-HK・SEA 各 50 名),按下去就直接鋪到我們的 5 隊。</p>
+        <p class="enikk-warn" data-enikk-warn>載入約需 <b>5~10 秒</b> — 因為要從 enikk 一次拿 300 人份。拿到之後會存在這個瀏覽器,不會再重抓。</p>
         <div class="enikk-actions">
-          <button type="button" class="roster-import" data-enikk-load>조합 가져오기</button>
-          <button type="button" class="roster-import" data-enikk-refresh hidden>다시 받기</button>
+          <button type="button" class="roster-import" data-enikk-load>匯入組合</button>
+          <button type="button" class="roster-import" data-enikk-refresh hidden>重新取得</button>
           <span class="enikk-status" data-enikk-status></span>
         </div>
         <div class="enikk-exclude">
-          <label class="enikk-exclude-label" for="enikk-exclude">제외할 니케</label>
+          <label class="enikk-exclude-label" for="enikk-exclude">要排除的妮姬</label>
           <div class="enikk-exclude-row">
-            <input id="enikk-exclude" type="search" list="enikk-exclude-list" placeholder="안 가진 니케 이름을 넣으세요" autocomplete="off" data-enikk-exclude-input />
+            <input id="enikk-exclude" type="search" list="enikk-exclude-list" placeholder="輸入你沒有的妮姬名稱" autocomplete="off" data-enikk-exclude-input />
             <datalist id="enikk-exclude-list" data-enikk-exclude-options></datalist>
-            <button type="button" class="roster-import" data-enikk-exclude-add>추가</button>
+            <button type="button" class="roster-import" data-enikk-exclude-add>新增</button>
           </div>
           <div class="enikk-exclude-chips" data-enikk-exclude-chips></div>
-          <p class="field-note">넣은 니케가 낀 덱은 <b>가져오기에서 빠집니다</b>. 그 니케가 없어도 짤 수 있는 조합만 남기려는 것입니다.</p>
+          <p class="field-note">含有你填入妮姬的隊伍會<b>從匯入中排除</b>。目的是只留下沒有那隻妮姬也能組出的隊伍。</p>
         </div>
         <div class="enikk-summary" data-enikk-summary hidden></div>
         <div class="enikk-compare" data-enikk-compare hidden></div>
@@ -656,67 +662,67 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <form class="calculator-layout" data-view="calc" novalidate>
         <section class="panel squad-panel" aria-labelledby="squad-heading">
           <div class="section-heading">
-            <div><h2 id="squad-heading">편성 및 캐릭터 설정</h2></div>
+            <div><h2 id="squad-heading">編成與角色設定</h2></div>
             <div class="squad-tools">
               <span class="roster-import-group">
-                <label class="roster-import" title="렛츠도로 니케정보 CSV를 불러와 모든 니케 설정에 적용">
+                <label class="roster-import" title="匯入 Let's Doro 妮姬資訊 CSV,套用到所有妮姬設定">
                   <input id="roster-csv" type="file" accept=".csv,text/csv" hidden />
-                  <span>렛츠도로 CSV 불러오기</span>
+                  <span>匯入 Let's Doro CSV</span>
                 </label>
-                <button type="button" class="roster-info" data-doro-open aria-label="렛츠도로 CSV 받는 법" title="렛츠도로에서 CSV 받는 법">i</button>
+                <button type="button" class="roster-info" data-doro-open aria-label="取得 Let's Doro CSV 的方法" title="在 Let's Doro 取得 CSV 的方法">i</button>
               </span>
-              ${blablaProxy ? '<button type="button" class="roster-import" data-blabla-open title="블라블라링크 프로필 URL로 보유 니케의 육성을 한 번에 불러옵니다">블라블라링크 연동</button>' : ''}
-              <button type="button" class="roster-import" data-add-nikke title="미출시·미등록 니케를 직접 추가">새 니케 추가</button>
-              <button type="button" class="roster-import" data-share-open title="편성을 이 브라우저에 이름 붙여 저장하거나, 코드·링크로 주고받습니다. 개인 스펙과 전투 조건은 담기지 않습니다">프리셋 / 조합 공유</button>
-              <button type="button" class="roster-import danger" data-reset-all title="편성·설정·CSV 로스터·추가한 니케·저장된 결과를 모두 지우고 처음 상태로 되돌립니다">완전 초기화</button>
-              <label class="toggle-field mode-toggle" title="다른 덱에서 이미 만져 둔 개별 설정을 편성할 때 그대로 가져옵니다"><input id="carry-settings" type="checkbox" checked /><span class="toggle"></span><span>설정 이어받기</span></label>
-              <label class="toggle-field mode-toggle"><input id="squad-mode" type="checkbox" /><span class="toggle"></span><span>5덱 모드</span></label>
+              ${blablaProxy ? '<button type="button" class="roster-import" data-blabla-open title="用 Blablalink 個人檔案網址,一次匯入持有妮姬的養成狀態">Blablalink 連動</button>' : ''}
+              <button type="button" class="roster-import" data-add-nikke title="手動新增未上市・未收錄的妮姬">新增妮姬</button>
+              <button type="button" class="roster-import" data-share-open title="把編成在這個瀏覽器裡命名儲存,或用代碼・連結互相傳送。個人規格與戰鬥條件不會包含在內">預設 / 組合分享</button>
+              <button type="button" class="roster-import danger" data-reset-all title="清除編成・設定・CSV 名單・新增的妮姬・已儲存的結果,全部回到初始狀態">完全重置</button>
+              <label class="toggle-field mode-toggle" title="編成時沿用其他隊伍已調整過的個別設定"><input id="carry-settings" type="checkbox" checked /><span class="toggle"></span><span>沿用設定</span></label>
+              <label class="toggle-field mode-toggle"><input id="squad-mode" type="checkbox" /><span class="toggle"></span><span>5隊模式</span></label>
             </div>
             <p class="roster-note" data-roster-note hidden></p>
           </div>
           <div class="deck-tabs" data-deck-tabs hidden></div>
           <div class="deck-controls">
-            <button type="button" class="burst-order-open" data-burst-order-open title="사이클마다 1버·2버·3버를 누가 쓸지 직접 정합니다. 정한 만큼만 따르고 그 뒤는 평소 순서로 돌아갑니다"><span class="burst-order-mark" aria-hidden="true">1·2·3</span><span>버스트 순서</span><b class="burst-order-badge" data-burst-order-badge hidden></b></button>
+            <button type="button" class="burst-order-open" data-burst-order-open title="每個循環由誰放 1爆・2爆・3爆,由你自己決定。只依照你指定的部分,之後回到平常的順序"><span class="burst-order-mark" aria-hidden="true">1·2·3</span><span>爆裂順序</span><b class="burst-order-badge" data-burst-order-badge hidden></b></button>
             <span class="deck-moves" data-deck-moves hidden></span>
-            <button type="button" class="deck-clear" data-deck-clear title="지금 보고 있는 덱의 편성과 개별 설정을 비웁니다">덱 비우기</button>
-            <button type="button" class="deck-clear" data-deck-clear-all hidden title="다섯 덱의 편성·개별 설정·이름을 한 번에 비웁니다">5덱 비우기</button>
+            <button type="button" class="deck-clear" data-deck-clear title="清空目前檢視隊伍的編成與個別設定">清空隊伍</button>
+            <button type="button" class="deck-clear" data-deck-clear-all hidden title="一次清空五個隊伍的編成・個別設定・名稱">清空 5 隊</button>
           <div class="deck-copy" data-deck-copy hidden>
-            <button type="button" class="deck-copy-open" data-deck-copy-open>현재 덱 복사</button>
+            <button type="button" class="deck-copy-open" data-deck-copy-open>複製目前隊伍</button>
             <div class="deck-copy-panel" data-deck-copy-panel hidden>
               <p class="deck-copy-title" data-deck-copy-title></p>
               <div class="deck-copy-targets" data-deck-copy-targets></div>
               <div class="deck-copy-actions">
-                <button type="button" class="deck-copy-apply" data-deck-copy-apply>복사</button>
-                <button type="button" class="deck-copy-cancel" data-deck-copy-cancel>취소</button>
+                <button type="button" class="deck-copy-apply" data-deck-copy-apply>複製</button>
+                <button type="button" class="deck-copy-cancel" data-deck-copy-cancel>取消</button>
               </div>
             </div>
           </div>
           </div>
-          <p class="deck-note" data-deck-note hidden>덱 사이에는 같은 캐릭터를 다시 편성할 수 있습니다.</p>
+          <p class="deck-note" data-deck-note hidden>不同隊伍之間可以重複編成同一個角色。</p>
           <div class="squad-grid" data-squad-grid></div>
 
           <!-- 니케 고르기. 창을 띄우지 않고 늘 펼쳐 두고, 검색은 이 판을 거른다.
                「이름을 쳤는데 아무 일도 안 일어난다」가 지적된 지점이라, 결과를
                감추는 자리를 없앴다. -->
-          <section class="picker" aria-label="니케 고르기" data-picker hidden>
+          <section class="picker" aria-label="選擇妮姬" data-picker hidden>
             <div class="picker-head">
-              <h3>니케 고르기 <span data-roster-count></span></h3>
+              <h3>選擇妮姬 <span data-roster-count></span></h3>
               <p class="picker-target" data-roster-desc></p>
-              <button type="button" class="picker-close" data-picker-close aria-label="니케 고르기 닫기" title="닫기 (Esc)">✕</button>
+              <button type="button" class="picker-close" data-picker-close aria-label="關閉選擇妮姬" title="關閉 (Esc)">✕</button>
             </div>
-            <input type="search" class="roster-search" data-roster-search placeholder="이름 · 초성 · 속성으로 찾기 (ㄹㅍ, 라피레드, 전격)" autocomplete="off" aria-label="니케 이름 검색" />
+            <input type="search" class="roster-search" data-roster-search placeholder="搜尋妮姬(名稱・屬性;也支援韓文/別名)" autocomplete="off" aria-label="搜尋妮姬名稱" />
             <!-- 정렬·필터는 판을 눌러 펼친다. 칩을 늘 깔아 두면 목록이 화면 밖으로
                  밀리고, 필터가 몇 개 걸렸는지도 한눈에 안 들어온다. -->
             <div class="picker-bar">
               <button type="button" class="filter-open" data-filter-open aria-expanded="false">
-                <span>정렬 및 필터</span>
+                <span>排序與篩選</span>
                 <b class="filter-badge" data-filter-badge hidden></b>
                 <span class="filter-caret" aria-hidden="true">▾</span>
               </button>
               <!-- 버스트는 가장 자주 거르는 축이라 판 안에 넣지 않는다 — 판을 펼치지
                    않고 바로 누를 수 있어야 한다. -->
               <div class="filter-chips burst-chips" data-burst-group></div>
-              <button type="button" class="filter-reset" data-filter-reset hidden>필터 지우기</button>
+              <button type="button" class="filter-reset" data-filter-reset hidden>清除篩選</button>
               <span class="filter-summary" data-filter-summary></span>
             </div>
             <!-- 판은 목록을 밀어내지 않고 그 «위에» 얹힌다. 밀어내면 펼칠 때마다
@@ -724,26 +730,26 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <div class="picker-body">
               <div class="filter-panel" data-filter-panel hidden>
                 <div class="filter-section">
-                  <p class="filter-title">정렬</p>
+                  <p class="filter-title">排序</p>
                   <div class="filter-chips" data-sort-group></div>
                 </div>
                 <div class="filter-rule"></div>
-                <p class="filter-title">필터</p>
+                <p class="filter-title">篩選</p>
                 <div class="filter-groups" data-filter-groups></div>
               </div>
               <div class="picker-scroll"><div class="roster-grid" data-roster-grid></div></div>
             </div>
-            <p class="roster-empty" data-roster-empty hidden>검색과 일치하는 니케가 없습니다.</p>
+            <p class="roster-empty" data-roster-empty hidden>沒有符合搜尋的妮姬。</p>
           </section>
         </section>
 
         <section class="panel settings-panel" aria-labelledby="settings-heading">
           <div class="section-heading compact target-heading">
-            <div><h2 id="settings-heading">전투 조건</h2></div>
+            <div><h2 id="settings-heading">戰鬥條件</h2></div>
             <div class="target-actions">
-              <button type="button" class="reset-enemy" data-battle-share-open title="전투 조건을 코드로 만들어 공유하거나, 받은 코드를 붙여넣어 적용합니다">전투 조건 공유</button>
-              <button type="button" class="reset-enemy" data-reset-enemy>적 수치 초기화</button>
-              <button type="button" class="reset-enemy" data-clear-cache title="같은 조건에 저장된 결과를 지우고 다음 실행부터 새로 계산합니다">저장된 결과 지우기</button>
+              <button type="button" class="reset-enemy" data-battle-share-open title="把戰鬥條件做成代碼分享,或貼上收到的代碼套用">戰鬥條件分享</button>
+              <button type="button" class="reset-enemy" data-reset-enemy>重置敵方數值</button>
+              <button type="button" class="reset-enemy" data-clear-cache title="清除相同條件下已儲存的結果,下次執行起重新計算">清除已存結果</button>
             </div>
           </div>
           <!-- 조건은 한 번 정해 두면 계속 쓰는 값이다. 그 자리에서 펼치면 편성이 화면
@@ -754,97 +760,97 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
                나머지 조건은 한 번 정해 두면 그대로 쓰는 값이라 창 안에 남는다. -->
           <div class="quick-cond" data-quick-cond>
             <label class="quick-code">
-              <span>보스 코드</span>
-              <select data-quick-enemy-code title="적의 코드입니다. 그 코드에 우월한 니케가 대미지 10%를 더 넣습니다">
-                <option value="">없음</option>
-                <option value="풍압">풍압 (작열이 우월)</option>
-                <option value="수냉">수냉 (전격이 우월)</option>
-                <option value="작열">작열 (수냉이 우월)</option>
-                <option value="전격">전격 (철갑이 우월)</option>
-                <option value="철갑">철갑 (풍압이 우월)</option>
+              <span>Boss 代碼</span>
+              <select data-quick-enemy-code title="敵人的屬性代碼。剋制該屬性的妮姬會多打 10% 傷害">
+                <option value="">無</option>
+                <option value="풍압">風壓(燃燒優勢)</option>
+                <option value="수냉">水冷(電擊優勢)</option>
+                <option value="작열">燃燒(水冷優勢)</option>
+                <option value="전격">電擊(鐵甲優勢)</option>
+                <option value="철갑">鐵甲(風壓優勢)</option>
               </select>
             </label>
-            <label class="toggle-field mode-toggle quick-core" title="코어가 있으면 그 자리를 맞힌 탄이 코어 배율을 받습니다">
-              <input type="checkbox" data-quick-core /><span class="toggle"></span><span>코어 있음</span>
+            <label class="toggle-field mode-toggle quick-core" title="有核心時,命中該部位的彈會吃到核心倍率">
+              <input type="checkbox" data-quick-core /><span class="toggle"></span><span>有核心</span>
             </label>
           </div>
           <div class="cond-bar">
             <button type="button" class="battle-open" data-battle-open aria-expanded="false">
-              <span class="battle-open-label">전투 조건</span>
+              <span class="battle-open-label">戰鬥條件</span>
               <span class="battle-summary" data-battle-summary></span>
-              <span class="disclosure-hint" aria-hidden="true">열기 ›</span>
+              <span class="disclosure-hint" aria-hidden="true">展開 ›</span>
             </button>
-            <button class="calculate-button run-inline" type="submit"><span>시뮬레이션 실행</span><b aria-hidden="true">→</b></button>
+            <button class="calculate-button run-inline" type="submit"><span>執行模擬</span><b aria-hidden="true">→</b></button>
           </div>
           <!-- 계산이 얼마나 빨리 끝나는지를 정하는 설정이라 실행 단추 바로 아래에 둔다. -->
           <div class="parallel-row">
-            <label class="toggle-field mode-toggle parallel-pick" title="계산을 여러 작업 스레드에 나눠 돌립니다. 이 기기의 코어를 더 쓰는 대신 5덱 계산이 몇 배 빨라집니다 — 계산은 이 기기에서 도는 것이라 서버 비용과는 무관합니다">
-              <input type="checkbox" data-parallel-toggle checked /><span class="toggle"></span><span>병렬 계산</span>
+            <label class="toggle-field mode-toggle parallel-pick" title="把計算分散到多個工作執行緒。多用這台裝置的核心,換來 5 隊計算快上數倍 — 計算是在你這台裝置上跑,與伺服器成本無關">
+              <input type="checkbox" data-parallel-toggle checked /><span class="toggle"></span><span>並行計算</span>
               <select data-parallel-size></select>
             </label>
           </div>
-          <p class="status" data-status aria-live="polite">계산 엔진 준비 중…</p>
-          <p class="battle-first-note" data-battle-first-note>계산하기 전에 <b>전투 조건을 한 번 확인해 주세요</b> — 몇 초짜리 전투인지, 적 코드가 무엇인지에 따라 결과가 완전히 달라집니다.</p>
+          <p class="status" data-status aria-live="polite">計算引擎準備中…</p>
+          <p class="battle-first-note" data-battle-first-note>計算前請<b>先確認一次戰鬥條件</b> — 依戰鬥長度是幾秒、敵人代碼是什麼,結果會完全不同。</p>
           <!-- 막힌 이유는 누른 단추 바로 아래에서 읽혀야 한다. -->
           <div class="error-box" data-errors hidden role="alert"></div>
 
           <!-- 창은 조건 패널 «안»에 둔다 — 설정 입력을 지켜보는 리스너가 이 패널을
                기준으로 걸려 있어, 밖으로 빼면 값을 바꿔도 저장되지 않는다. -->
           <div class="custom-modal" data-battle-modal hidden>
-          <div class="custom-card battle-card" role="dialog" aria-label="전투 조건">
-          <div class="custom-head"><h2>전투 조건</h2><button type="button" class="custom-close" data-battle-modal-close aria-label="닫기">✕</button></div>
+          <div class="custom-card battle-card" role="dialog" aria-label="戰鬥條件">
+          <div class="custom-head"><h2>戰鬥條件</h2><button type="button" class="custom-close" data-battle-modal-close aria-label="關閉">✕</button></div>
           <div class="battle-body" data-battle-body>
           <div class="field-grid">
-            <label><span>전투 시간</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>초</em></div></label>
-            <label><span>적 코드</span><select id="enemy-code"><option value="">없음</option><option value="풍압">풍압(작열weak)</option><option value="수냉">수냉(전격weak)</option><option value="작열">작열(수냉weak)</option><option value="전격">전격(철갑weak)</option><option value="철갑">철갑(풍압weak)</option></select></label>
-            <label><span>싱크로 레벨</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="싱크로 디바이스 소대에 넣은 니케는 전원이 이 레벨이 됩니다. 계정 육성 상태라 전투 조건 공유 코드에는 담기지 않습니다. ${SYNCHRO_MEASURED_MAX}레벨까지는 실측값이고, 그 위는 같은 성장 곡선을 이어 붙여 계산합니다" /><em>Lv</em></div></label>
-            <label class="toggle-field"><input id="has-core" type="checkbox" /><span class="toggle"></span><span>코어 있음</span></label>
-            <label data-core-size><span>코어 직경</span><div class="input-unit"><input id="core-px" type="number" min="0" max="1000" step="1" value="52" disabled /><em>px</em></div></label>
-            <label class="toggle-field"><input id="has-parts" type="checkbox" /><span class="toggle"></span><span>파괴 가능 파츠</span></label>
+            <label><span>戰鬥時間</span><div class="input-unit"><input id="duration" type="number" min="10" max="180" step="1" value="180" /><em>秒</em></div></label>
+            <label><span>敵代碼</span><select id="enemy-code"><option value="">無</option><option value="풍압">風壓(弱燃燒)</option><option value="수냉">水冷(弱電擊)</option><option value="작열">燃燒(弱水冷)</option><option value="전격">電擊(弱鐵甲)</option><option value="철갑">鐵甲(弱風壓)</option></select></label>
+            <label><span>同步器等級</span><div class="input-unit"><input id="synchro-level" type="number" min="1" max="${SYNCHRO_MAX}" step="1" value="${DEFAULT_SYNCHRO_LEVEL}" title="放進同步器裝置小隊的妮姬,全員都會是這個等級。屬帳號養成狀態,不會包含在戰鬥條件分享代碼裡。${SYNCHRO_MEASURED_MAX} 級以下是實測值,以上以相同成長曲線延伸計算" /><em>Lv</em></div></label>
+            <label class="toggle-field"><input id="has-core" type="checkbox" /><span class="toggle"></span><span>有核心</span></label>
+            <label data-core-size><span>核心直徑</span><div class="input-unit"><input id="core-px" type="number" min="0" max="1000" step="1" value="52" disabled /><em>px</em></div></label>
+            <label class="toggle-field"><input id="has-parts" type="checkbox" /><span class="toggle"></span><span>可破壞部位</span></label>
           </div>
           <fieldset class="range-field">
-            <legend>적정거리</legend>
+            <legend>適正距離</legend>
             <div class="range-options" data-optimal-range></div>
-            <p class="field-note">고른 무기군의 <b>일반 공격</b>에만 대미지 보너스 +30%가 붙습니다 — 스킬 대미지에는 붙지 않습니다. 적과의 거리에 달린 조건이라 무기군 단위로 켭니다.</p>
+            <p class="field-note">只有所選武器類型的<b>一般攻擊</b>會加 +30% 傷害加成 — 技能傷害不加。這是取決於與敵人距離的條件,以武器類型為單位開啟。</p>
           </fieldset>
 
           <!-- 고급 설정 — 자주 손대지 않는 값과 보스 페이즈를 한자리에 접어 둔다. -->
           <button type="button" class="disclosure" data-advanced-battle aria-expanded="false">
-            <span class="disclosure-label">고급 설정</span><span class="disclosure-hint">펼치기</span>
+            <span class="disclosure-label">進階設定</span><span class="disclosure-hint">展開</span>
           </button>
           <div class="disclosure-panel" data-advanced-battle-panel hidden>
             <div class="field-grid">
-              <label><span>적 방어력</span><input id="enemy-def" type="number" min="0" max="999999" step="1" value="31784" /></label>
-              <label><span>난수 시드</span><input id="seed" type="number" min="0" max="2147483647" step="1" value="42" /></label>
-              <label title="게이지 충전만의 시간입니다. 여기에 단계 전환 0.3초와 버스트 쿨 여유가 더해져 실제 공백은 더 깁니다."><span>버스트 게이지 충전</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>초</em></div></label>
-              <label class="toggle-field deck-regen-toggle" title="버스트 쿨이 밀리는 덱만 다른 값으로 재고 싶을 때 켭니다"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>버스트 충전을 덱마다 따로</span></label>
-              <label title="조건이 갖춰진 뒤 실제로 버스트를 누르기까지 걸리는 시간입니다. 버스트 하나하나마다 더해지므로 3단계까지 쓰면 그 세 배만큼 늦어집니다."><span>버스트 반응속도</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>초</em></div></label>
-              <label><span>난수 처리</span><select id="rng-mode"><option value="expected">기대값 (권장)</option><option value="random">난수</option></select></label>
-              <label class="toggle-field" title="족자 구간에는 평타가 빗나가므로 게이지도 차지 않는 것으로 계산합니다. 켜면 그만큼 버스트가 밀립니다."><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>족자 중 버스트 충전 정지</span></label>
+              <label><span>敵方防禦力</span><input id="enemy-def" type="number" min="0" max="999999" step="1" value="31784" /></label>
+              <label><span>隨機種子</span><input id="seed" type="number" min="0" max="2147483647" step="1" value="42" /></label>
+              <label title="這只是量表充能的時間。再加上階段切換 0.3 秒與爆裂冷卻的餘裕,實際空檔更長。"><span>爆裂量表充能</span><div class="input-unit"><input id="burst-regen" type="number" min="0" max="20" step="0.1" value="2" /><em>秒</em></div></label>
+              <label class="toggle-field deck-regen-toggle" title="只想對爆裂冷卻被拖延的隊伍用不同值測量時開啟"><input id="burst-regen-per-deck" type="checkbox" /><span class="toggle"></span><span>爆裂充能各隊分開</span></label>
+              <label title="條件齊備後到實際按下爆裂所需的時間。每個爆裂各自累加,用到 3 階就慢三倍。"><span>爆裂反應速度</span><div class="input-unit"><input id="burst-reaction" type="number" min="0" max="3" step="0.01" value="${DEFAULT_BURST_REACTION}" /><em>秒</em></div></label>
+              <label><span>隨機處理</span><select id="rng-mode"><option value="expected">期望值(推薦)</option><option value="random">隨機</option></select></label>
+              <label class="toggle-field" title="免疫區間普攻會 miss,所以量表也視為不充能計算。開啟後爆裂會相應被拖延。"><input id="immune-blocks-burst" type="checkbox" checked /><span class="toggle"></span><span>免疫期間停止爆裂充能</span></label>
             </div>
             <div class="deck-regen-grid" data-deck-regen hidden></div>
-            <p class="field-note">기대값은 확률 대신 기대치를 태워 <b>같은 설정이면 언제나 같은 값</b>이 나옵니다. 난수는 인게임과 같은 분산을 재현하며 시드에 따라 결과가 흔들립니다.</p>
+            <p class="field-note">期望值以期望取代機率,<b>相同設定永遠得到相同值</b>。隨機則重現遊戲內的分散,結果會隨種子浮動。</p>
 
             <fieldset class="range-field">
-              <legend>평타 계수</legend>
+              <legend>普攻係數</legend>
               <div class="coeff-options" data-hit-coeff></div>
-              <p class="field-note">실전에서 탄퍼짐으로 빗나가는 탄을 보정합니다. <b>평타에만</b> 곱하며 스킬·버스트와 변신 모드 사격은 조준 판정이라 손대지 않습니다. 기본값은 실측 대조로 뽑은 값이고(SG 0.90), 1.00이면 보정 없음입니다.</p>
+              <p class="field-note">校正實戰中因彈道散布而 miss 的彈。<b>只乘在普攻上</b>,技能・爆裂與變身模式射擊屬瞄準判定,不動它。預設值由實測對照取得(SG 0.90),1.00 則無校正。</p>
             </fieldset>
 
             <fieldset class="range-field phase-field">
-              <legend>보스 페이즈</legend>
+              <legend>Boss 階段</legend>
               <div class="phase-head">
-                <button type="button" class="phase-add" data-phase-add="immune">족자 추가 <b>+</b></button>
-                <button type="button" class="phase-add" data-phase-add="element">속저 추가 <b>+</b></button>
+                <button type="button" class="phase-add" data-phase-add="immune">新增免疫 <b>+</b></button>
+                <button type="button" class="phase-add" data-phase-add="element">新增屬濾 <b>+</b></button>
               </div>
               <div class="phase-list" data-phase-list></div>
-              <p class="field-note"><b>족자</b>는 평타만 빗나갑니다. 지속 대미지·스킬 대미지와 평타로 발동한 후속 공격은 계속 들어갑니다. <b>속저</b>는 고른 속성에 <b>우월한</b> 캐릭터의 딜만 통과시킵니다 — 풍압으로 두면 작열 캐릭터만 들어갑니다. 인게임처럼 <b>우월 코드 버프</b>로 우월해진 캐릭터도 통과합니다(라피 : 레드 후드 «부착형 유탄» 등).</p>
+              <p class="field-note"><b>免疫</b>只讓普攻 miss。持續傷害・技能傷害與普攻觸發的後續攻擊仍會命中。<b>屬濾</b>只讓對所選屬性<b>剋制</b>的角色傷害通過 — 設風壓時只有燃燒角色進得去。和遊戲一樣,靠<b>剋制代碼 buff</b>取得剋制的角色也能通過(Rapi: Red Hood 的《附著型榴彈》等)。</p>
             </fieldset>
           </div>
           <section class="console-editor">
-            <h3>콘솔 <span>전초기지 재활용 연구실</span></h3>
+            <h3>主控台 <span>前哨基地 回收研究室</span></h3>
             <div class="console-grid" data-console-grid></div>
-            <p class="field-note">계정 설정이라 스쿼드 전원에게 같이 적용됩니다. 클래스·기업은 인게임에서 소속별로 따로 크므로 각각 받습니다. 기업은 공격력, 공통·클래스는 체력을 올립니다 — 체력 계수를 쓰는 캐릭터(신데렐라 등)는 공통·클래스도 딜에 반영됩니다.</p>
+            <p class="field-note">屬帳號設定,會一起套用到隊伍全員。職業・企業在遊戲內依所屬分別成長,所以各自輸入。企業提升攻擊力,共通・職業提升生命 — 用生命係數的角色(灰姑娘等)共通・職業也會反映到傷害。</p>
           </section>
           </div>
           </div>
@@ -852,41 +858,41 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </section>
 
         <section class="panel result-panel" aria-labelledby="result-heading" data-result-panel>
-          <div class="result-empty"><h2 id="result-heading">전투 결과</h2><div class="radar-mark" aria-hidden="true"><i></i><i></i><i></i></div><p>편성과 조건을 확인한 뒤<br />시뮬레이션을 실행해 주세요.</p></div>
+          <div class="result-empty"><h2 id="result-heading">戰鬥結果</h2><div class="radar-mark" aria-hidden="true"><i></i><i></i><i></i></div><p>確認編成與條件後<br />請執行模擬。</p></div>
         </section>
       </form>
 
       <section class="panel timeline-panel" data-view="calc" aria-labelledby="timeline-heading" data-timeline-panel hidden>
-        <div class="section-heading compact"><div><h2 id="timeline-heading">전투 타임라인</h2></div></div>
+        <div class="section-heading compact"><div><h2 id="timeline-heading">戰鬥時間軸</h2></div></div>
         <div data-timeline-body></div>
       </section>
-      <footer><p>비공식 팬 제작 도구 · 실제 전투 환경과 차이가 있을 수 있습니다.</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
+      <footer><p>非官方粉絲製作工具・與實際戰鬥環境可能有差異。</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
 
       <div class="custom-modal" data-history-modal hidden>
-        <div class="custom-card roster-card" role="dialog" aria-label="계산 기록">
-          <div class="custom-head"><h2>계산 기록</h2><button type="button" class="custom-close" data-history-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">결과에서 «결과 저장»을 누른 시점의 편성과 수치가 이 브라우저에 남습니다. 편성을 되살려 그때 조합으로 돌아갈 수 있습니다. <b>수치는 그때의 스펙·전투 조건으로 낸 값</b>이라, 지금 설정과 다르면 다시 계산해야 맞습니다.</p>
+        <div class="custom-card roster-card" role="dialog" aria-label="計算紀錄">
+          <div class="custom-head"><h2>計算紀錄</h2><button type="button" class="custom-close" data-history-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在結果按下「儲存結果」的當下,那時的編成與數值會留在這個瀏覽器。可以復原編成、回到當時的組合。<b>數值是用當時的規格・戰鬥條件算出來的</b>,和現在設定不同時要重新計算才準。</p>
           <div class="history-list" data-history-list></div>
         </div>
       </div>
 
       <div class="custom-modal" data-battle-share-modal hidden>
-        <div class="custom-card share-card" role="dialog" aria-label="전투 조건 공유">
-          <div class="custom-head"><h2>전투 조건 공유</h2><button type="button" class="custom-close" data-battle-share-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">전투 시간·적 코드·코어·족자·속저·난수 처리 같은 <b>«어떤 상황에서 쟀나»</b>를 주고받습니다. <b>콘솔과 싱크로 레벨은 담기지 않습니다</b> — 계정 육성 상태라 남의 값이 딸려 오면 자기 스펙으로 잰 결과가 아니게 됩니다. 편성과 개인 스펙도 담기지 않습니다(그쪽은 «조합 공유»).</p>
+        <div class="custom-card share-card" role="dialog" aria-label="戰鬥條件分享">
+          <div class="custom-head"><h2>戰鬥條件分享</h2><button type="button" class="custom-close" data-battle-share-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">交換的是<b>「在什麼情況下測的」</b>,像戰鬥時間・敵代碼・核心・免疫・屬濾・隨機處理。<b>主控台與同步器等級不會被包含</b> — 那是帳號養成狀態,帶了別人的值就不是用自己規格測的結果了。編成與個人規格也不包含(那要用「組合分享」)。</p>
           ${SHARE_API ? '<div class="share-tabs" data-battle-share-tabs></div>' : ''}
           <div class="share-pane" data-battle-share-pane="upload" hidden></div>
           <div class="share-pane" data-battle-share-pane="list" hidden></div>
           <div class="share-pane" data-battle-share-pane="code">
             <div class="squad-code-block">
-              <h4>내 전투 조건 코드</h4>
+              <h4>我的戰鬥條件代碼</h4>
               <textarea class="share-out" data-battle-share-out readonly rows="3"></textarea>
-              <button type="button" class="share-copy" data-battle-share-copy>코드 복사</button>
+              <button type="button" class="share-copy" data-battle-share-copy>複製代碼</button>
             </div>
             <div class="squad-code-block">
-              <h4>받은 코드 적용</h4>
-              <textarea class="share-in" data-battle-share-in rows="3" placeholder="NK3- 로 시작하는 코드를 붙여넣으세요"></textarea>
-              <button type="button" class="share-apply" data-battle-share-apply>적용</button>
+              <h4>套用收到的代碼</h4>
+              <textarea class="share-in" data-battle-share-in rows="3" placeholder="貼上以 NK3- 開頭的代碼"></textarea>
+              <button type="button" class="share-apply" data-battle-share-apply>套用</button>
             </div>
           </div>
           <p class="share-msg" data-battle-share-msg hidden></p>
@@ -896,11 +902,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <!-- 업데이트 공지. 새 내용이 있을 때 처음 들어오면 한 번 뜨고, 닫으면 그 판을
            본 것으로 적어 다시 뜨지 않는다. 「업데이트 내역」으로 언제든 다시 연다. -->
       <div class="custom-modal" data-notice-modal hidden>
-        <div class="custom-card notice-card" role="dialog" aria-label="업데이트 내역">
-          <div class="custom-head"><h2>업데이트 내역</h2><button type="button" class="custom-close" data-notice-close aria-label="닫기">✕</button></div>
+        <div class="custom-card notice-card" role="dialog" aria-label="更新紀錄">
+          <div class="custom-head"><h2>更新紀錄</h2><button type="button" class="custom-close" data-notice-close aria-label="關閉">✕</button></div>
           <div class="notice-body" data-notice-body></div>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-notice-dismiss>확인 · 다시 보지 않기</button>
+            <button type="button" class="deck-copy-apply" data-notice-dismiss>確認・不再顯示</button>
           </div>
         </div>
       </div>
@@ -908,32 +914,32 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       <!-- 캐릭터 설정 뭉치를 띄우는 창. 카드가 좁아 그 자리에서 펼치면 다섯 장이
            서로를 밀어낸다 — 필터 판과 같은 방식으로 창을 띄운다. -->
       <div class="custom-modal" data-char-panel-modal hidden>
-        <div class="custom-card char-panel-card" role="dialog" aria-label="캐릭터 설정">
-          <div class="custom-head"><h2 data-char-panel-title>캐릭터 설정</h2><button type="button" class="custom-close" data-char-panel-close aria-label="닫기">✕</button></div>
+        <div class="custom-card char-panel-card" role="dialog" aria-label="角色設定">
+          <div class="custom-head"><h2 data-char-panel-title>角色設定</h2><button type="button" class="custom-close" data-char-panel-close aria-label="關閉">✕</button></div>
           <div class="char-panel-body" data-char-panel-body></div>
         </div>
       </div>
 
       <div class="custom-modal" data-buff-order-modal hidden>
-        <div class="custom-card buff-order-card" role="dialog" aria-label="버프 대상 순서">
-          <div class="custom-head"><h2 data-buff-order-title>버프 대상 순서</h2><button type="button" class="custom-close" data-buff-order-close aria-label="닫기">✕</button></div>
+        <div class="custom-card buff-order-card" role="dialog" aria-label="Buff 對象順序">
+          <div class="custom-head"><h2 data-buff-order-title>Buff 對象順序</h2><button type="button" class="custom-close" data-buff-order-close aria-label="關閉">✕</button></div>
           <p class="custom-desc" data-buff-order-desc></p>
           <div class="buff-order-list" data-buff-order-list></div>
         </div>
       </div>
 
       <div class="custom-modal" data-burst-order-modal hidden>
-        <div class="custom-card burst-order-card" role="dialog" aria-label="버스트 순서">
-          <div class="custom-head"><h2>버스트 순서</h2><button type="button" class="custom-close" data-burst-order-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">사이클마다 <b>1버 → 2버 → 3버</b>를 누가 쓸지 직접 정합니다. <b>정한 사이클까지만 따릅니다</b> — 전투가 더 길면 그 뒤는 계산기가 평소 순서로 고릅니다. 초상화를 누르거나 <b>A·S·D·F·G</b> 키로 고르고, <b>←</b>로 한 칸 되돌립니다.</p>
+        <div class="custom-card burst-order-card" role="dialog" aria-label="爆裂順序">
+          <div class="custom-head"><h2>爆裂順序</h2><button type="button" class="custom-close" data-burst-order-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">每個循環由你自己決定<b>1爆 → 2爆 → 3爆</b>由誰放。<b>只依照你指定的循環數</b> — 戰鬥更長時,之後由計算機照平常順序選。點頭像或用 <b>A・S・D・F・G</b> 鍵選,<b>←</b> 退回一格。</p>
           <div class="burst-order-bar">
-            <label class="burst-cycles">풀버스트 횟수
-              <button type="button" class="burst-step-btn" data-burst-cycles-down aria-label="한 사이클 줄이기">−</button>
+            <label class="burst-cycles">滿爆裂次數
+              <button type="button" class="burst-step-btn" data-burst-cycles-down aria-label="減少一個循環">−</button>
               <output data-burst-cycles>0</output>
-              <button type="button" class="burst-step-btn" data-burst-cycles-up aria-label="한 사이클 늘리기">+</button>
+              <button type="button" class="burst-step-btn" data-burst-cycles-up aria-label="增加一個循環">+</button>
             </label>
             <span class="burst-order-progress" data-burst-progress></span>
-            <button type="button" class="roster-import" data-burst-order-reset>처음부터</button>
+            <button type="button" class="roster-import" data-burst-order-reset>從頭開始</button>
           </div>
           <p class="burst-order-hint" data-burst-cycles-note></p>
           <div class="burst-now" data-burst-now></div>
@@ -941,20 +947,20 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="burst-order-list" data-burst-list></div>
           <p class="custom-msg" data-burst-order-msg hidden></p>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-burst-order-save>이 순서로 두기</button>
-            <button type="button" class="deck-copy-cancel" data-burst-order-clear>순서 지우기(자동)</button>
+            <button type="button" class="deck-copy-apply" data-burst-order-save>就用這個順序</button>
+            <button type="button" class="deck-copy-cancel" data-burst-order-clear>清除順序(自動)</button>
           </div>
         </div>
       </div>
 
       <div class="custom-modal" data-share-modal hidden>
-        <div class="custom-card share-card" role="dialog" aria-label="프리셋 / 조합 공유">
-          <div class="custom-head"><h2>프리셋 / 조합 공유</h2><button type="button" class="custom-close" data-share-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">누가 편성됐는지(캐릭터 조합)만 주고받습니다. <b>오버로드·공격력·돌파 같은 개인 스펙과 전투 조건은 담기지 않습니다</b> — 적용하면 캐릭터만 바뀌고 스펙은 각자 자기 설정(CSV 로스터를 넣었다면 그 값)이 그대로 쓰입니다. ${SHARE_API ? '<b>서버로는 «올리기»를 누를 때만 전송됩니다.</b>' : '서버로 전송되지 않습니다.'}</p>
+        <div class="custom-card share-card" role="dialog" aria-label="預設 / 組合分享">
+          <div class="custom-head"><h2>預設 / 組合分享</h2><button type="button" class="custom-close" data-share-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">只交換誰被編成(角色組合)。<b>超載・攻擊力・突破等個人規格與戰鬥條件不會被包含</b> — 套用後只換角色,規格仍用各自的設定(有匯入 CSV 名單的話就用那個值)。${SHARE_API ? '<b>只有按「上傳」時才會傳到伺服器。</b>' : '不會傳到伺服器。'}</p>
           <div class="share-scope" data-share-scope>
-            <span class="share-scope-label">범위</span>
-            <button type="button" class="share-scope-pick is-on" data-share-scope-pick="one">이 덱만</button>
-            <button type="button" class="share-scope-pick" data-share-scope-pick="all">5덱 전부</button>
+            <span class="share-scope-label">範圍</span>
+            <button type="button" class="share-scope-pick is-on" data-share-scope-pick="one">只有這隊</button>
+            <button type="button" class="share-scope-pick" data-share-scope-pick="all">全部 5 隊</button>
             <span class="share-scope-note" data-share-scope-note></span>
           </div>
           ${SHARE_API ? '<div class="share-tabs" data-share-tabs></div>' : ''}
@@ -962,25 +968,25 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="share-pane" data-share-pane="list" hidden></div>
           <div class="share-pane" data-share-pane="code">
           <div class="squad-code-block">
-            <h4>내 조합 코드</h4>
+            <h4>我的組合代碼</h4>
             <textarea class="custom-json" data-share-out rows="3" readonly></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-copy>코드 복사</button></div>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-copy>複製代碼</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>공유 링크</h4>
+            <h4>分享連結</h4>
             <textarea class="custom-json" data-share-url rows="2" readonly></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-url-copy>링크 복사</button></div>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-url-copy>複製連結</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>받은 코드 적용</h4>
-            <textarea class="custom-json" data-share-in rows="3" placeholder="받은 조합 코드나 공유 링크를 붙여넣으세요"></textarea>
-            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-apply>이 조합 적용</button></div>
+            <h4>套用收到的代碼</h4>
+            <textarea class="custom-json" data-share-in rows="3" placeholder="貼上收到的組合代碼或分享連結"></textarea>
+            <div class="deck-copy-actions"><button type="button" class="deck-copy-apply" data-share-apply>套用此組合</button></div>
           </div>
           <div class="squad-code-block">
-            <h4>이 브라우저에 저장</h4>
+            <h4>儲存到這個瀏覽器</h4>
             <div class="preset-row">
-              <input type="text" class="preset-name" data-preset-name placeholder="프리셋 이름 (예: 수냉 솔레 1덱)" maxlength="40" />
-              <button type="button" class="deck-copy-apply" data-preset-save>저장</button>
+              <input type="text" class="preset-name" data-preset-name placeholder="預設名稱 (例: 水冷單刷 1隊)" maxlength="40" />
+              <button type="button" class="deck-copy-apply" data-preset-save>儲存</button>
             </div>
             <div class="preset-list" data-preset-list></div>
           </div>
@@ -990,97 +996,97 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       </div>
 
       <div class="custom-modal" data-report-modal hidden>
-        <div class="custom-card report-card" role="dialog" aria-label="보고서 이미지">
-          <div class="custom-head"><h2>보고서 이미지</h2><button type="button" class="custom-close" data-report-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">아래 이미지를 복사해 커뮤니티에 바로 붙여넣을 수 있습니다. 복사가 막히면 PNG로 저장하거나, 이미지를 우클릭해 복사해도 됩니다. 이 브라우저 안에서만 만들어집니다.</p>
+        <div class="custom-card report-card" role="dialog" aria-label="報告圖片">
+          <div class="custom-head"><h2>報告圖片</h2><button type="button" class="custom-close" data-report-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">可以複製下面的圖片直接貼到社群。複製被擋時,可以存成 PNG,或對圖片按右鍵複製。只在這個瀏覽器裡產生。</p>
           <div class="report-preview" data-report-preview></div>
           <p class="report-msg" data-report-msg hidden></p>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-report-copy>이미지 복사</button>
-            <button type="button" class="deck-copy-cancel" data-report-save>PNG 저장</button>
+            <button type="button" class="deck-copy-apply" data-report-copy>複製圖片</button>
+            <button type="button" class="deck-copy-cancel" data-report-save>儲存 PNG</button>
           </div>
         </div>
       </div>
 
       <div class="custom-modal" data-reset-modal hidden>
-        <div class="custom-card reset-card" role="dialog" aria-label="완전 초기화 확인">
-          <div class="custom-head"><h2>완전 초기화</h2><button type="button" class="custom-close" data-reset-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">아래 항목을 모두 지우고 처음 상태로 되돌립니다. 되돌릴 수 없습니다.</p>
+        <div class="custom-card reset-card" role="dialog" aria-label="完全重置確認">
+          <div class="custom-head"><h2>完全重置</h2><button type="button" class="custom-close" data-reset-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">清除以下所有項目,回到初始狀態。無法復原。</p>
           <ul class="reset-list">
-            <li>모든 덱의 편성과 캐릭터별 설정</li>
-            <li>CSV로 불러온 로스터</li>
-            <li>직접 추가한 니케</li>
-            <li>저장된 계산 결과</li>
-            <li>전투 조건</li>
+            <li>所有隊伍的編成與各角色設定</li>
+            <li>用 CSV 匯入的名單</li>
+            <li>手動新增的妮姬</li>
+            <li>已儲存的計算結果</li>
+            <li>戰鬥條件</li>
           </ul>
           <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply danger" data-reset-confirm>초기화</button>
-            <button type="button" class="deck-copy-cancel" data-reset-cancel>취소</button>
+            <button type="button" class="deck-copy-apply danger" data-reset-confirm>重置</button>
+            <button type="button" class="deck-copy-cancel" data-reset-cancel>取消</button>
           </div>
         </div>
       </div>
 
       ${blablaProxy ? `
       <div class="custom-modal" data-blabla-modal hidden>
-        <div class="custom-card doro-card" role="dialog" aria-label="블라블라링크 연동">
-          <div class="custom-head"><h2>블라블라링크 연동</h2><button type="button" class="custom-close" data-blabla-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">블라블라링크에서 <b>내 프로필 주소</b>를 복사해 넣으면 보유 니케의 육성 상태를 한 번에 가져옵니다. 돌파·코강·스킬·오버로드·장비 강화에 더해, CSV에는 없는 <b>큐브와 소장품</b>까지 들어옵니다.</p>
-          <p class="custom-desc"><a href="https://www.blablalink.com/user" target="_blank" rel="noreferrer noopener">blablalink.com/user</a> 에 들어가면 주소창에 뜨는 주소가 그것입니다. 블라블라링크에서 <b>프로필과 니케 목록을 공개</b>로 바꿔야 조회됩니다 — 하나라도 비공개면 막힙니다. 전초기지까지 공개하면 콘솔(재활용 연구실) 레벨도 함께 들어옵니다.</p>
+        <div class="custom-card doro-card" role="dialog" aria-label="Blablalink 連動">
+          <div class="custom-head"><h2>Blablalink 連動</h2><button type="button" class="custom-close" data-blabla-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在 Blablalink 複製<b>我的個人檔案網址</b>貼進來,就能一次匯入持有妮姬的養成狀態。除了突破・核心強化・技能・超載・裝備強化,還包含 CSV 沒有的<b>魔方與收藏品</b>。</p>
+          <p class="custom-desc">進入 <a href="https://www.blablalink.com/user" target="_blank" rel="noreferrer noopener">blablalink.com/user</a>,網址列出現的網址就是它。要在 Blablalink 把<b>個人檔案與妮姬清單設為公開</b>才查得到 — 有一項未公開就會被擋。連前哨基地都公開的話,主控台(回收研究室)等級也會一起帶入。</p>
           <div class="blabla-row">
-            <select class="blabla-server" data-blabla-server aria-label="블라블라링크 서버">
-              <option value="">자동 (보유 니케가 가장 많은 서버)</option>
+            <select class="blabla-server" data-blabla-server aria-label="Blablalink 伺服器">
+              <option value="">自動(持有妮姬最多的伺服器)</option>
               ${BLABLA_SERVERS.map(({ area, label }) => `<option value="${area}">${label}</option>`).join('')}
             </select>
             <input type="url" class="blabla-url" data-blabla-url placeholder="https://www.blablalink.com/user?openid=..." spellcheck="false" />
-            <button type="button" class="roster-import" data-blabla-sync>동기화</button>
+            <button type="button" class="roster-import" data-blabla-sync>同步</button>
           </div>
           <p class="custom-desc blabla-status" data-blabla-status hidden></p>
-          <p class="custom-desc">받아 온 값은 이 브라우저에만 저장됩니다. 호감도는 계산기가 돌파 단계에서 끌어내므로 따로 반영하지 않습니다.</p>
+          <p class="custom-desc">取得的值只存在這個瀏覽器。好感度由計算機從突破階段推導,不另外反映。</p>
         </div>
       </div>` : ''}
       <div class="custom-modal" data-doro-modal hidden>
-        <div class="custom-card doro-card" role="dialog" aria-label="렛츠도로 CSV 받는 법">
-          <div class="custom-head"><h2>렛츠도로 CSV 받는 법</h2><button type="button" class="custom-close" data-doro-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">렛츠도로 <b>니케 정보</b> 페이지에서 목록 오른쪽 아래 <b>내려받기 아이콘</b>을 누르면 CSV가 저장됩니다. 그 파일을 <b>렛츠도로 CSV 불러오기</b>로 넣으면 보유 니케 설정이 한 번에 적용됩니다.</p>
-          <p class="doro-link"><a href="https://letsdoro.com/mypage?tab=nikke" target="_blank" rel="noreferrer">letsdoro.com 니케 정보 열기 ↗</a></p>
-          <p class="field-note">CSV에는 <b>큐브와 호감도</b>가 들어 있지 않습니다 — 그 둘은 기본값(기본 큐브 · 돌파별 최대 호감도)으로 계산하며, 카드의 <b>개별 설정</b>에서 실제 값으로 고칠 수 있습니다.</p>
-          <img class="doro-shot" src="${import.meta.env.BASE_URL}letsdoro-csv.png" alt="렛츠도로 니케 정보 페이지에서 CSV 내려받기 위치" loading="lazy" />
+        <div class="custom-card doro-card" role="dialog" aria-label="取得 Let's Doro CSV 的方法">
+          <div class="custom-head"><h2>取得 Let's Doro CSV 的方法</h2><button type="button" class="custom-close" data-doro-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">在 Let's Doro <b>妮姬資訊</b>頁面,按清單右下的<b>下載圖示</b>就會存下 CSV。把那個檔用<b>匯入 Let's Doro CSV</b>放進來,持有妮姬的設定就會一次套用。</p>
+          <p class="doro-link"><a href="https://letsdoro.com/mypage?tab=nikke" target="_blank" rel="noreferrer">開啟 letsdoro.com 妮姬資訊 ↗</a></p>
+          <p class="field-note">CSV 裡<b>不含魔方與好感度</b> — 這兩者以預設值(預設魔方・各突破最大好感度)計算,可在卡片的<b>個別設定</b>改成實際值。</p>
+          <img class="doro-shot" src="${import.meta.env.BASE_URL}letsdoro-csv.png" alt="Let's Doro 妮姬資訊頁面的 CSV 下載位置" loading="lazy" />
         </div>
       </div>
 
       <div class="custom-modal" data-custom-modal hidden>
-        <div class="custom-card" role="dialog" aria-label="새 니케 추가">
-          <div class="custom-head"><h2>새 니케 추가</h2><button type="button" class="custom-close" data-custom-close aria-label="닫기">✕</button></div>
-          <p class="custom-desc">미출시·미등록 니케를 직접 추가합니다. 서버로 전송되지 않고 이 브라우저에만 저장됩니다.</p>
+        <div class="custom-card" role="dialog" aria-label="新增妮姬">
+          <div class="custom-head"><h2>新增妮姬</h2><button type="button" class="custom-close" data-custom-close aria-label="關閉">✕</button></div>
+          <p class="custom-desc">手動新增未上市・未收錄的妮姬。不會傳到伺服器,只存在這個瀏覽器。</p>
           <ol class="custom-steps">
-            <li>아래 <b>프롬프트 복사</b>를 눌러 다른 LLM(챗봇)에 붙여넣고, 그 아래에 니케 이름·스킬 설명을 붙여 결과 JSON을 받으세요.</li>
-            <li>받은 JSON을 아래 칸에 붙여넣고 <b>추가</b>를 누르세요. 또는 <b>직접 입력 도움말</b>을 보고 손으로 작성해도 됩니다.</li>
+            <li>按下面的<b>複製提示詞</b>貼到別的 LLM(聊天機器人),再在下面附上妮姬名稱・技能說明,取得結果 JSON。</li>
+            <li>把拿到的 JSON 貼到下面的框,按<b>新增</b>。或看<b>手動輸入說明</b>自己寫也可以。</li>
           </ol>
           <div class="custom-caution">
-            <b>참고하세요</b>
+            <b>請注意</b>
             <ul>
-              <li>특이하거나 복잡한 스킬(조건부 발동·게이지·모드 전환·스택 조건 등)은 계산에 <b>반영되지 않습니다.</b> 기본 사격·버프·버스트 위주로만 근사됩니다. 그런 스킬이 주력 딜인 캐릭터(예: 게이지로 대미지가 커지는 캐릭터)는 <b>결과가 실제보다 훨씬 낮게</b> 나오니 참고만 하세요.</li>
-              <li>LLM 성능에 따라 <b>정확한 변환이 어려울 수 있으니 참고용</b>으로 쓰고, 값을 직접 확인·보정하시길 권합니다.</li>
-              <li>가능하면 아래 <b>직접 입력 도움말</b>을 보고 사람이 직접 값을 넣는 편이 정확합니다.</li>
+              <li>特殊或複雜的技能(條件發動・量表・模式切換・堆疊條件等)<b>不會反映到計算</b>。只以基本射擊・buff・爆裂為主做近似。這類技能是主力輸出的角色(例:靠量表放大傷害的角色)<b>結果會比實際低很多</b>,僅供參考。</li>
+              <li>依 LLM 效能,<b>可能難以精準轉換,請當參考用</b>,建議自行確認・校正數值。</li>
+              <li>可以的話,看下面的<b>手動輸入說明</b>由人親自填值最準。</li>
             </ul>
           </div>
           <details class="custom-help">
-            <summary>직접 입력 도움말 (스키마 · 사람이 작성할 때)</summary>
+            <summary>手動輸入說明(schema・人工填寫時)</summary>
             <div class="custom-help-body">
-              <p><b>최상위</b>: <code>{ "name": "정식 명칭", "nikke": {…스탯}, "skills": [ …효과 ] }</code></p>
-              <p><b>nikke 공통</b>: rarity(SSR/SR/R) · element_code(전격/작열/수냉/풍압/철갑) · class(화력형/방어형/지원형) · manufacturer(엘리시온/미실리스/테트라/필그림/어브노멀) · weapon_type(AR/SMG/MG/SR/RL/SG) · burst_stage(1~3) · burst_cooldown(초) · max_ammo · reload_time(초) · fire_rate(초당 발사) · pellets(SG만 2↑) · muzzles(대개 1) · damage_coeff(1발 계수 %)</p>
-              <p><b>무기별 추가</b>: 연사형(AR·SMG·MG·SG)은 <code>core_dmg_mult</code>(코어 %, 예 200). 차지형(SR·RL)은 <code>charge_time</code>(풀차지 초, 예 1.0~1.5)과 <code>full_charge_mult</code>(풀차지 %, 예 250·350). 차지형에 안 넣으면 각각 1.0·250으로 기본 적용됩니다.</p>
-              <p><b>skills 각 원소</b>: source(스킬1/스킬2/버스트스킬) · type(buff 또는 damage) · name · trigger:{ timing:[…], condition:[…] } · target · stat · polarity(beneficial/harmful) · max_stack(대개 1) · values:{ "1":값, "10":값 } 또는 fixed_value:값 · duration(지속 초, 즉발/영구는 생략 또는 -1)</p>
-              <p><b>인식되는 timing</b>: battle_start · full_burst_start · full_burst_start_count:N · full_burst_end · burst_cast · burst_cast_count:N · last_bullet · last_bullet_fire · hit_count:N · full_charge_hit · passive</p>
-              <p><b>인식되는 target</b>: self · all_allies · all_allies_excl_self · all_enemies · target · same_target · allies:N · allies_top_atk:N · allies_weapon:&lt;무기&gt; · allies_class:공격|방어|지원 · allies_code:&lt;속성&gt; · allies_code_weapon:&lt;속성&gt;:&lt;무기&gt; · enemies_top_atk:N</p>
-              <p><b>인식되는 buff stat</b>: atk_pct · atk_flat · atk_dmg_pct · normal_atk_dmg_pct · crit_rate · crit_dmg · core_dmg_pct · element_bonus_pct · burst_dmg_pct · pierce_dmg_pct · charge_dmg_pct · charge_speed_pct · max_ammo_pct · max_ammo_flat · reload_speed_pct · attack_speed_pct · accuracy_pct · def_pct · def_ignore_pct · enemy_def_down_pct · received_dmg(적이 받는 대미지 증가) · burst_cooldown(초)</p>
-              <p><b>damage stat</b>(type이 damage): bonus_damage · burst_damage · damage (values가 대미지 계수)</p>
-              <p class="custom-help-note">목록에 없는 stat·timing·target은 계산에서 무시됩니다. 애매하면 가장 가까운 표준값을 쓰세요.</p>
+              <p><b>最上層</b>: <code>{ "name": "正式名稱", "nikke": {…數值}, "skills": [ …效果 ] }</code></p>
+              <p><b>nikke 共通</b>: rarity(SSR/SR/R) · element_code(전격/작열/수냉/풍압/철갑) · class(화력형/방어형/지원형) · manufacturer(엘리시온/미실리스/테트라/필그림/어브노멀) · weapon_type(AR/SMG/MG/SR/RL/SG) · burst_stage(1~3) · burst_cooldown(秒) · max_ammo · reload_time(秒) · fire_rate(每秒發射) · pellets(僅 SG 2↑) · muzzles(通常 1) · damage_coeff(單發係數 %)</p>
+              <p><b>各武器額外</b>: 連射型(AR·SMG·MG·SG)用 <code>core_dmg_mult</code>(核心 %,例 200)。蓄力型(SR·RL)用 <code>charge_time</code>(滿蓄力秒,例 1.0~1.5)與 <code>full_charge_mult</code>(滿蓄力 %,例 250·350)。蓄力型不填時各自以 1.0・250 為預設。</p>
+              <p><b>skills 各元素</b>: source(스킬1/스킬2/버스트스킬) · type(buff 或 damage) · name · trigger:{ timing:[…], condition:[…] } · target · stat · polarity(beneficial/harmful) · max_stack(通常 1) · values:{ "1":值, "10":值 } 或 fixed_value:值 · duration(持續秒,即發/永久可省略或 -1)</p>
+              <p><b>可辨識的 timing</b>: battle_start · full_burst_start · full_burst_start_count:N · full_burst_end · burst_cast · burst_cast_count:N · last_bullet · last_bullet_fire · hit_count:N · full_charge_hit · passive</p>
+              <p><b>可辨識的 target</b>: self · all_allies · all_allies_excl_self · all_enemies · target · same_target · allies:N · allies_top_atk:N · allies_weapon:&lt;武器&gt; · allies_class:공격|방어|지원 · allies_code:&lt;屬性&gt; · allies_code_weapon:&lt;屬性&gt;:&lt;武器&gt; · enemies_top_atk:N</p>
+              <p><b>可辨識的 buff stat</b>: atk_pct · atk_flat · atk_dmg_pct · normal_atk_dmg_pct · crit_rate · crit_dmg · core_dmg_pct · element_bonus_pct · burst_dmg_pct · pierce_dmg_pct · charge_dmg_pct · charge_speed_pct · max_ammo_pct · max_ammo_flat · reload_speed_pct · attack_speed_pct · accuracy_pct · def_pct · def_ignore_pct · enemy_def_down_pct · received_dmg(敵方受到傷害增加) · burst_cooldown(秒)</p>
+              <p><b>damage stat</b>(type 為 damage): bonus_damage · burst_damage · damage (values 為傷害係數)</p>
+              <p class="custom-help-note">清單中沒有的 stat・timing・target 會在計算中被忽略。不確定時請用最接近的標準值。</p>
             </div>
           </details>
-          <button type="button" class="custom-btn" data-copy-prompt>① 프롬프트 복사</button>
-          <textarea class="custom-json" data-custom-json placeholder="② 여기에 결과 JSON을 붙여넣거나, 도움말을 보고 직접 작성하세요" rows="8"></textarea>
-          <div class="custom-actions"><button type="button" class="custom-btn primary" data-custom-submit>추가</button></div>
+          <button type="button" class="custom-btn" data-copy-prompt>① 複製提示詞</button>
+          <textarea class="custom-json" data-custom-json placeholder="② 把結果 JSON 貼在這裡,或看說明自己寫" rows="8"></textarea>
+          <div class="custom-actions"><button type="button" class="custom-btn primary" data-custom-submit>新增</button></div>
           <p class="custom-msg" data-custom-msg hidden></p>
           <div class="custom-list" data-custom-list></div>
         </div>
@@ -1130,12 +1136,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
    * 늘어서면 번호가 자리 이름 노릇을 한다.
    */
   const deckLabelFull = (deck: DeckState): string =>
-    (deck.name?.trim() ? `${deck.id}. ${deck.name.trim()}` : `덱 ${deck.id}`);
+    (deck.name?.trim() ? `${deck.id}. ${deck.name.trim()}` : `隊 ${deck.id}`);
 
   /** 결과·보고서가 쓰는 이름. 결과는 덱 객체가 아니라 번호만 들고 있다. */
   const deckNameOf = (id: number): string => {
     const deck = decks.find((entry) => entry.id === id);
-    return deck ? deckLabelFull(deck) : `덱 ${id}`;
+    return deck ? deckLabelFull(deck) : `隊 ${id}`;
   };
 
   /** 탭 자리에서 이름을 고친다. Enter로 정하고, Esc로 되돌린다. */
@@ -1146,8 +1152,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     input.dataset.deckName = String(deck.id);
     input.maxLength = 24;
     input.value = deck.name ?? '';
-    input.placeholder = `덱 ${deck.id}`;
-    input.title = '무엇을 바꿔 본 판인지 적어 두세요 (예: 0장 · 1장 · 2장)';
+    input.placeholder = `隊 ${deck.id}`;
+    input.title = '記下這是改了什麼的盤面(例:0階・1階・2階)';
     let done = false;
     const finish = (save: boolean) => {
       if (done) return;
@@ -1205,7 +1211,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       button.className = deck.id === activeDeckId ? 'is-active' : '';
       const count = deck.squad.filter(Boolean).length;
       button.textContent = `${deckLabelFull(deck)}${count ? ` · ${count}` : ''}`;
-      button.title = '두 번 누르면 이름을 붙일 수 있습니다. 끌어다 놓으면 순서가 바뀝니다';
+      button.title = '按兩下可以命名。拖曳可以改變順序';
       // 이름 붙이기 — 두 번 누르면 그 자리에서 고친다. 창을 띄우면 다섯 개를
       // 연달아 이름 붙일 때 창을 다섯 번 여닫아야 한다.
       button.addEventListener('dblclick', (event) => {
@@ -1256,8 +1262,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         rename.className = 'deck-rename';
         rename.dataset.deckRename = String(deck.id);
         rename.textContent = '✎';
-        rename.title = `${deckLabelFull(deck)}의 이름 붙이기`;
-        rename.ariaLabel = `${deckLabelFull(deck)}의 이름 붙이기`;
+        rename.title = `為 ${deckLabelFull(deck)} 命名`;
+        rename.ariaLabel = `為 ${deckLabelFull(deck)} 命名`;
         rename.addEventListener('click', () => renameDeck(deck, button));
         deckTabs.append(rename);
       }
@@ -1276,13 +1282,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const shared = [...seen].filter(([, ids]) => ids.length > 1);
       if (shared.length > 0) {
         deckNote.replaceChildren(
-          createText('b', `여러 덱에 겹친 니케 ${shared.length}명: `),
-          createText('span', shared.map(([name, ids]) => `${name}(덱 ${ids.join('·')})`).join(', ')),
-          createText('em', ' — 견주려고 일부러 겹쳤다면 그대로 두셔도 됩니다. 한 번에 내보내는 편성이라면 겹칠 수 없습니다.'),
+          createText('b', `多隊重複的妮姬 ${shared.length} 名:`),
+          createText('span', shared.map(([name, ids]) => `${resolveDisplayName(name)}(隊 ${ids.join('·')})`).join(', ')),
+          createText('em', ' — 若是為了比較故意重複,保留也沒關係。若是一次匯出的編成則不能重複。'),
         );
         deckNote.classList.add('is-dup');
       } else {
-        deckNote.textContent = '덱 사이에는 같은 캐릭터를 다시 편성할 수 있습니다.';
+        deckNote.textContent = '不同隊伍之間可以重複編成同一個角色。';
         deckNote.classList.remove('is-dup');
       }
     }
@@ -1308,15 +1314,15 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       renderSquad();
     };
     for (const [delta, label, title] of [
-      [-1, '‹', '앞으로'], [1, '›', '뒤로'],
+      [-1, '‹', '往前'], [1, '›', '往後'],
     ] as const) {
       const move = document.createElement('button');
       move.type = 'button';
       move.className = 'deck-move';
       move.dataset.deckMove = String(delta);
       move.textContent = label;
-      move.title = `현재 덱을 ${title} 옮기기`;
-      move.ariaLabel = `덱 ${activeDeckId}을 ${title} 옮기기`;
+      move.title = `把目前隊伍 ${title} 移動`;
+      move.ariaLabel = `把隊伍 ${activeDeckId} ${title} 移動`;
       const index = decks.findIndex((deck) => deck.id === activeDeckId);
       move.disabled = index + delta < 0 || index + delta >= decks.length;
       move.addEventListener('click', () => swapDeck(delta));
@@ -1333,7 +1339,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   const renderDeckCopy = () => {
     const source = activeDeck();
-    deckCopyTitle.textContent = `${deckLabelFull(source)}의 편성과 캐릭터 설정을 복사할 대상`;
+    deckCopyTitle.textContent = `要把 ${deckLabelFull(source)} 的編成與角色設定複製到的對象`;
     deckCopyTargets.replaceChildren();
     for (const deck of decks) {
       if (deck.id === source.id) continue;
@@ -1347,7 +1353,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       box.checked = count === 0;
       label.append(
         box,
-        createText('span', count === 0 ? `${deckLabelFull(deck)} · 비어 있음` : `${deckLabelFull(deck)} · ${count}명 (덮어씀)`,
+        createText('span', count === 0 ? `${deckLabelFull(deck)} · 空的` : `${deckLabelFull(deck)} · ${count} 名(覆寫)`,
           count === 0 ? undefined : 'deck-copy-warn'),
       );
       deckCopyTargets.append(label);
@@ -1360,7 +1366,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       deckCopyTargets.querySelectorAll<HTMLInputElement>('[data-deck-copy-target]'),
     ).filter((box) => box.checked).map((box) => Number(box.dataset.deckCopyTarget));
     if (targets.length === 0) {
-      showErrors(['복사할 대상 덱을 하나 이상 선택하세요.']);
+      showErrors(['請至少選擇一個要複製的目標隊伍。']);
       return;
     }
     for (const id of targets) {
@@ -1377,7 +1383,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     showErrors([]);
     saveState();
     renderDeckTabs();
-    status.textContent = `덱 ${source.id}을(를) ${targets.map((id) => `덱 ${id}`).join(' · ')}에 복사했습니다.`;
+    status.textContent = `已把隊伍 ${source.id} 複製到 ${targets.map((id) => `隊 ${id}`).join(' · ')}。`;
   };
 
   deckCopyOpen.addEventListener('click', () => {
@@ -1478,11 +1484,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const buffOrderModal = element<HTMLElement>(root, '[data-buff-order-modal]');
   const showBuffOrder = (caster: string, row: BuffTargetRow) => {
     element<HTMLElement>(root, '[data-buff-order-title]').textContent =
-      `${caster} · ${row.label}`;
+      `${resolveDisplayName(caster)} · ${row.label}`;
     element<HTMLElement>(root, '[data-buff-order-desc]').textContent =
       row.targets.length > 1
-        ? `${row.buff} — ${row.count}회 발동. 대상이 ${row.targets.length}명 사이에서 갈립니다.`
-        : `${row.buff} — ${row.count}회 발동. 전투 내내 같은 대상입니다.`;
+        ? `${row.buff} — 發動 ${row.count} 次。對象在 ${row.targets.length} 人之間分配。`
+        : `${row.buff} — 發動 ${row.count} 次。整場戰鬥都是同一對象。`;
     const list = element<HTMLElement>(root, '[data-buff-order-list]');
     list.replaceChildren();
     for (const [index, step] of (row.sequence ?? []).entries()) {
@@ -1501,7 +1507,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
       item.append(shot);
       item.append(createText('strong', step.target));
-      item.append(createText('span', `${step.t.toFixed(2)}초`));
+      item.append(createText('span', `${step.t.toFixed(2)}秒`));
       list.append(item);
     }
     buffOrderModal.hidden = false;
@@ -1584,7 +1590,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const placeCharPanel = (panel: HTMLElement, name: string, label: string) => {
     panel.hidden = false;
     charPanelBody.replaceChildren(panel);
-    charPanelTitle.textContent = `${name} · ${label}`;
+    charPanelTitle.textContent = `${resolveDisplayName(name)} · ${label}`;
     charPanelModal.hidden = false;
   };
   const closeCharPanel = () => {
@@ -1648,7 +1654,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 한 덱에 같은 니케를 두 번 넣을 수 없다 — 누르는 길에서 막는 것과 같은 규칙이다.
       const already = deck.squad.indexOf(name);
       if (already >= 0 && already !== index) {
-        showErrors([`${name}은(는) 이미 ${already + 1}번 칸에 있습니다.`]);
+        showErrors([`${resolveDisplayName(name)} 已經在第 ${already + 1} 格。`]);
         return;
       }
       pickCharacter(name, index);
@@ -1667,8 +1673,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     box.className = 'copy-from';
     box.dataset.copyFrom = name;
     const head = document.createElement('summary');
-    head.textContent = '다른 니케에서 베껴오기';
-    head.title = '이미 키운 니케의 돌파·스킬·오버로드·장비 강화·소장품을 그대로 가져옵니다';
+    head.textContent = '從其他妮姬複製';
+    head.title = '沿用已養成妮姬的突破・技能・超載・裝備強化・收藏品';
     box.append(head);
 
     // 후보 = 어딘가에 설정이 잡혀 있는 니케(불러온 로스터 · 다섯 덱 어디든).
@@ -1682,7 +1688,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
     }
     if (sources.size === 0) {
-      box.append(createText('p', '베껴올 설정이 아직 없습니다 — CSV·블라블라링크로 불러오거나, 다른 니케를 먼저 설정해 주세요.', 'field-note'));
+      box.append(createText('p', '還沒有可複製的設定 — 請先用 CSV・Blablalink 匯入,或先設定其他妮姬。', 'field-note'));
       return box;
     }
 
@@ -1698,7 +1704,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     apply.type = 'button';
     apply.className = 'copy-from-apply';
     apply.dataset.copyFromApply = '';
-    apply.textContent = '베끼기';
+    apply.textContent = '複製';
     apply.addEventListener('click', () => {
       const from = sources.get(pick.value);
       if (!from) return;
@@ -1709,35 +1715,35 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (from.growthStage !== undefined && target) {
         // 돌파 상한은 등급마다 다르다 — SSR 값을 SR에 그대로 부으면 안 된다.
         next.growthStage = Math.min(from.growthStage, target.maxGrowthStage);
-        carried.push('돌파');
+        carried.push('突破');
       }
       // 수치 미공개(임시·프리뷰) 캐릭터는 스킬 Lv10 고정이라 건너뛴다.
       if (from.skillLevels && !target?.skillLevelsLocked) {
         next.skillLevels = { ...from.skillLevels };
-        carried.push('스킬');
+        carried.push('技能');
       }
-      if (from.overload) { next.overload = { ...from.overload }; carried.push('오버로드'); }
-      if (from.equipLevels) { next.equipLevels = { ...from.equipLevels }; carried.push('장비 강화'); }
+      if (from.overload) { next.overload = { ...from.overload }; carried.push('超載'); }
+      if (from.equipLevels) { next.equipLevels = { ...from.equipLevels }; carried.push('裝備強化'); }
       if (from.collection) {
         // 애장품이 없는 캐릭터에 애장품 단계를 옮기면 없는 물건을 낀 셈이 된다.
         next.collection = target?.favoriteItem
           ? { ...from.collection }
           : { stage: from.collection.stage, favorite: 0 };
-        carried.push('소장품');
+        carried.push('收藏品');
       }
       if (carried.length === 0) {
-        status.textContent = `${pick.value}에게는 베껴올 육성값이 없습니다.`;
+        status.textContent = `${resolveDisplayName(pick.value)} 沒有可複製的養成值。`;
         return;
       }
       deck.characters[name] = next;
       saveState();
       renderSquad();
-      status.textContent = `${pick.value}의 ${carried.join(' · ')}을(를) ${name}에게 베꼈습니다.`;
+      status.textContent = `已把 ${resolveDisplayName(pick.value)} 的 ${carried.join(' · ')} 複製給 ${resolveDisplayName(name)}。`;
     });
     const row = document.createElement('div');
     row.className = 'copy-from-row';
     row.append(pick, apply);
-    box.append(row, createText('p', '돌파 · 스킬 · 오버로드 · 장비 강화 · 소장품을 가져옵니다. 컨트롤·버스트 운용·큐브는 그대로 둡니다.', 'field-note'));
+    box.append(row, createText('p', '沿用突破・技能・超載・裝備強化・收藏品。操作・爆裂運用・魔方維持不變。', 'field-note'));
     return box;
   };
 
@@ -1795,8 +1801,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         move.className = 'slot-move';
         move.dataset.slotMove = `${index}:${delta}`;
         move.textContent = label;
-        move.title = `${title} 이동`;
-        move.ariaLabel = `슬롯 ${index + 1} ${title} 이동`;
+        move.title = `${title} 移動`;
+        move.ariaLabel = `格 ${index + 1} ${title} 移動`;
         const target = index + delta;
         move.disabled = target < 0 || target > 4;
         move.addEventListener('click', () => {
@@ -1812,7 +1818,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (char?.image) {
         const image = document.createElement('img');
         image.src = `${import.meta.env.BASE_URL}${char.image}`;
-        image.alt = `${char.name} 초상화`;
+        image.alt = `${char.displayName ?? char.name} 肖像`;
         image.loading = 'lazy';
         portrait.append(image);
       }
@@ -1829,10 +1835,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 판이 닫혀 있으면 어느 칸도 고른 상태로 보이지 않는다 — 고를 상황이 아니면
       // 겨냥한 칸도 없는 게 맞다.
       choose.setAttribute('aria-pressed', String(pickerOpen && activeSlot === index));
-      choose.append(createText('strong', char ? char.name : '빈 칸'));
+      choose.append(createText('strong', char ? (char.displayName ?? char.name) : '空格'));
       choose.append(createText(
         'span',
-        char ? `B${char.burstStage} · ${char.elementCode} · ${char.weaponType}` : '눌러서 이 칸에 넣기',
+        char ? `B${char.burstStage} · ${termZh(char.elementCode)} · ${char.weaponType}` : '點此放入此格',
       ));
       choose.addEventListener('click', () => {
         // 같은 칸을 다시 누르면 접는다 — 켜고 끄는 자리가 한 곳이면 헷갈리지 않는다.
@@ -1852,8 +1858,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       clear.type = 'button';
       clear.className = 'slot-clear';
       clear.textContent = '✕';
-      clear.title = `${index + 1}번 칸 비우기`;
-      clear.ariaLabel = `${index + 1}번 칸 비우기`;
+      clear.title = `清空第 ${index + 1} 格`;
+      clear.ariaLabel = `清空第 ${index + 1} 格`;
       clear.hidden = !name;
       clear.addEventListener('click', () => {
         if (name) delete deck.characters[name];
@@ -1932,7 +1938,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const stageOf = (): number => deck.characters[cname]?.growthStage ?? defStage;
         const labelOf = (stage: number): string =>
           growthDefaults?.growthOptions.find((option) => option.value === stage)?.label
-          ?? `단계 ${stage}`;
+          ?? `階段 ${stage}`;
         function renderGrowthStepper(): void {
           const stage = stageOf();
           const slots = Math.min(maxStage, 3);
@@ -1954,9 +1960,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           minus.disabled = stage <= 0;
           plus.disabled = stage >= maxStage;
           const text = labelOf(stage);
-          minus.ariaLabel = `${cname} 돌파 한 단계 낮추기 (현재 ${text})`;
-          plus.ariaLabel = `${cname} 돌파 한 단계 높이기 (현재 ${text})`;
-          stepper.title = `돌파·코어 강화 · ${text}`;
+          minus.ariaLabel = `把 ${resolveDisplayName(cname)} 突破降一階(目前 ${text})`;
+          plus.ariaLabel = `把 ${resolveDisplayName(cname)} 突破升一階(目前 ${text})`;
+          stepper.title = `突破・核心強化 · ${text}`;
         }
         const setStage = (next: number) => {
           const clamped = Math.max(0, Math.min(maxStage, next));
@@ -2032,7 +2038,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       return box;
     };
 
-    const [commonWrap, commonInput] = field('전체', CONSOLE_DEFAULTS.common);
+    const [commonWrap, commonInput] = field('全部', CONSOLE_DEFAULTS.common);
     commonInput.id = 'console-common';
     consoleCommon = commonInput;
 
@@ -2048,9 +2054,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
     grid.append(
       // 인게임·블라블라링크와 같은 순서 — 공통 → 기업 → 클래스.
-      group('공통', [commonWrap]),
-      axisGroup('company', '기업'),
-      axisGroup('class', '클래스'),
+      group('共通', [commonWrap]),
+      axisGroup('company', '企業'),
+      axisGroup('class', '職業'),
     );
   };
   renderConsole();
@@ -2157,7 +2163,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const box = document.createElement('div');
       box.className = `phase-row is-${kind}`;
       box.dataset.phaseRow = `${kind}:${index}`;
-      box.append(createText('span', kind === 'immune' ? '족자' : '속저', 'phase-tag'));
+      box.append(createText('span', kind === 'immune' ? '免疫' : '屬濾', 'phase-tag'));
       box.append(numberField(from, (v) => {
         if (kind === 'immune') immuneWindows[index]!.from = v;
         else elementWindows[index]!.from = v;
@@ -2169,7 +2175,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         else elementWindows[index]!.to = v;
         saveState();
       }));
-      box.append(createText('span', '초', 'phase-sep'));
+      box.append(createText('span', '秒', 'phase-sep'));
       return box;
     };
 
@@ -2180,7 +2186,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       drop.className = 'phase-drop';
       drop.dataset.phaseDrop = `immune:${index}`;
       drop.textContent = '✕';
-      drop.ariaLabel = `족자 ${index + 1} 삭제`;
+      drop.ariaLabel = `刪除 免疫 ${index + 1}`;
       drop.addEventListener('click', () => {
         immuneWindows.splice(index, 1);
         saveState();
@@ -2211,7 +2217,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       drop.className = 'phase-drop';
       drop.dataset.phaseDrop = `element:${index}`;
       drop.textContent = '✕';
-      drop.ariaLabel = `속저 ${index + 1} 삭제`;
+      drop.ariaLabel = `刪除 屬濾 ${index + 1}`;
       drop.addEventListener('click', () => {
         elementWindows.splice(index, 1);
         saveState();
@@ -2242,7 +2248,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     advancedBattle.setAttribute('aria-expanded', String(next));
     advancedBattlePanel.hidden = !next;
     const hint = advancedBattle.querySelector('.disclosure-hint');
-    if (hint) hint.textContent = next ? '접기' : '펼치기';
+    if (hint) hint.textContent = next ? '收合' : '展開';
   });
 
   const readOptimalRange = (): string[] =>
@@ -2270,7 +2276,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     deckRegenBox.replaceChildren();
     for (let id = 1; id <= 5; id += 1) {
       const label = document.createElement('label');
-      label.append(createText('span', `덱 ${id}`));
+      label.append(createText('span', `隊 ${id}`));
       const wrap = document.createElement('div');
       wrap.className = 'input-unit';
       const input = document.createElement('input');
@@ -2280,7 +2286,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       input.step = '0.1';
       input.value = String(values[id] ?? 2);
       input.dataset.deckRegenInput = String(id);
-      wrap.append(input, createText('em', '초'));
+      wrap.append(input, createText('em', '秒'));
       label.append(wrap);
       deckRegenBox.append(label);
     }
@@ -2421,7 +2427,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         || custom.growthStage > (characterDefaults?.maxGrowthStage ?? -1)
       )) {
         messages.push(
-          `덱 ${deck.id} · ${name}: 돌파 단계는 0~${characterDefaults?.maxGrowthStage ?? 0} 정수여야 합니다.`,
+          `隊 ${deck.id} · ${resolveDisplayName(name)}:突破階段必須是 0~${characterDefaults?.maxGrowthStage ?? 0} 的整數。`,
         );
       }
       if (custom.skillLevels) {
@@ -2430,33 +2436,33 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           && keys.every((key) => key === '1' || key === '2' || key === '3');
         const values = Object.values(custom.skillLevels);
         if (!hasExactKeys || values.some((value) => !Number.isInteger(value) || value < 1 || value > 10)) {
-          messages.push(`덱 ${deck.id} · ${name}: 스킬 레벨은 1~10 정수여야 합니다.`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:技能等級必須是 1~10 的整數。`);
         } else if (characterDefaults?.skillLevelsLocked
           && values.some((value) => value !== 10)) {
-          messages.push(`덱 ${deck.id} · ${name}: 수치 미공개 캐릭터는 스킬 Lv10만 사용할 수 있습니다.`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:數值未公開的角色只能使用技能 Lv10。`);
         }
       }
       for (const [key, value] of Object.entries(custom.overload ?? {})) {
         const meta = settings.overloadFields[key];
         if (!meta || !Number.isFinite(value) || value < meta.min || value > meta.max) {
-          messages.push(`덱 ${deck.id} · ${name}: ${meta?.label ?? key} 값이 허용 범위를 벗어났습니다.`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${meta?.label ?? key} 的值超出允許範圍。`);
         }
       }
       if (custom.cube && (!settings.cubes[custom.cube.name] || !Number.isInteger(custom.cube.level)
         || custom.cube.level < 1 || custom.cube.level > 15)) {
-        messages.push(`덱 ${deck.id} · ${name}: 큐브 설정을 확인해 주세요.`);
+        messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:請確認魔方設定。`);
       }
       if (custom.weaponModeSwapAt !== undefined && (
         !Number.isFinite(custom.weaponModeSwapAt)
         || custom.weaponModeSwapAt < 0
         || custom.weaponModeSwapAt > 180
       )) {
-        messages.push(`덱 ${deck.id} · ${name}: 저격 모드 변경 시점은 0~180초여야 합니다.`);
+        messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:狙擊模式切換時點必須是 0~180 秒。`);
       }
       for (const [key, value] of Object.entries(custom.manualStats ?? {})) {
         const meta = settings.manualStats[key];
         if (!meta || !Number.isFinite(value) || value < meta.min || value > meta.max) {
-          messages.push(`덱 ${deck.id} · ${name}: ${meta?.label ?? key} 값이 허용 범위를 벗어났습니다.`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${meta?.label ?? key} 的值超出允許範圍。`);
         }
       }
     }
@@ -2511,7 +2517,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const renderPresets = () => {
     presetList.replaceChildren();
     if (presets.length === 0) {
-      presetList.append(createText('p', '저장된 프리셋이 없습니다.', 'preset-empty'));
+      presetList.append(createText('p', '沒有已儲存的預設。', 'preset-empty'));
       return;
     }
     for (const preset of presets) {
@@ -2522,7 +2528,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       load.type = 'button';
       load.className = 'preset-load';
       load.textContent = preset.name;
-      load.title = `${preset.at.slice(0, 10)} 저장 · 눌러서 불러오기`;
+      load.title = `${preset.at.slice(0, 10)} 儲存・點擊載入`;
       load.addEventListener('click', () => {
         applyShareText(preset.code);
         refreshShareFields();
@@ -2530,8 +2536,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'preset-remove';
-      remove.textContent = '삭제';
-      remove.setAttribute('aria-label', `${preset.name} 삭제`);
+      remove.textContent = '刪除';
+      remove.setAttribute('aria-label', `刪除 ${preset.name}`);
       remove.addEventListener('click', () => {
         presets = presets.filter((item) => item.name !== preset.name);
         savePresets();
@@ -2544,18 +2550,18 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-preset-save]').addEventListener('click', () => {
     const name = presetName.value.trim();
     if (!name) {
-      showShareMsg('프리셋 이름을 적어 주세요.');
+      showShareMsg('請填寫預設名稱。');
       presetName.focus();
       return;
     }
     if (!decksInScope().some((deck) => deck.squad.some(Boolean))) {
       showShareMsg(shareScope === 'all'
-        ? '편성이 비어 있어 저장할 것이 없습니다.'
-        : `덱 ${activeDeckId}이 비어 있습니다. 다른 덱을 담으려면 위에서 «5덱 전부»를 고르세요.`);
+        ? '編成是空的,沒有可儲存的內容。'
+        : `隊伍 ${activeDeckId} 是空的。要收其他隊伍,請在上面選「全部 5 隊」。`);
       return;
     }
     if (presets.length >= PRESET_MAX && !presets.some((p) => p.name === name)) {
-      showShareMsg(`프리셋은 ${PRESET_MAX}개까지 저장합니다. 쓰지 않는 것을 지워 주세요.`);
+      showShareMsg(`預設最多儲存 ${PRESET_MAX} 個。請刪除不用的。`);
       return;
     }
     const code = shareScopeCode();
@@ -2564,9 +2570,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     savePresets();
     renderPresets();
     presetName.value = '';
-    showShareMsg(`«${name}» 으로 저장했습니다`
-      + `(${shareScope === 'all' ? '5덱 전부' : `덱 ${activeDeckId}만`}).`
-      + ' 편성만 담기므로 스펙이 바뀌어도 그대로 씁니다.', true);
+    showShareMsg(`已儲存為「${name}」`
+      + `(${shareScope === 'all' ? '全部 5 隊' : `僅隊伍 ${activeDeckId}`})。`
+      + ' 只裝編成,規格改變也照用。', true);
   });
 
   // 계산 기록 — 그때의 편성(공유 코드)과 수치·조건을 남긴다. 편성만 되살릴 수 있게
@@ -2608,9 +2614,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         total: deck.result.squadTotal,
         squad: deck.request.squad.filter(Boolean),
       })),
-      conditions: `${battle.duration}초 · 방어력 ${battle.enemyDef.toLocaleString('en-US')}`
-        + `${battle.enemyCode ? ` · ${battle.enemyCode}` : ' · 코드 없음'}`
-        + `${battle.coreEnabled ? ` · 코어 ${battle.corePx}px` : ''} · 시드 ${battle.seed}`,
+      conditions: `${battle.duration}秒 · 防禦力 ${battle.enemyDef.toLocaleString('en-US')}`
+        + `${battle.enemyCode ? ` · ${termZh(battle.enemyCode)}` : ' · 無代碼'}`
+        + `${battle.coreEnabled ? ` · 核心 ${battle.corePx}px` : ''} · 種子 ${battle.seed}`,
     };
     calcHistory = [entry, ...calcHistory].slice(0, HISTORY_MAX);
     persistHistory();
@@ -2620,7 +2626,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const renderHistory = () => {
     historyList.replaceChildren();
     if (calcHistory.length === 0) {
-      historyList.append(createText('p', '아직 저장된 결과가 없습니다. 결과에서 «결과 저장»을 눌러 주세요.', 'preset-empty'));
+      historyList.append(createText('p', '還沒有已儲存的結果。請在結果按「儲存結果」。', 'preset-empty'));
       return;
     }
     for (const entry of calcHistory) {
@@ -2637,7 +2643,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       for (const deck of entry.decks) {
         row.append(createText(
           'p',
-          `덱 ${deck.id} · ${formatDamage(deck.total)} — ${deck.squad.join(', ') || '빈 덱'}`,
+          `隊 ${deck.id} · ${formatDamage(deck.total)} — ${deck.squad.map(resolveDisplayName).join(', ') || '空隊'}`,
           'history-deck',
         ));
       }
@@ -2646,7 +2652,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const restore = document.createElement('button');
       restore.type = 'button';
       restore.className = 'preset-load';
-      restore.textContent = '이 편성 되살리기';
+      restore.textContent = '復原這個編成';
       restore.addEventListener('click', () => {
         // 기록은 «그때 그 판»이다 — 범위 고르개와 무관하게 판 전체를 되살린다.
         applyShareText(entry.code, 'all');
@@ -2706,8 +2712,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       button.classList.toggle('is-on', button.dataset.shareScopePick === shareScope);
     }
     scopeNote.textContent = shareScope === 'all'
-      ? '5덱을 한 코드에 담고, 받으면 판 전체가 바뀝니다.'
-      : `덱 ${activeDeckId}만 담고, 받으면 덱 ${activeDeckId}에만 들어갑니다.`;
+      ? '把 5 隊裝進一個代碼,收到後整個盤面會改變。'
+      : `只裝隊伍 ${activeDeckId},收到後只進入隊伍 ${activeDeckId}。`;
   };
 
   for (const button of scopeBox.querySelectorAll<HTMLButtonElement>('[data-share-scope-pick]')) {
@@ -2751,10 +2757,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-share-copy]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(shareOut.value);
-      showShareMsg('조합 코드를 복사했습니다. 이대로 공유하면 됩니다.', true);
+      showShareMsg('已複製組合代碼。就這樣分享即可。', true);
     } catch {
       shareOut.select();
-      showShareMsg('자동 복사가 막혀 코드를 선택해 뒀습니다. Ctrl+C로 복사해 주세요.');
+      showShareMsg('自動複製被擋,已幫你選取代碼。請用 Ctrl+C 複製。');
     }
   });
   // 링크째 붙여넣어도 되게, #deck= 뒤의 코드만 뽑아 쓴다.
@@ -2796,17 +2802,17 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       renderSquad();
       showErrors([]);
       const missing = skipped.length > 0
-        ? ` · 목록에 없는 니케 ${skipped.length}명 제외(${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? '…' : ''})`
+        ? ` · 已排除清單外的妮姬 ${skipped.length} 名(${skipped.slice(0, 3).map(resolveDisplayName).join(', ')}${skipped.length > 3 ? '…' : ''})`
         : '';
       // 5덱짜리를 한 칸에 받았으면 나머지가 어디 갔는지 반드시 말해 준다.
       const carried = payload.decks.filter((deck) => deck.squad.some((n) => n.trim() !== '')).length;
       if (scope === 'all') {
-        showShareMsg(`덱 ${applied}개를 적용했습니다${missing}.`, skipped.length === 0);
+        showShareMsg(`已套用 ${applied} 隊${missing}。`, skipped.length === 0);
       } else if (carried > 1) {
-        showShareMsg(`코드에 덱이 ${carried}개 들어 있어 첫 덱만 덱 ${landed}에 넣었습니다`
-          + `${missing}. 판 전체를 받으려면 위에서 «5덱 전부»를 고르세요.`);
+        showShareMsg(`代碼裡有 ${carried} 隊,只把第一隊放進隊伍 ${landed}`
+          + `${missing}。要收整個盤面,請在上面選「全部 5 隊」。`);
       } else {
-        showShareMsg(`덱 ${landed}에 적용했습니다${missing}. 다른 덱은 그대로입니다.`,
+        showShareMsg(`已套用到隊伍 ${landed}${missing}。其他隊伍不變。`,
           skipped.length === 0);
       }
     } catch (error) {
@@ -2853,10 +2859,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-share-url-copy]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(shareUrl.value);
-      showShareMsg('링크를 복사했습니다. 받는 사람은 열기만 하면 편성이 들어갑니다.', true);
+      showShareMsg('已複製連結。對方只要打開就會載入編成。', true);
     } catch {
       shareUrl.select();
-      showShareMsg('자동 복사가 막혀 링크를 선택해 뒀습니다. Ctrl+C로 복사해 주세요.');
+      showShareMsg('自動複製被擋,已幫你選取連結。請用 Ctrl+C 複製。');
     }
   });
   // ── 보고서 이미지 ────────────────────────────────────────────────────────
@@ -2880,9 +2886,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
    * 불러온 경우 등) 손에 있는 1초 표로 내보낸다 — 수치 자체는 어느 쪽이든 정확하다.
    */
   const exportDamageCsv = async (batch: BatchResult, button: HTMLButtonElement) => {
-    const label = button.textContent ?? '정밀 수치 CSV';
+    const label = button.textContent ?? '精密數值 CSV';
     button.disabled = true;
-    button.textContent = '수치 모으는 중…';
+    button.textContent = '正在彙整數值…';
     try {
       const parts: string[] = [];
       let coarseOnly = false;
@@ -2896,17 +2902,17 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const timeline = result.fineTimeline ?? result.timeline;
         if (!result.fineTimeline) coarseOnly = true;
         const names = entry.request.squad.filter(Boolean);
-        const note = `${entry.request.duration}초 · 적 방어력 ${entry.request.enemyDef}`;
+        const note = `${entry.request.duration}秒 · 敵方防禦力 ${entry.request.enemyDef}`;
         if (batch.decks.length > 1) parts.push(csvText([[deckNameOf(entry.deckId)]]));
         parts.push(damageCsv({ ...result, timeline }, names, note));
       }
       downloadImage(csvBlob(parts.join('\r\n\r\n')),
-        csvFileName(batch.decks.length > 1 ? '5덱' : `덱 ${batch.decks[0]?.deckId ?? 1}`));
+        csvFileName(batch.decks.length > 1 ? '5隊' : `隊 ${batch.decks[0]?.deckId ?? 1}`));
       status.textContent = coarseOnly
-        ? '정밀 수치 CSV를 내려받았습니다 (1초 단위 — 0.1초 표는 다시 계산해야 나옵니다).'
-        : '정밀 수치 CSV를 내려받았습니다 (0.1초 단위).';
+        ? '已下載精密數值 CSV(1 秒單位 — 0.1 秒的表需重新計算才會出現)。'
+        : '已下載精密數值 CSV(0.1 秒單位)。';
     } catch (error) {
-      status.textContent = `정밀 수치 CSV를 만들지 못했습니다: ${(error as Error).message}`;
+      status.textContent = `無法產生精密數值 CSV:${(error as Error).message}`;
     } finally {
       button.disabled = false;
       button.textContent = label;
@@ -2917,7 +2923,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     if (!lastBatch) return;
     const batch = lastBatch;
     showReportMsg('');
-    reportPreview.replaceChildren(createText('p', '보고서를 그리는 중…', 'report-loading'));
+    reportPreview.replaceChildren(createText('p', '正在繪製報告…', 'report-loading'));
     reportModal.hidden = false;
     try {
       const names = batch.decks.flatMap((entry) => entry.request.squad);
@@ -2936,13 +2942,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       reportBlob = await canvasToBlob(canvas);
       const image = document.createElement('img');
       image.src = URL.createObjectURL(reportBlob);
-      image.alt = '전투 결과 보고서';
+      image.alt = '戰鬥結果報告';
       image.dataset.reportImage = '';
       reportPreview.replaceChildren(image);
     } catch (error) {
       reportBlob = null;
       reportPreview.replaceChildren();
-      showReportMsg(error instanceof Error ? error.message : '보고서를 만들지 못했습니다.');
+      showReportMsg(error instanceof Error ? error.message : '無法產生報告。');
     }
   };
 
@@ -2957,9 +2963,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 이미지 클립보드 쓰기를 막는 브라우저가 있어 실패하면 저장으로 안내한다.
       const outcome = await copyImage(reportBlob);
       const message = {
-        copied: '이미지를 복사했습니다. 커뮤니티 글에 붙여넣으세요.',
-        unsupported: '이 브라우저는 이미지 복사를 지원하지 않습니다. PNG 저장을 사용해 주세요.',
-        blocked: '복사가 차단됐습니다. 이 창을 한 번 클릭한 뒤 다시 눌러 보세요. 계속 막히면 PNG 저장을 사용해 주세요.',
+        copied: '已複製圖片。貼到社群貼文即可。',
+        unsupported: '這個瀏覽器不支援複製圖片。請用儲存 PNG。',
+        blocked: '複製被擋。請先點一下這個視窗再按一次。若持續被擋,請用儲存 PNG。',
       }[outcome];
       showReportMsg(message, outcome === 'copied');
     })();
@@ -2967,7 +2973,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-report-save]').addEventListener('click', () => {
     if (!reportBlob || !lastBatch) return;
     downloadImage(reportBlob, reportFilename(lastBatch));
-    showReportMsg('PNG로 저장했습니다.', true);
+    showReportMsg('已儲存為 PNG。', true);
   });
 
   // ── 자세히 보기 ─────────────────────────────────────────────────────────
@@ -3009,13 +3015,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const header = document.createElement('div');
     header.className = 'result-header';
     const copy = document.createElement('div');
-    copy.append(createText('h2', batch.decks.length > 1 ? '5덱 전투 결과' : '전투 결과'));
+    copy.append(createText('h2', batch.decks.length > 1 ? '5 隊戰鬥結果' : '戰鬥結果'));
     const summary = document.createElement('div');
     summary.className = 'total-block';
     const total = createText('strong', dmg(batch.total));
     total.dataset.resultTotal = '';
     total.dataset.batchTotal = '';
-    summary.append(createText('span', batch.decks.length > 1 ? '전체 덱 총 대미지' : '스쿼드 총 대미지'), total, createText('small', dps(batch.total / duration)));
+    summary.append(createText('span', batch.decks.length > 1 ? '全部隊伍總傷害' : '隊伍總傷害'), total, createText('small', dps(batch.total / duration)));
     header.append(copy, summary);
     resultPanel.append(header);
 
@@ -3027,21 +3033,21 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     reportButton.type = 'button';
     reportButton.className = 'report-open';
     reportButton.dataset.reportOpen = '';
-    reportButton.textContent = '보고서 이미지 만들기';
-    reportButton.title = '결과를 한 장짜리 PNG로 만들어 복사하거나 저장합니다';
+    reportButton.textContent = '製作報告圖片';
+    reportButton.title = '把結果做成一張 PNG 複製或儲存';
     reportButton.addEventListener('click', () => { void openReport(); });
     const historySave = document.createElement('button');
     historySave.type = 'button';
     historySave.className = 'report-open';
     historySave.dataset.historySave = '';
-    historySave.textContent = '결과 저장';
-    historySave.title = '이때의 편성과 수치를 이 브라우저에 남깁니다';
+    historySave.textContent = '儲存結果';
+    historySave.title = '把此時的編成與數值留在這個瀏覽器';
     historySave.addEventListener('click', () => saveHistory(batch));
     const historyOpen = document.createElement('button');
     historyOpen.type = 'button';
     historyOpen.className = 'report-open';
     historyOpen.dataset.historyOpen = '';
-    historyOpen.textContent = '결과 불러오기';
+    historyOpen.textContent = '載入結果';
     historyOpen.addEventListener('click', () => { renderHistory(); historyModal.hidden = false; });
     // 정밀 수치 — 화면은 「1.24억」으로 줄여 적지만 엔진은 처음부터 정수로 정확히 센다.
     // 1의 자리까지 놓고 따지려는 사람에게 그 정수를 표로 내준다.
@@ -3049,8 +3055,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     csvButton.type = 'button';
     csvButton.className = 'report-open';
     csvButton.dataset.csvExport = '';
-    csvButton.textContent = '정밀 수치 CSV';
-    csvButton.title = '구간별·최종 대미지를 1의 자리까지 담은 표를 내려받습니다 (0.1초 단위)';
+    csvButton.textContent = '精密數值 CSV';
+    csvButton.title = '下載含各區間・最終傷害到個位數的表(0.1 秒單位)';
     csvButton.addEventListener('click', () => { void exportDamageCsv(batch, csvButton); });
     // 자세히 보기 — 「1.24억」 대신 1의 자리까지. 내려받지 않고 그 자리에서 본다.
     const detailLabel = document.createElement('label');
@@ -3059,7 +3065,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     detailBox.type = 'checkbox';
     detailBox.dataset.detailDamage = '';
     detailBox.checked = detailDamage;
-    detailLabel.title = '대미지를 줄여 쓰지 않고 1의 자리까지 적습니다';
+    detailLabel.title = '傷害不縮寫,寫到個位數';
     detailBox.addEventListener('change', () => {
       detailDamage = detailBox.checked;
       try {
@@ -3067,7 +3073,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       } catch { /* 저장 실패는 무시한다 — 이번 판만 못 기억할 뿐이다 */ }
       renderBatchResult(batch);
     });
-    detailLabel.append(detailBox, createText('span', '자세히 보기'));
+    detailLabel.append(detailBox, createText('span', '詳細顯示'));
     reportTools.append(historySave, historyOpen, reportButton, csvButton, detailLabel);
     resultPanel.append(reportTools);
 
@@ -3100,8 +3106,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const badge = createText(
           'p',
           rank === 1
-            ? '1위 · 기준'
-            : `${rank}위 · 1위 대비 ${gap.toFixed(1)}% (${dmg(entry.result.squadTotal - best)})`,
+            ? '第 1 名 · 基準'
+            : `第 ${rank} 名 · 對比第 1 名 ${gap.toFixed(1)}% (${dmg(entry.result.squadTotal - best)})`,
           'deck-rank',
         );
         badge.dataset.deckRank = String(rank);
@@ -3117,7 +3123,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const facts = document.createElement('div');
       facts.className = 'result-facts';
       facts.append(
-        createText('span', `${entry.result.duration}초 전투`),
+        createText('span', `${entry.result.duration}秒 戰鬥`),
         createText('span', `${entry.result.hitCount.toLocaleString('ko-KR')} 히트`),
         createText('span', `시드 ${entry.request.seed}`),
       );
@@ -3152,7 +3158,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         tab.dataset.deckRank = String(rank);
         const head = document.createElement('b');
         head.append(document.createTextNode(deckNameOf(entry.deckId)));
-        head.append(createText('em', `${rank}위`, 'deck-tab-rank'));
+        head.append(createText('em', `第 ${rank} 名`, 'deck-tab-rank'));
         // 덱끼리 견주는 자리라 줄이지 않고 온전한 숫자를 적는다 — «1.14억»으로는
         // 2위와의 차이가 읽히지 않는다.
         tab.append(head, createText('span', Math.round(entry.result.squadTotal).toLocaleString('ko-KR')));
@@ -3200,7 +3206,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         tab.type = 'button';
         tab.className = 'deck-result-tab';
         tab.dataset.timelineTab = String(deckId);
-        tab.append(createText('b', `덱 ${deckId}`));
+        tab.append(createText('b', `隊 ${deckId}`));
         tab.addEventListener('click', () => show(deckId));
         buttons.set(deckId, tab);
         tabs.append(tab);
@@ -3287,28 +3293,28 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     burstCyclesOut.textContent = String(burstCycles);
 
     const { done, total } = progressOf(burstPicks, burstSteps);
-    burstProgress.textContent = `${done} / ${total}칸`;
+    burstProgress.textContent = `${done} / ${total} 格`;
 
     // ── 지금 걸음 ──
     burstNow.replaceChildren();
     burstPicksBox.replaceChildren();
     const step = burstSteps[burstAt];
     if (!step) {
-      burstNow.append(el('p', 'burst-empty', '사이클을 하나 이상 두세요.'));
+      burstNow.append(el('p', 'burst-empty', '請至少設定一個循環。'));
     } else {
       const head = el('div', 'burst-now-head');
       head.append(
-        el('span', 'burst-now-cycle', `${step.cycle}번째 풀버스트`),
-        el('span', `burst-now-stage stage-${step.stage}`, `${step.stage}버`),
+        el('span', 'burst-now-cycle', `第 ${step.cycle} 次滿爆裂`),
+        el('span', `burst-now-stage stage-${step.stage}`, `${step.stage} 爆`),
       );
       const picked = burstPicks[stepKey(step)];
-      head.append(el('span', 'burst-now-pick', picked ? `→ ${picked}` : '→ 자동'));
+      head.append(el('span', 'burst-now-pick', picked ? `→ ${resolveDisplayName(picked)}` : '→ 自動'));
       burstNow.append(head);
 
       const candidates = burstCandidates(step.stage);
       if (candidates.length === 0) {
         burstPicksBox.append(el('p', 'burst-empty',
-          `편성에 ${step.stage}버가 없습니다. 이 단계는 건너뜁니다.`));
+          `編成中沒有 ${step.stage} 爆。這個階段會跳過。`));
       }
       candidates.forEach((name, index) => {
         const button = el('button', 'burst-pick' + (picked === name ? ' is-on' : ''));
@@ -3334,7 +3340,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 「이 단계는 자동으로」 — 고른 것을 무르는 자리다.
       const auto = el('button', 'burst-pick is-auto' + (picked ? '' : ' is-on'));
       (auto as HTMLButtonElement).type = 'button';
-      auto.append(el('span', 'burst-pick-name', '자동'));
+      auto.append(el('span', 'burst-pick-name', '自動'));
       auto.append(el('b', 'burst-pick-key', '0'));
       auto.addEventListener('click', () => pickBurst(null));
       burstPicksBox.append(auto);
@@ -3358,7 +3364,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const slot = el('button', 'burst-slot'
           + (name ? ' is-filled' : '') + (here ? ' is-here' : ''));
         (slot as HTMLButtonElement).type = 'button';
-        slot.append(el('span', `burst-slot-stage stage-${stage}`, `${stage}버`));
+        slot.append(el('span', `burst-slot-stage stage-${stage}`, `${stage} 爆`));
 
         const face = el('span', 'burst-slot-face');
         if (name) {
@@ -3372,9 +3378,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           } else {
             face.textContent = name.slice(0, 2);
           }
-          slot.title = `${cycleNo}번째 ${stage}버 — ${name}`;
+          slot.title = `第 ${cycleNo} 次 ${stage} 爆 — ${resolveDisplayName(name)}`;
         } else {
-          slot.title = `${cycleNo}번째 ${stage}버 — 아직 안 정함(자동)`;
+          slot.title = `第 ${cycleNo} 次 ${stage} 爆 — 尚未指定(自動)`;
         }
         slot.append(face);
         slot.addEventListener('click', () => {
@@ -3403,7 +3409,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   function openBurstOrder(): void {
     const deck = activeDeck();
     if (!deck.squad.some((name) => name.trim())) {
-      showErrors(['버스트 순서를 정하려면 편성을 먼저 채워 주세요.']);
+      showErrors(['要設定爆裂順序,請先填滿編成。']);
       return;
     }
     const kept = sequenceForDeck(deck);
@@ -3414,10 +3420,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       lastBatch?.decks.find((entry) => entry.deckId === deck.id)?.result.timeline);
     burstCycles = kept?.length ?? measured ?? estimateCycles(readBattle().duration);
     burstCyclesNote.textContent = kept
-      ? '적어 둔 순서를 불러왔습니다.'
+      ? '已載入先前記下的順序。'
       : (measured !== null
-        ? `지난 계산에서 풀버스트가 ${measured}번 돌았습니다.`
-        : `전투 ${readBattle().duration}초로 어림한 값입니다. 한 번 계산해 보면 실제 횟수로 맞춰집니다.`);
+        ? `上次計算滿爆裂跑了 ${measured} 次。`
+        : `以戰鬥 ${readBattle().duration} 秒估算的值。計算一次後會校準為實際次數。`);
     burstSteps = stepsFor(burstCycles);
     burstAt = firstUnpicked();
     showBurstMsg('');
@@ -3463,7 +3469,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     saveState();
     renderBurstBadge();
     renderBurstOrder();
-    showBurstMsg('순서를 지웠습니다. 계산기가 평소 순서로 고릅니다.', true);
+    showBurstMsg('已清除順序。計算機會照平常順序選。', true);
   });
 
   // 키보드는 창이 열려 있을 때만 가져간다. 조합키가 눌린 입력은 브라우저 것이다.
@@ -3513,13 +3519,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   let clearAllArmed = false;
   const disarmClearAll = () => {
     clearAllArmed = false;
-    clearAllButton.textContent = '5덱 비우기';
+    clearAllButton.textContent = '清空 5 隊';
     clearAllButton.classList.remove('is-armed');
   };
   clearAllButton.addEventListener('click', () => {
     if (!clearAllArmed) {
       clearAllArmed = true;
-      clearAllButton.textContent = '정말 비웁니다';
+      clearAllButton.textContent = '確定清空';
       clearAllButton.classList.add('is-armed');
       return;
     }
@@ -3537,7 +3543,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     renderDeckTabs();
     renderSquad();
     renderRosterGrid();
-    status.textContent = '다섯 덱을 모두 비웠습니다.';
+    status.textContent = '已清空全部五隊。';
   });
   clearAllButton.addEventListener('blur', disarmClearAll);
 
@@ -3604,7 +3610,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }),
       apply: (item) => {
         applyBattleCode(item.code);
-        showBattleShareMsg(`«${item.name}»을(를) 적용했습니다. 콘솔은 내 값 그대로입니다.`, true);
+        showBattleShareMsg(`已套用「${item.name}」。主控台維持我的值。`, true);
       },
       notify: showBattleShareMsg,
     },
@@ -3626,16 +3632,16 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-battle-share-copy]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(battleShareOut.value);
-      showBattleShareMsg('코드를 복사했습니다.', true);
+      showBattleShareMsg('已複製代碼。', true);
     } catch {
       battleShareOut.select();
-      showBattleShareMsg('자동 복사가 막혀 코드를 선택해 뒀습니다. Ctrl+C로 복사해 주세요.');
+      showBattleShareMsg('自動複製被擋,已幫你選取代碼。請用 Ctrl+C 複製。');
     }
   });
   element<HTMLButtonElement>(root, '[data-battle-share-apply]').addEventListener('click', () => {
     try {
       applyBattleCode(battleShareIn.value);
-      showBattleShareMsg('전투 조건을 적용했습니다. 콘솔은 내 값 그대로입니다.', true);
+      showBattleShareMsg('已套用戰鬥條件。主控台維持我的值。', true);
     } catch (error) {
       showBattleShareMsg(error instanceof Error ? error.message : String(error));
     }
@@ -3705,10 +3711,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   // 정렬은 «내 로스터에서 이 캐릭터가 얼마나 굴려졌나»를 본다. 오버로드 수치가
   // 그 척도라, CSV·프로필로 불러온 내 값이 있으면 그걸 쓰고 없으면 기본 스펙을 쓴다.
   const SORTS: Array<{ key: SortKey; label: string; hint: string }> = [
-    { key: 'power', label: '전투력', hint: '인게임 투력 — 다시 누르면 뒤집습니다' },
-    { key: 'name', label: '이름', hint: '가나다순 — 다시 누르면 뒤집습니다' },
-    { key: 'element', label: '우월코드', hint: '오버로드 우월 코드 대미지 — 다시 누르면 뒤집습니다' },
-    { key: 'elementAtk', label: '우공합', hint: '우월 코드 + 공격력 증가 합 — 다시 누르면 뒤집습니다' },
+    { key: 'power', label: '戰鬥力', hint: '遊戲內戰力 — 再按一次反轉' },
+    { key: 'name', label: '名稱', hint: '依名稱 — 再按一次反轉' },
+    { key: 'element', label: '剋制代碼', hint: '超載剋制代碼傷害 — 再按一次反轉' },
+    { key: 'elementAtk', label: '剋攻合', hint: '剋制代碼 + 攻擊力增加之和 — 再按一次反轉' },
   ];
 
   /** 처음 고를 때의 방향. 이름은 오름차순, 수치는 높은 순이 자연스럽다. */
@@ -3758,8 +3764,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     { key: 'corp', title: '기업', values: ['엘리시온', '미실리스', '테트라', '필그림', '어브노말'] },
   ];
 
+  // 값(필터·직렬화에 쓰는 한국어)은 그대로 두고, 보이는 라벨만 중국어로 바꾼다.
   const labelOf = (key: FilterKey, value: string) =>
-    key === 'burst' ? `B${value}` : value;
+    key === 'burst' ? `B${value}` : termZh(value);
 
   /** 고른 필터 개수. 0이면 뱃지를 감춘다. */
   const pickedCount = (): number =>
@@ -3796,7 +3803,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const parts: string[] = [];
     const label = SORTS.find((s) => s.key === sortKey)?.label;
     const pending = sortKey === 'power' && Object.keys(combatPower).length === 0;
-    parts.push(`${label}${pending ? ' 계산중' : sortDesc ? ' ▼' : ' ▲'}`);
+    parts.push(`${label}${pending ? ' 計算中' : sortDesc ? ' ▼' : ' ▲'}`);
     for (const key of ['burst', ...FILTER_GROUPS.map((group) => group.key)] as FilterKey[]) {
       const set = picked[key];
       if (set.size > 0) {
@@ -3860,7 +3867,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     for (const group of FILTER_GROUPS) {
       const section = document.createElement('div');
       section.className = 'filter-section';
-      section.append(createText('p', group.title, 'filter-title'));
+      section.append(createText('p', FILTER_TITLE_ZH[group.key] ?? group.title, 'filter-title'));
       const chips = document.createElement('div');
       chips.className = 'filter-chips';
       chips.append(...group.values.map((value) => filterChip(group.key, value)));
@@ -3916,7 +3923,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     // 「ㅋㄹㅇ」·「라피레드」가 걸리고, 친 이름이 맨 앞에 온다.
     const shown = filterByQuery(narrowed, rosterSearch.value, buildIndex);
     rosterCount.textContent = shown.length === all.length
-      ? `${all.length}명` : `${shown.length} / ${all.length}명`;
+      ? `${all.length} 名` : `${shown.length} / ${all.length} 名`;
     const deck = activeDeck();
     rosterGrid.replaceChildren();
     for (const char of shown) {
@@ -3929,7 +3936,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (takenAt >= 0 && takenAt !== activeSlot) {
         cell.disabled = true;
         cell.classList.add('is-taken');
-        cell.title = `이미 덱 ${deck.id}의 ${takenAt + 1}번에 있습니다`;
+        cell.title = `已在隊伍 ${deck.id} 的第 ${takenAt + 1} 格`;
       }
       const portrait = document.createElement('div');
       portrait.className = 'roster-portrait';
@@ -3949,14 +3956,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (codeIcon) portrait.append(codeIcon);
       if (char.preview) {
         // (임시) — 스킬 미공개라 창작한 값으로 도는 캐릭터. 고르기 전에 보여야 한다.
-        const temp = createText('i', '임시', 'roster-temp');
-        temp.title = '스킬이 공개되지 않아 임의로 창작한 값으로 계산합니다';
+        const temp = createText('i', '暫定', 'roster-temp');
+        temp.title = '技能尚未公開,以任意創作的值計算';
         portrait.append(temp);
       }
       cell.append(
         portrait,
-        createText('strong', char.preview ? `${char.name} (임시)` : char.name),
-        createText('span', [char.elementCode, char.weaponType, char.className].filter(Boolean).join(' · ')),
+        createText('strong', char.preview ? `${char.displayName ?? char.name}(暫定)` : (char.displayName ?? char.name)),
+        createText('span', [termZh(char.elementCode), char.weaponType, termZh(char.className)].filter(Boolean).join(' · ')),
       );
       cell.addEventListener('click', () => pickCharacter(char.name));
       // 끌어다 칸에 놓을 수도 있다. 이미 이 덱에 있는 니케는 누를 수 없으니 끌 수도 없다.
@@ -4023,8 +4030,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     renderRosterGrid();
     // (임시) 캐릭터는 넣는 순간 바로 알린다 — 결과까지 가서야 알면 이미 늦다.
     if (catalogByName.get(name)?.preview) {
-      status.textContent = `${name}은(는) 아직 (임시) 등록입니다 — 스킬이 공개되지 않아 `
-        + '임의로 창작한 값으로 계산합니다. 실제 성능과 무관하니 참고용으로만 봐 주세요.';
+      status.textContent = `${resolveDisplayName(name)} 目前仍是(暫定)登錄 — 技能尚未公開,`
+        + '以任意創作的值計算。與實際性能無關,僅供參考。';
     }
   };
 
@@ -4034,8 +4041,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const filled = deck.squad.filter(Boolean).length;
     const current = deck.squad[activeSlot];
     rosterDesc.textContent = current
-      ? `${activeSlot + 1}번 칸을 ${current} 대신 채웁니다 · ${filled}/5명`
-      : `${activeSlot + 1}번 빈 칸을 채웁니다 · ${filled}/5명`;
+      ? `填入第 ${activeSlot + 1} 格,取代 ${resolveDisplayName(current)} · ${filled}/5 名`
+      : `填入第 ${activeSlot + 1} 個空格 · ${filled}/5 名`;
   };
 
   // 접힌 채로 시작한다 — 무엇으로 재는지 한 줄은 처음부터 적혀 있어야 한다.
@@ -4074,7 +4081,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-clear-cache]').addEventListener('click', () => {
     cache.clear();
     showErrors([]);
-    status.textContent = '저장된 결과를 지웠습니다. 다시 실행하면 새로 계산합니다.';
+    status.textContent = '已清除已儲存的結果。再執行會重新計算。';
   });
   const applyRosterToDecks = () => {
     for (const deck of decks) {
@@ -4088,7 +4095,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   const updateRosterNote = (message?: string) => {
     const count = Object.keys(roster).length;
     if (message) rosterNote.textContent = message;
-    else if (count > 0) rosterNote.textContent = `CSV 로스터 ${count}명 적용 중`;
+    else if (count > 0) rosterNote.textContent = `套用 CSV 名單 ${count} 名中`;
     rosterNote.hidden = !message && count === 0;
   };
   rosterInput.addEventListener('change', async () => {
@@ -4098,7 +4105,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const text = await file.text();
       const { overrides, matched, unmatched } = parseRosterCsv(text, settings);
       if (matched.length === 0) {
-        updateRosterNote('CSV에서 지원 캐릭터를 찾지 못했습니다. 정식 명칭이 일치하는지 확인해 주세요.');
+        updateRosterNote('在 CSV 找不到支援的角色。請確認正式名稱是否一致。');
         return;
       }
       roster = overrides;
@@ -4108,11 +4115,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       saveState();
       renderDeckTabs();
       renderSquad();
-      const skipped = unmatched.length > 0 ? ` · 미지원 ${unmatched.length}명 제외` : '';
-      updateRosterNote(`CSV 로스터 ${matched.length}명 적용${skipped}`
-        + ' · 큐브와 호감도는 CSV에 없어 기본값으로 계산합니다(카드의 개별 설정에서 수정)');
+      const skipped = unmatched.length > 0 ? ` · 已排除不支援的 ${unmatched.length} 名` : '';
+      updateRosterNote(`套用 CSV 名單 ${matched.length} 名${skipped}`
+        + ' · 魔方與好感度 CSV 沒有,以預設值計算(可在卡片個別設定修改)');
     } catch (error) {
-      updateRosterNote(`CSV 불러오기 실패: ${error instanceof Error ? error.message : String(error)}`);
+      updateRosterNote(`CSV 匯入失敗:${error instanceof Error ? error.message : String(error)}`);
     } finally {
       rosterInput.value = '';
     }
@@ -4134,13 +4141,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const runSync = async () => {
       const url = blablaUrl.value.trim();
       if (!looksLikeProfileUrl(url)) {
-        setStatus('블라블라링크 프로필 주소를 붙여넣어 주세요.');
+        setStatus('請貼上 Blablalink 個人檔案網址。');
         return;
       }
       const selectedArea = blablaServer.value === '' ? undefined : Number(blablaServer.value);
       blablaSync.disabled = true;
       blablaServer.disabled = true;
-      setStatus('블라블라링크에서 받는 중… 니케가 많으면 몇 초 걸립니다.');
+      setStatus('正在從 Blablalink 取得… 妮姬多時會花幾秒。');
       try {
         const response = await fetch(`${blablaProxy}/sync`, {
           method: 'POST',
@@ -4151,14 +4158,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           }),
         });
         const payload = await response.json() as RawProfile & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? `동기화에 실패했습니다 (${response.status}).`);
+        if (!response.ok) throw new Error(payload.error ?? `同步失敗 (${response.status})。`);
 
         const area = pickArea(payload, selectedArea);
-        if (!area) throw new Error('니케 목록이 비어 있습니다.');
+        if (!area) throw new Error('妮姬清單是空的。');
         const serverLabel = blablaServerLabel(area.area);
         const { overrides, matched, unmatched, notes } = areaToOverrides(area, settings, catalog);
         if (matched.length === 0) {
-          setStatus('계산기가 다루는 니케를 찾지 못했습니다. 프로필이 공개인지 확인해 주세요.');
+          setStatus('找不到計算機支援的妮姬。請確認個人檔案是否公開。');
           return;
         }
 
@@ -4185,12 +4192,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         renderDeckTabs();
         renderSquad();
 
-        const parts = [`블라블라링크 ${serverLabel} ${matched.length}명 적용`];
-        if (unmatched.length > 0) parts.push(`미지원 ${unmatched.length}명 제외`);
-        if (consoleLevels) parts.push('콘솔 레벨 함께 적용');
-        if (accountSynchro !== null) parts.push(`싱크로 ${accountSynchro} 적용`);
+        const parts = [`套用 Blablalink ${serverLabel} ${matched.length} 名`];
+        if (unmatched.length > 0) parts.push(`排除不支援的 ${unmatched.length} 名`);
+        if (consoleLevels) parts.push('一併套用主控台等級');
+        if (accountSynchro !== null) parts.push(`套用同步器 ${accountSynchro}`);
         updateRosterNote(parts.join(' · '));
-        setStatus([`${serverLabel} 서버에서 ${matched.length}명을 불러왔습니다.`, ...notes].join(' '));
+        setStatus([`已從 ${serverLabel} 伺服器載入 ${matched.length} 名。`, ...notes].join(' '));
       } catch (error) {
         setStatus(error instanceof Error ? error.message : String(error));
       } finally {
@@ -4330,7 +4337,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       chip.type = 'button';
       chip.className = 'enikk-exclude-chip';
       chip.dataset.enikkExcludeChip = name;
-      chip.title = `${name} 제외 해제`;
+      chip.title = `解除排除 ${resolveDisplayName(name)}`;
       chip.append(createText('span', name));
       chip.append(createText('b', '✕'));
       chip.addEventListener('click', () => {
@@ -4348,7 +4355,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const name = input.value.trim();
     if (!name) return;
     if (!catalogByName.has(name)) {
-      setEnikkStatus(`«${name}»은(는) 목록에 없는 이름입니다.`);
+      setEnikkStatus(`「${name}」不在清單裡。`);
       return;
     }
     if (!enikkExcluded.includes(name)) {
@@ -4383,12 +4390,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const weakness = WEAKNESS_KO[data.season.weakness] ?? data.season.weakness;
     enikkSummary.hidden = false;
     enikkSummary.replaceChildren();
-    enikkSummary.append(createText('strong', `시즌 ${data.season.raid} · ${data.season.boss}`));
+    enikkSummary.append(createText('strong', `賽季 ${data.season.raid} · ${data.season.boss}`));
     enikkSummary.append(createText('span',
-      `약점 ${weakness} · 플레이어 ${data.players.length}명 · 덱 ${data.decks.toLocaleString('ko-KR')}개`));
+      `弱點 ${weakness} · 玩家 ${data.players.length} 名 · 隊伍 ${data.decks.toLocaleString('ko-KR')} 套`));
     if (data.unknownNames.length > 0) {
       enikkSummary.append(createText('span',
-        `계산기가 모르는 니케 ${data.unknownNames.length}종이 낀 덱은 가져올 수 없습니다 — ${data.unknownNames.slice(0, 5).join(', ')}`,
+        `含有計算機不認識的妮姬 ${data.unknownNames.length} 種的隊伍無法匯入 — ${data.unknownNames.slice(0, 5).join(', ')}`,
         'enikk-note'));
     }
 
@@ -4396,12 +4403,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     enikkList.replaceChildren();
     const head = document.createElement('div');
     head.className = 'enikk-list-head';
-    head.append(createText('h3', `플레이어 ${data.players.length}명 · 총딜 순`));
+    head.append(createText('h3', `玩家 ${data.players.length} 名 · 依總傷害排序`));
     const compareBtn = document.createElement('button');
     compareBtn.type = 'button';
     compareBtn.className = 'roster-import';
-    compareBtn.textContent = `상위 ${COMPARE_TOP}명 대조판 만들기`;
-    compareBtn.title = '상위 10명의 덱을 우리 계산기로 돌려 enikk 실측과 나란히 놓습니다 — 덱 50개라 몇 분 걸립니다';
+    compareBtn.textContent = `製作前 ${COMPARE_TOP} 名對照表`;
+    compareBtn.title = '把前 10 名的隊伍用我們的計算機跑,和 enikk 實測並排 — 50 套隊伍,要幾分鐘';
     compareBtn.addEventListener('click', () => {
       compareBtn.disabled = true;
       void renderCompare().finally(() => { compareBtn.disabled = false; });
@@ -4431,16 +4438,16 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       top.className = 'enikk-player-head';
       top.append(createText('span', `${index + 1}`, 'enikk-rank'));
       top.append(createText('b', player.server, 'enikk-server'));
-      top.append(createText('span', `총 ${formatEok(player.damage)}`, 'enikk-total'));
+      top.append(createText('span', `總 ${formatEok(player.damage)}`, 'enikk-total'));
       const take = document.createElement('button');
       take.type = 'button';
       take.className = 'enikk-use';
       const usable = player.decks.filter(enikkDeckUsable).length;
-      take.textContent = `${usable}덱 가져오기`;
+      take.textContent = `匯入 ${usable} 隊`;
       take.disabled = usable === 0;
       take.title = usable < player.decks.length
-        ? '계산기가 못 다루거나 제외한 니케가 낀 덱은 빼고 가져옵니다'
-        : '이 사람의 덱을 우리 5덱에 그대로 깝니다';
+        ? '會略過含計算機不支援或被排除妮姬的隊伍再匯入'
+        : '把這個人的隊伍原樣鋪到我們的 5 隊';
       take.addEventListener('click', () => applyPlayerToDecks(player));
       top.append(take);
       card.append(top);
@@ -4450,7 +4457,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const blocked = !enikkDeckUsable(deck);
         row.className = 'enikk-deck' + (blocked ? ' is-blocked' : '');
         if (blocked && deck.usable) {
-          row.title = `제외한 니케가 껴 있습니다 — ${deck.squad.filter((n) => enikkExcluded.includes(n)).join(', ')}`;
+          row.title = `含有被排除的妮姬 — ${deck.squad.filter((n) => enikkExcluded.includes(n)).map(resolveDisplayName).join(', ')}`;
         }
         row.append(createText('span', `${n + 1}`, 'enikk-deckno'));
         row.append(enikkPortraits(deck.squad));
@@ -4480,7 +4487,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         b.addEventListener('click', () => jump(page));
         box.append(b);
       };
-      step('‹ 이전', enikkPage - 1, enikkPage === 0);
+      step('‹ 上一頁', enikkPage - 1, enikkPage === 0);
 
       // 번호는 현재 쪽 둘레만 편다. 서른 개를 다 늘어놓으면 폰에서 줄이 넘친다.
       const window_ = new Set<number>([0, pages - 1]);
@@ -4499,8 +4506,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         box.append(b);
         previous = page;
       }
-      step('다음 ›', enikkPage + 1, enikkPage === pages - 1);
-      box.append(createText('span', `${pages}쪽 중 ${enikkPage + 1}쪽`, 'enikk-page-info'));
+      step('下一頁 ›', enikkPage + 1, enikkPage === pages - 1);
+      box.append(createText('span', `第 ${enikkPage + 1} 頁,共 ${pages} 頁`, 'enikk-page-info'));
     };
 
     drawCards();
@@ -4527,11 +4534,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
     enikkCompare.hidden = false;
     enikkCompare.replaceChildren();
-    enikkCompare.append(createText('h3', `상위 ${targets.length}명 대조판`));
+    enikkCompare.append(createText('h3', `前 ${targets.length} 名對照表`));
     enikkCompare.append(createText('p',
-      `덱 ${total}개를 지금 전투 조건과 내 스펙으로 돌려 그 사람의 실제 딜과 나란히 놓습니다. `
-      + '스펙이 다른 사람의 기록이므로 배율은 «얼마나 다른가»를 보는 눈금입니다. '
-      + '같은 편성은 저장된 결과를 다시 쓰므로 뒤로 갈수록 빨라집니다.',
+      `把 ${total} 套隊伍以目前戰鬥條件與我的規格計算,和那個人的實際傷害並排。`
+      + '因為是規格不同者的紀錄,倍率是看「差多少」的刻度。'
+      + '相同編成會重用已儲存的結果,所以越後面越快。',
       'enikk-note'));
 
     const table = document.createElement('div');
@@ -4548,7 +4555,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       for (const source of player.decks) {
         if (!enikkDeckUsable(source)) continue;
         done += 1;
-        setEnikkStatus(`대조 계산 중 · 덱 ${done}/${total}`);
+        setEnikkStatus(`對照計算中 · 隊 ${done}/${total}`);
         const deck: DeckState = { id: 1, squad: [...source.squad], characters: {} };
         for (const name of source.squad) {
           if (roster[name]) deck.characters[name] = cloneOverride(roster[name]!);
@@ -4571,21 +4578,21 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const who = document.createElement('div');
       who.className = 'enikk-who';
       who.append(createText('b', player.server, 'enikk-server'));
-      who.append(createText('span', `${player.decks.filter((d) => d.usable).length}덱`));
+      who.append(createText('span', `${player.decks.filter((d) => d.usable).length} 隊`));
       row.append(who);
       const nums = document.createElement('div');
       nums.className = 'enikk-nums';
-      nums.append(createText('span', `실제 ${formatEok(realTotal)}`));
-      nums.append(createText('span', `시뮬 ${formatEok(simTotal)}`, 'enikk-sim'));
+      nums.append(createText('span', `實際 ${formatEok(realTotal)}`));
+      nums.append(createText('span', `模擬 ${formatEok(simTotal)}`, 'enikk-sim'));
       if (ratio > 0) {
-        const tag = createText('b', `${ratio.toFixed(2)}배`, 'enikk-ratio');
+        const tag = createText('b', `${ratio.toFixed(2)} 倍`, 'enikk-ratio');
         tag.classList.add(ratio > 1.15 || ratio < 0.85 ? 'is-off' : 'is-near');
         nums.append(tag);
       }
       row.append(nums);
       table.append(row);
     }
-    setEnikkStatus(`상위 ${targets.length}명 대조 완료.`);
+    setEnikkStatus(`前 ${targets.length} 名對照完成。`);
   };
 
   const loadEnikk = async (force: boolean) => {
@@ -4593,7 +4600,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const cached = readEnikkCache();
       if (cached) {
         renderEnikk(cached);
-        setEnikkStatus('저장해 둔 결과입니다. 새로 받으려면 «다시 받기»를 누르세요.');
+        setEnikkStatus('這是已儲存的結果。要重新取得請按「重新取得」。');
         enikkLoad.hidden = true;
         enikkRefresh.hidden = false;
         return;
@@ -4606,7 +4613,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const data = await loadEnikkComps(catalog, supported, setEnikkStatus);
       writeEnikkCache(data);
       renderEnikk(data);
-      setEnikkStatus(`플레이어 ${data.players.length}명 · 덱 ${data.decks}개를 읽었습니다.`);
+      setEnikkStatus(`已讀取玩家 ${data.players.length} 名 · 隊伍 ${data.decks} 套。`);
       enikkLoad.hidden = true;
       enikkRefresh.hidden = false;
     } catch (error) {
@@ -4627,7 +4634,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const onlineBox = element<HTMLElement>(root, '[data-online]');
     const onlineText = element<HTMLElement>(root, '[data-online-text]');
     startPresence(SHARE_API, (online) => {
-      onlineText.textContent = `지금 ${online.toLocaleString('ko-KR')}명`;
+      onlineText.textContent = `目前 ${online.toLocaleString('ko-KR')} 名`;
       onlineBox.hidden = false;
     });
   }
@@ -4656,12 +4663,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   for (let n = 1; n <= poolMax; n += 1) {
     const option = document.createElement('option');
     option.value = String(n);
-    option.textContent = `${n}개`;
+    option.textContent = `${n} 個`;
     parallelSize.append(option);
   }
   // 권장값은 칸을 넓히지 않게 설명 쪽에만 적는다 — 토글 줄이 길어지면 줄이 접힌다.
-  parallelSize.title = `띄울 작업 스레드 수. 이 기기 권장 ${poolDefault}개. `
-    + '하나마다 계산 런타임이 떠서 메모리를 50~80MB씩 씁니다.';
+  parallelSize.title = `要開的工作執行緒數。這台裝置建議 ${poolDefault} 個。`
+    + '每一個都會開一份計算執行環境,各吃 50~80MB 記憶體。';
   const applyParallel = (save: boolean) => {
     parallelToggle.checked = parallelOn;
     parallelSize.value = String(parallelCount);
@@ -4706,7 +4713,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       me: () => {
         const battle = readBattle();
         return {
-          name: '내 설정',
+          name: '我的設定',
           synchro: battle.synchroLevel,
           console: battle.console,
           // 가져온 로스터(CSV·블라블라링크)가 내 스펙이다. 없으면 기본 스펙으로 돈다.
@@ -4782,7 +4789,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const go = document.createElement('span');
     go.className = 'link-go';
     go.setAttribute('aria-hidden', 'true');
-    go.textContent = '새 탭에서 열기 ↗';
+    go.textContent = '在新分頁開啟 ↗';
 
     card.append(head, note, go);
     linksGrid.append(card);
@@ -4815,12 +4822,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     customList.replaceChildren();
     const names = Object.keys(customChars);
     if (names.length === 0) return;
-    customList.append(createText('p', '추가된 니케', 'custom-list-title'));
+    customList.append(createText('p', '已新增的妮姬', 'custom-list-title'));
     for (const name of names) {
       const meta = customToMeta(customChars[name]!);
       const row = document.createElement('div');
       row.className = 'custom-list-row';
-      row.append(createText('span', `${name} · B${meta.burstStage} · ${meta.elementCode} · ${meta.weaponType}`, 'custom-list-name'));
+      row.append(createText('span', `${name} · B${meta.burstStage} · ${termZh(meta.elementCode)} · ${meta.weaponType}`, 'custom-list-name'));
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'custom-remove';
@@ -4859,9 +4866,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   element<HTMLButtonElement>(root, '[data-copy-prompt]').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(buildAddPrompt());
-      showCustomMsg('프롬프트를 복사했습니다. 다른 LLM에 붙여넣고 니케 설명을 이어 붙이세요.', true);
+      showCustomMsg('已複製提示詞。貼到別的 LLM,再接上妮姬說明。', true);
     } catch {
-      showCustomMsg('자동 복사에 실패했습니다. 브라우저 권한을 확인하거나 직접 복사해 주세요.');
+      showCustomMsg('自動複製失敗。請確認瀏覽器權限或自行複製。');
     }
   });
   element<HTMLButtonElement>(root, '[data-custom-submit]').addEventListener('click', () => {
@@ -4877,13 +4884,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const ignored = unsupportedEffects(custom.skills);
       if (ignored.length > 0) {
         showCustomMsg(
-          `'${custom.name}' 추가됨. 다만 인식되지 않는 효과가 있어 반영되지 않습니다: `
-          + `${ignored.join(', ')}. 이 효과가 캐릭터의 주력 딜이면 결과가 실제보다 크게 낮게 나옵니다`
-          + `(게이지·모드 전환·조건부 스택형 스킬은 이 방식으로 재현하기 어렵습니다). `
-          + `도움말의 어휘와 대조해 stat·timing·target을 고치면 일부는 반영됩니다.`,
+          `已新增「${custom.name}」。但有無法辨識的效果不會反映:`
+          + `${ignored.join(', ')}。若這些效果是角色的主力輸出,結果會比實際低很多`
+          + `(量表・模式切換・條件堆疊型技能難以用這種方式重現)。`
+          + `對照說明的詞彙修改 stat・timing・target,部分可被反映。`,
         );
       } else {
-        showCustomMsg(`'${custom.name}' 추가됨 · 스쿼드 슬롯에서 선택할 수 있습니다.`, true);
+        showCustomMsg(`已新增「${custom.name}」· 可在隊伍格選擇。`, true);
       }
     } catch (error) {
       showCustomMsg(error instanceof Error ? error.message : String(error));
@@ -4977,12 +4984,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     .then(() => {
       if (activity !== 'preparing') return;
       activity = 'ready';
-      status.textContent = '계산 준비 완료 · 모든 연산은 이 기기에서 실행됩니다.';
+      status.textContent = '計算準備完成 · 所有運算在這台裝置上執行。';
     })
     .catch((error: unknown) => {
       if (activity !== 'preparing') return;
       activity = 'error';
-      status.textContent = `초기화 실패 · ${error instanceof Error ? error.message : String(error)}`;
+      status.textContent = `初始化失敗 · ${error instanceof Error ? error.message : String(error)}`;
     });
 
   // 기본 정렬이 전투력이라 목록을 열기 전에 미리 받아 둔다. 오는 동안은 이름순으로
@@ -5031,7 +5038,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           cache.set(key, result);
         }
         done += 1;
-        status.textContent = `계산 중 · ${done}/${requests.length}덱`;
+        status.textContent = `計算中 · ${done}/${requests.length} 隊`;
         completed.push({ deckId: deck.id, request, result });
         completed.sort((a, b) => a.deckId - b.deckId);
         renderBatchResult(aggregateDeckResults(completed));

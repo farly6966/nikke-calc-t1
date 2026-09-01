@@ -159,7 +159,7 @@ describe('areaToOverrides', () => {
 
     expect(result.overrides['라피']!.cube).toEqual({ name: '렐릭 디바이드 큐브', level: 15 });
     expect(result.overrides['앨리스']!.cube).toBeUndefined();
-    expect(result.notes.some((note) => note.includes('큐브를 끼지 않은'))).toBe(true);
+    expect(result.notes.some((note) => note.includes('沒裝魔方'))).toBe(true);
   });
 
   it('스킬 레벨이 잠긴 미공개 캐릭터는 스킬을 건드리지 않는다', () => {
@@ -178,7 +178,7 @@ describe('areaToOverrides', () => {
 
     expect(result.matched).toEqual([]);
     expect(result.unmatched).toEqual([9999]);
-    expect(result.notes.some((note) => note.includes('아직 다루지 않는'))).toBe(true);
+    expect(result.notes.some((note) => note.includes('尚未支援'))).toBe(true);
   });
 });
 

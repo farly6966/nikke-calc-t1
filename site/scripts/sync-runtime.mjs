@@ -76,6 +76,11 @@ hash.update(bridgeTarget);
 hash.update(bridgeContent);
 
 const nikke = readJson(join(repoRoot, 'data', 'parsed_nikke.json'));
+// 표시용 이름 사전(한국어 이름 → 다른 언어 이름). 없으면 원래 이름을 그대로 쓴다.
+const nameOverlay = (() => {
+  try { return readJson(join(repoRoot, 'data', 'i18n', 'names.en.json')); }
+  catch { return {}; }
+})();
 const skills = readJson(join(repoRoot, 'data', 'parsed_skills.json'));
 // 블라블라링크 응답은 캐릭터를 name_code로 부른다. 사전은 CDN에서 받아 커밋해 둔
 // `data/name_codes.json`이 정본이고(`scraper/blabla_ids_fetch.py`), 여기서 뒤집어
@@ -142,6 +147,7 @@ const catalog = names.map((name, index) => {
   }
   return {
     name,
+    displayName: nameOverlay[name] ?? name,
     burstStage: String(meta.burst_stage ?? ''),
     elementCode: String(meta.element_code ?? ''),
     weaponType: String(meta.weapon_type ?? ''),

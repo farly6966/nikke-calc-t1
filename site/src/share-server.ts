@@ -1,4 +1,5 @@
 import type { BattleShare } from './share-code';
+import { termZh } from './i18n-terms';
 
 // 설정 공유 서버(`worker-share/`)와 이야기하는 쪽. 서버가 아는 것은 공유 코드 문자열과
 // 사람이 붙인 이름뿐이고, 그 코드가 무슨 뜻인지 — 몇 초짜리 전투인지, 누가 편성됐는지 —
@@ -127,16 +128,16 @@ export class ShareServer {
 
 /** 목록에서 «어떤 상황에서 쟀나»가 한 줄로 읽히게. 설정에서만 만든다. */
 export function summarizeBattle(battle: BattleShare): string {
-  const parts = [`${battle.duration}초`];
-  parts.push(battle.enemyCode ? `적 ${battle.enemyCode}` : '무속성');
-  parts.push(battle.coreEnabled ? `코어 ${battle.corePx}px` : '코어 없음');
-  if (battle.hasParts) parts.push('파츠');
+  const parts = [`${battle.duration}秒`];
+  parts.push(battle.enemyCode ? `敵 ${termZh(battle.enemyCode)}` : '無屬性');
+  parts.push(battle.coreEnabled ? `核心 ${battle.corePx}px` : '無核心');
+  if (battle.hasParts) parts.push('部位');
   if (battle.optimalRangeWeapons.length > 0) {
-    parts.push(`적정 ${battle.optimalRangeWeapons.join('·')}`);
+    parts.push(`適正 ${battle.optimalRangeWeapons.join('·')}`);
   }
-  if (battle.immuneWindows.length > 0) parts.push(`족자 ${battle.immuneWindows.length}`);
-  if (battle.elementWindows.length > 0) parts.push(`속저 ${battle.elementWindows.length}`);
-  parts.push(battle.rngMode === 'expected' ? '기대값' : '난수');
+  if (battle.immuneWindows.length > 0) parts.push(`免疫 ${battle.immuneWindows.length}`);
+  if (battle.elementWindows.length > 0) parts.push(`屬濾 ${battle.elementWindows.length}`);
+  parts.push(battle.rngMode === 'expected' ? '期望值' : '隨機');
   return parts.join(' · ');
 }
 

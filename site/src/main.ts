@@ -8,7 +8,7 @@ const rootCandidate = document.querySelector<HTMLElement>('#app');
 if (!rootCandidate) throw new Error('앱을 표시할 영역이 없습니다.');
 const root: HTMLElement = rootCandidate;
 
-root.innerHTML = '<div class="boot-screen"><span></span><p>계산기 데이터를 불러오는 중…</p></div>';
+root.innerHTML = '<div class="boot-screen"><span></span><p>正在載入計算機資料…</p></div>';
 
 async function start(): Promise<void> {
   const [catalogResponse, manifestResponse, settingsResponse] = await Promise.all([
