@@ -55,6 +55,10 @@ import {
 } from './burst-order';
 import { ShareServer, summarizeBattle, summarizeSquad } from './share-server';
 import { createTimelineBlock } from './timeline';
+
+// 화면 표시용 이름 해석기 — mountCalculator에서 catalog로 채운다.
+// 그 전(모듈 로드 직후)에는 원래 이름을 그대로 돌려준다.
+let resolveDisplayName = (name: string): string => name;
 import {
   aggregateDeckResults,
   cacheKey,
@@ -223,7 +227,7 @@ function renderCharacterRows(
     const head = document.createElement('p');
     head.className = 'result-row-name';
     head.append(
-      createText('b', name),
+      createText('b', resolveDisplayName(name)),
       createText('span', `${share.toFixed(1)}% · ${fmt.dps(value / entry.result.duration)}`),
     );
     const track = document.createElement('div');
@@ -276,11 +280,11 @@ function renderCharacterCards(
       image.loading = 'lazy';
       portrait.append(image);
     }
-    if (rank) portrait.append(createText('b', `${rank}위`, 'result-rank-badge'));
+    if (rank) portrait.append(createText('b', `第 ${rank} 名`, 'result-rank-badge'));
     card.append(portrait);
 
-    card.append(createText('h3', name));
-    card.append(createText('span', `${share.toFixed(1)}% 기여`, 'result-card-share'));
+    card.append(createText('h3', resolveDisplayName(name)));
+    card.append(createText('span', `${share.toFixed(1)}% 貢獻`, 'result-card-share'));
     card.append(createText('strong', fmt.dmg(value)));
     card.append(createText('small', fmt.dps(value / entry.result.duration)));
 
@@ -301,8 +305,8 @@ function renderCharacterCards(
       const normalPct = breakdown.normal / value * 100;
       const skillPct = breakdown.skill / value * 100;
       const summary = document.createElement('summary');
-      summary.append(createText('span', `평타 ${normalPct.toFixed(0)}%`, 'legend-normal'));
-      summary.append(createText('span', `스킬 ${skillPct.toFixed(0)}%`, 'legend-skill'));
+      summary.append(createText('span', `普攻 ${normalPct.toFixed(0)}%`, 'legend-normal'));
+      summary.append(createText('span', `技能 ${skillPct.toFixed(0)}%`, 'legend-skill'));
       details.append(summary);
 
       const splitTrack = document.createElement('div');
@@ -319,8 +323,8 @@ function renderCharacterCards(
       const legend = document.createElement('p');
       legend.className = 'split-legend';
       legend.append(
-        createText('span', `평타 ${fmt.dmg(breakdown.normal)}`, 'legend-normal'),
-        createText('span', `스킬 ${fmt.dmg(breakdown.skill)}`, 'legend-skill'),
+        createText('span', `普攻 ${fmt.dmg(breakdown.normal)}`, 'legend-normal'),
+        createText('span', `技能 ${fmt.dmg(breakdown.skill)}`, 'legend-skill'),
       );
       details.append(legend);
 
@@ -331,7 +335,7 @@ function renderCharacterCards(
           const item = document.createElement('li');
           item.append(
             createText('span', skill.name),
-            createText('span', `${fmt.dmg(skill.damage)} · ${(skill.damage / value * 100).toFixed(1)}% · ${skill.hits}히트`),
+            createText('span', `${fmt.dmg(skill.damage)} · ${(skill.damage / value * 100).toFixed(1)}% · ${skill.hits} 命中`),
           );
           list.append(item);
         }
@@ -359,6 +363,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   let unionHandle: UnionHandle | null = null;
   const cache = new ResultCache(storage, version, 30);
   const catalogByName = new Map(catalog.map((char) => [char.name, char]));
+  resolveDisplayName = (name) => catalogByName.get(name)?.displayName ?? name;
   const decks = Array.from({ length: 5 }, (_, index) => emptyDeck(index + 1));
   decks[0]!.squad = initialSquad(catalog);
   let activeDeckId = 1;
@@ -1206,7 +1211,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       button.className = deck.id === activeDeckId ? 'is-active' : '';
       const count = deck.squad.filter(Boolean).length;
       button.textContent = `${deckLabelFull(deck)}${count ? ` · ${count}` : ''}`;
-      button.title = '두 번 누르면 이름을 붙일 수 있습니다. 끌어다 놓으면 순서가 바뀝니다';
+      button.title = '按兩下可以命名。拖曳可以改變順序';
       // 이름 붙이기 — 두 번 누르면 그 자리에서 고친다. 창을 띄우면 다섯 개를
       // 연달아 이름 붙일 때 창을 다섯 번 여닫아야 한다.
       button.addEventListener('dblclick', (event) => {
@@ -1277,13 +1282,13 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const shared = [...seen].filter(([, ids]) => ids.length > 1);
       if (shared.length > 0) {
         deckNote.replaceChildren(
-          createText('b', `여러 덱에 겹친 니케 ${shared.length}명: `),
-          createText('span', shared.map(([name, ids]) => `${name}(덱 ${ids.join('·')})`).join(', ')),
+          createText('b', `多隊重複的妮姬 ${shared.length} 名:`),
+          createText('span', shared.map(([name, ids]) => `${resolveDisplayName(name)}(隊 ${ids.join('·')})`).join(', ')),
           createText('em', ' — 견주려고 일부러 겹쳤다면 그대로 두셔도 됩니다. 한 번에 내보내는 편성이라면 겹칠 수 없습니다.'),
         );
         deckNote.classList.add('is-dup');
       } else {
-        deckNote.textContent = '덱 사이에는 같은 캐릭터를 다시 편성할 수 있습니다.';
+        deckNote.textContent = '不同隊伍之間可以重複編成同一個角色。';
         deckNote.classList.remove('is-dup');
       }
     }
@@ -1361,7 +1366,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       deckCopyTargets.querySelectorAll<HTMLInputElement>('[data-deck-copy-target]'),
     ).filter((box) => box.checked).map((box) => Number(box.dataset.deckCopyTarget));
     if (targets.length === 0) {
-      showErrors(['복사할 대상 덱을 하나 이상 선택하세요.']);
+      showErrors(['請至少選擇一個要複製的目標隊伍。']);
       return;
     }
     for (const id of targets) {
@@ -1502,7 +1507,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
       item.append(shot);
       item.append(createText('strong', step.target));
-      item.append(createText('span', `${step.t.toFixed(2)}초`));
+      item.append(createText('span', `${step.t.toFixed(2)}秒`));
       list.append(item);
     }
     buffOrderModal.hidden = false;
@@ -1669,7 +1674,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     box.dataset.copyFrom = name;
     const head = document.createElement('summary');
     head.textContent = '從其他妮姬複製';
-    head.title = '이미 키운 니케의 돌파·스킬·오버로드·장비 강화·소장품을 그대로 가져옵니다';
+    head.title = '沿用已養成妮姬的突破・技能・超載・裝備強化・收藏品';
     box.append(head);
 
     // 후보 = 어딘가에 설정이 잡혀 있는 니케(불러온 로스터 · 다섯 덱 어디든).
@@ -1683,7 +1688,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       }
     }
     if (sources.size === 0) {
-      box.append(createText('p', '베껴올 설정이 아직 없습니다 — CSV·블라블라링크로 불러오거나, 다른 니케를 먼저 설정해 주세요.', 'field-note'));
+      box.append(createText('p', '還沒有可複製的設定 — 請先用 CSV・Blablalink 匯入,或先設定其他妮姬。', 'field-note'));
       return box;
     }
 
@@ -1715,7 +1720,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 수치 미공개(임시·프리뷰) 캐릭터는 스킬 Lv10 고정이라 건너뛴다.
       if (from.skillLevels && !target?.skillLevelsLocked) {
         next.skillLevels = { ...from.skillLevels };
-        carried.push('스킬');
+        carried.push('技能');
       }
       if (from.overload) { next.overload = { ...from.overload }; carried.push('오버로드'); }
       if (from.equipLevels) { next.equipLevels = { ...from.equipLevels }; carried.push('장비 강화'); }
@@ -1738,7 +1743,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     const row = document.createElement('div');
     row.className = 'copy-from-row';
     row.append(pick, apply);
-    box.append(row, createText('p', '돌파 · 스킬 · 오버로드 · 장비 강화 · 소장품을 가져옵니다. 컨트롤·버스트 운용·큐브는 그대로 둡니다.', 'field-note'));
+    box.append(row, createText('p', '沿用突破・技能・超載・裝備強化・收藏品。操作・爆裂運用・魔方維持不變。', 'field-note'));
     return box;
   };
 
@@ -2170,7 +2175,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         else elementWindows[index]!.to = v;
         saveState();
       }));
-      box.append(createText('span', '초', 'phase-sep'));
+      box.append(createText('span', '秒', 'phase-sep'));
       return box;
     };
 

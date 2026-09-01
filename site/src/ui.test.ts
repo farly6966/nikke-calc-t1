@@ -1371,7 +1371,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-deck-copy-apply]')!.click();
 
     expect(root.querySelector<HTMLElement>('[data-errors]')!.textContent)
-      .toContain('복사할 대상 덱을 하나 이상 선택하세요');
+      .toContain('請至少選擇一個要複製的目標隊伍');
     expect(root.querySelector<HTMLElement>('[data-deck-copy-panel]')!.hidden).toBe(false);
   });
 
@@ -1636,8 +1636,8 @@ describe('calculator UI', () => {
     // 분해 정보를 준 캐릭터에만 붙는다.
     expect(splits).toHaveLength(1);
     // 접힌 줄에는 비율, 펼치면 실제 대미지가 보인다 — 카드가 좁아 둘을 나눠 담는다.
-    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('평타 75%');
-    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('스킬 25%');
+    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('普攻 75%');
+    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('技能 25%');
     const legend = splits[0]!.querySelector<HTMLElement>('.split-legend')!.textContent!;
     expect(legend).toContain('45,000');
     expect(legend).toContain('15,000');
