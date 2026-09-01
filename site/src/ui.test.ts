@@ -211,7 +211,7 @@ describe('calculator UI', () => {
       .dispatchEvent(dragEvent('drop', { 'application/x-nikke-name': taken }));
 
     expect(savedSquad()[4]).toBe('프리바티');   // 그대로다
-    expect(root.querySelector('[data-errors]')!.textContent).toContain('이미 2번 칸에 있습니다');
+    expect(root.querySelector('[data-errors]')!.textContent).toContain('已經在第 2 格');
   });
 
   it('칸끼리 끌면 자리가 맞바뀐다', () => {
@@ -501,13 +501,13 @@ describe('calculator UI', () => {
     // 기본은 「이 덱만」이다 — 덱 하나를 옮기는 일이 판 전체를 옮기는 일보다 잦다.
     expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('只有這隊');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
-      .toContain('덱 1에만 들어갑니다');
+      .toContain('只進入隊伍 1');
 
     // 「5덱 전부」로 바꾸면 안내도 따라 바뀐다.
     root.querySelector<HTMLButtonElement>('[data-share-scope-pick="all"]')!.click();
     expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('全部 5 隊');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
-      .toContain('판 전체가 바뀝니다');
+      .toContain('整個盤面會改變');
   });
 
   it('프리셋은 어느 범위로 저장했는지 함께 알린다', () => {
@@ -518,12 +518,12 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-share-open]')!.click();
     root.querySelector<HTMLInputElement>('[data-preset-name]')!.value = '한 덱짜리';
     root.querySelector<HTMLButtonElement>('[data-preset-save]')!.click();
-    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('덱 1만');
+    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('僅隊伍 1');
 
     root.querySelector<HTMLButtonElement>('[data-share-scope-pick="all"]')!.click();
     root.querySelector<HTMLInputElement>('[data-preset-name]')!.value = '판 전체';
     root.querySelector<HTMLButtonElement>('[data-preset-save]')!.click();
-    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('5덱 전부');
+    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('全部 5 隊');
 
     const stored = JSON.parse(localStorage.getItem('nikke-presets-v1')!) as Array<{ name: string }>;
     expect(stored.map((item) => item.name).sort()).toEqual(['판 전체', '한 덱짜리']);
@@ -1541,7 +1541,7 @@ describe('calculator UI', () => {
     ]);
     // 공통은 맨 앞이다.
     const groups = [...root.querySelectorAll('.console-group h4')].map((h) => h.textContent);
-    expect(groups).toEqual(['공통', '기업', '클래스']);
+    expect(groups).toEqual(['共通', '企業', '職業']);
   });
 
   it('sends per-affiliation console levels and restores them on reload', async () => {
@@ -1678,7 +1678,7 @@ describe('calculator UI', () => {
     // (그리기 실패 경로는 report.test.ts에서 직접 검증한다.)
     expect(root.querySelector<HTMLElement>('[data-report-modal]')!.hidden).toBe(false);
     expect(root.querySelector<HTMLElement>('[data-report-preview]')!.textContent)
-      .toContain('보고서를 그리는 중');
+      .toContain('正在繪製報告');
 
     root.querySelector<HTMLButtonElement>('[data-report-close]')!.click();
     expect(root.querySelector<HTMLElement>('[data-report-modal]')!.hidden).toBe(true);
@@ -1805,7 +1805,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain('덱 1 · 리타: 돌파 단계는 0~10 정수여야 합니다.');
+      .toContain('隊 1 · 리타:突破階段必須是 0~10 的整數。');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -1823,7 +1823,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain('덱 1 · 리타: 스킬 레벨은 1~10 정수여야 합니다.');
+      .toContain('隊 1 · 리타:技能等級必須是 1~10 的整數。');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -1868,7 +1868,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain(`덱 1 · ${previewName}: 수치 미공개 캐릭터는 스킬 Lv10만 사용할 수 있습니다.`);
+      .toContain(`隊 1 · ${previewName}:數值未公開的角色只能使用技能 Lv10。`);
     expect(client.simulateCalls).toBe(0);
   });
 
