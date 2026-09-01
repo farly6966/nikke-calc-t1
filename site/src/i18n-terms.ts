@@ -38,6 +38,21 @@ export const CORP_ZH: Record<string, string> = {
   어브노말: '反常',
 };
 
+/**
+ * 하모니 큐브 이름. **비어 있는 것이 정상이다** — 인게임 번체 중문 표기를 그대로
+ * 옮겨 적어야 하는 자리라, 지어내지 않고 비워 둔다. 여기 없는 큐브는 카탈로그의
+ * 한국어 이름이 그대로 나온다(화면이 깨지지 않는다).
+ *
+ * 채우는 법: 게임의 «和諧魔方» 목록에서 이름을 그대로 옮겨 한 줄씩 더한다.
+ *   렐릭 어설트 큐브: '突擊魔方',   ← 이런 모양
+ */
+export const CUBE_ZH: Record<string, string> = {};
+
+/** 큐브 이름 → 화면 라벨. 사전에 없으면 원래 이름 그대로. */
+export function cubeZh(name: string): string {
+  return CUBE_ZH[name] ?? name;
+}
+
 /** 필터 그룹 제목 (FilterKey 기준) */
 export const FILTER_TITLE_ZH: Record<string, string> = {
   rarity: '稀有度',

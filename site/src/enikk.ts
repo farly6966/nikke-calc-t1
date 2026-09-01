@@ -74,13 +74,13 @@ async function graphql<T>(query: string, variables: Record<string, unknown> = {}
     body: JSON.stringify({ query, variables }),
   });
   if (!response.ok) {
-    throw new Error(`enikk이 ${response.status}를 돌려줬습니다. 잠시 뒤 다시 시도해 주세요.`);
+    throw new Error(`enikk 回傳了 ${response.status}。請稍後再試一次。`);
   }
   const payload = await response.json() as { data?: T; errors?: Array<{ message: string }> };
   if (payload.errors?.length) {
-    throw new Error(`enikk 응답 오류: ${payload.errors[0]!.message}`);
+    throw new Error(`enikk 回應錯誤:${payload.errors[0]!.message}`);
   }
-  if (!payload.data) throw new Error('enikk이 빈 응답을 돌려줬습니다.');
+  if (!payload.data) throw new Error('enikk 回傳了空的回應。');
   return payload.data;
 }
 
@@ -90,7 +90,7 @@ export async function fetchLatestSeason(): Promise<EnikkSeason> {
     soloRaidSummaries: Array<{ raid_number: number; wave_name: string; weakness: string }>;
   }>('{ soloRaidSummaries { raid_number wave_name weakness } }');
   const latest = [...data.soloRaidSummaries].sort((a, b) => b.raid_number - a.raid_number)[0];
-  if (!latest) throw new Error('시즌 목록이 비어 있습니다.');
+  if (!latest) throw new Error('賽季清單是空的。');
   return { raid: latest.raid_number, boss: latest.wave_name, weakness: latest.weakness };
 }
 
@@ -190,23 +190,23 @@ export async function loadEnikkComps(
   supported: Set<string>,
   onProgress?: (message: string) => void,
 ): Promise<EnikkImport> {
-  onProgress?.('시즌 정보를 확인하는 중…');
+  onProgress?.('正在確認賽季資訊…');
   const season = await fetchLatestSeason();
 
-  onProgress?.('니케 이름표를 맞추는 중…');
+  onProgress?.('正在對照妮姬名稱…');
   const nameMap = await fetchNameMap(catalog);
 
-  onProgress?.(`시즌 ${season.raid} 랭킹 300명을 받는 중… 5초쯤 걸립니다`);
+  onProgress?.(`正在取得賽季 ${season.raid} 排行榜前 300 名…大約需要 5秒`);
   const rankings = await fetchRankings(season.raid);
 
-  onProgress?.('덱을 정리하는 중…');
+  onProgress?.('正在整理隊伍…');
   return { season, ...toPlayers(rankings, nameMap, supported) };
 }
 
 /** 억 단위 표기. enikk은 `42B`로 쓰지만 우리는 억으로 읽는다. */
 export function formatEok(value: number): string {
   if (!Number.isFinite(value) || value === 0) return '0';
-  return `${(value / 100_000_000).toFixed(1)}억`;
+  return `${(value / 100_000_000).toFixed(1)}億`;
 }
 
 /** enikk 약점 표기(영문) → 우리 속성 이름. 랩쳐 코드에는 **보스 속성**을 넣어야 하므로

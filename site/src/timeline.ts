@@ -1,3 +1,4 @@
+import { termZh } from './i18n-terms';
 import { formatDamage } from './model';
 import { statText } from './stat-names';
 import { spanTargets } from './types';
@@ -27,6 +28,11 @@ const BASE_H = 424;         // 그래프만 있을 때 높이(CSS와 같은 값)
 
 export interface TimelineSeries {
   names: string[];
+  /**
+   * 이름(한국어 정본) → 화면에 적을 이름. 색·대미지·버스트는 전부 정본 이름으로
+   * 매기고, **글자로 나가는 자리에서만** 이 표를 거친다. 없는 이름은 그대로 적는다.
+   */
+  displayNames: Record<string, string>;
   colors: Record<string, string>;
   damage: Record<string, number[]>;
   totals: Record<string, number>;
@@ -115,6 +121,7 @@ export function buildSeries(
   phases: {
     immuneWindows?: Array<{ from: number; to: number }>;
     elementWindows?: Array<{ from: number; to: number; code: string }>;
+    displayNames?: Record<string, string>;
   } = {},
 ): TimelineSeries | null {
   const names = squad.filter((name) => timeline.damage[name]);
@@ -132,6 +139,7 @@ export function buildSeries(
 
   return {
     names,
+    displayNames: phases.displayNames ?? {},
     colors,
     damage: timeline.damage,
     totals,
@@ -158,7 +166,7 @@ export function formatSpan(index: number, bucket: number): string {
   const digits = Number.isInteger(bucket)
     ? 0 : Math.min(3, (String(bucket).split('.')[1] ?? '').length);
   const from = index * bucket;
-  return `${from.toFixed(digits)}–${(from + bucket).toFixed(digits)}초`;
+  return `${from.toFixed(digits)}–${(from + bucket).toFixed(digits)}秒`;
 }
 
 /** peak 이상이면서 축 눈금으로 깔끔한 상한값. */
@@ -384,10 +392,10 @@ class TimelineChart {
       }
     };
     for (const w of this.series.immuneWindows) {
-      band(w.from, w.to, 'rgba(255,119,135,0.16)', '족자');
+      band(w.from, w.to, 'rgba(255,119,135,0.16)', '免疫');
     }
     for (const w of this.series.elementWindows) {
-      band(w.from, w.to, 'rgba(96,165,250,0.16)', `속저 ${w.code}`);
+      band(w.from, w.to, 'rgba(96,165,250,0.16)', `屬濾 ${termZh(w.code)}`);
     }
     ctx.textAlign = 'left';
 
@@ -494,7 +502,7 @@ class TimelineChart {
       ctx.restore();
       this.buffMoreHit = null;
       if (this.buffHidden > 0 || this.buffExpanded) {
-        const label = this.buffExpanded ? '접기' : `+${this.buffHidden}줄 더 보기`;
+        const label = this.buffExpanded ? '收合' : `+${this.buffHidden} 列`;
         ctx.fillStyle = '#cfe3f2';
         ctx.font = '700 10px system-ui, sans-serif';
         ctx.textAlign = 'right';
@@ -631,6 +639,11 @@ class TimelineChart {
     }
   }
 
+  /** 글자로 나갈 이름. 정본 이름은 그대로 두고 이 자리에서만 화면 이름으로 바꾼다. */
+  private label(name: string): string {
+    return this.series.displayNames[name] ?? name;
+  }
+
   private showTooltip(clientX: number, clientY: number): void {
     if (this.hoverIndex === null) { this.tooltip.style.display = 'none'; return; }
     const index = this.hoverIndex;
@@ -641,11 +654,11 @@ class TimelineChart {
     const total = rows.reduce((sum, row) => sum + row.value, 0);
     const lines = rows.map((row) =>
       `<div class="tl-tip-row"><span class="tl-dot" style="background:${row.color}"></span>` +
-      `<span class="tl-name">${row.name}</span><span class="tl-val">${formatDamage(row.value)}</span></div>`,
+      `<span class="tl-name">${this.label(row.name)}</span><span class="tl-val">${formatDamage(row.value)}</span></div>`,
     ).join('');
     this.tooltip.innerHTML =
       `<div class="tl-tip-time">${formatSpan(index, this.series.bucket)}</div>${lines}` +
-      `<div class="tl-tip-total"><span>합계</span><span>${formatDamage(total)}</span></div>`;
+      `<div class="tl-tip-total"><span>合計</span><span>${formatDamage(total)}</span></div>`;
     const host = this.canvas.parentElement!.getBoundingClientRect();
     let px = clientX - host.left + 14;
     if (px + 180 > host.width) px = clientX - host.left - 194;
@@ -658,33 +671,34 @@ class TimelineChart {
   private showBuffTip(track: BuffTrack, span: BuffSpan,
     clientX: number, clientY: number): void {
     const color = this.series.colors[track.caster] ?? '#8394a6';
-    const seconds = (value: number) => `${value.toFixed(1)}초`;
+    const seconds = (value: number) => `${value.toFixed(1)}秒`;
     const [from, to, stack] = span;
     // 대상이 발동마다 갈리는 버프가 있다 — 이 구간을 실제로 받은 사람만 보인다.
     const faces = spanTargets(track, span).map((name) => {
       const url = this.portraits.get(name)?.src;
       const dot = `<span class="tl-dot" style="background:${this.series.colors[name] ?? '#8394a6'}"></span>`;
+      const shown = this.label(name);
       return url
-        ? `<img class="tl-face" src="${url}" alt="${name}" title="${name}" />`
-        : `<span class="tl-face tl-face-none" title="${name}">${dot}</span>`;
+        ? `<img class="tl-face" src="${url}" alt="${shown}" title="${shown}" />`
+        : `<span class="tl-face tl-face-none" title="${shown}">${dot}</span>`;
     }).join('');
     const rows: string[] = [
-      `<div class="tl-tip-row"><span class="tl-name">지속</span>` +
+      `<div class="tl-tip-row"><span class="tl-name">持續</span>` +
       `<span class="tl-val">${seconds(from)} → ${seconds(to)} (${seconds(to - from)})</span></div>`,
-      `<div class="tl-tip-row"><span class="tl-name">건 사람</span><span class="tl-val">${track.caster}</span></div>`,
+      `<div class="tl-tip-row"><span class="tl-name">施放者</span><span class="tl-val">${this.label(track.caster)}</span></div>`,
     ];
     if (track.stat) {
       // 엔진 키는 영어다 — 화면에는 한글로 적고, 원래 키는 마우스를 올리면 나온다.
-      rows.push(`<div class="tl-tip-row"><span class="tl-name">효과</span>`
+      rows.push(`<div class="tl-tip-row"><span class="tl-name">效果</span>`
         + `<span class="tl-val" title="${track.stat}">${statText(track.stat, track.value)}</span></div>`);
     }
     if (track.maxStack > 1) {
-      rows.push(`<div class="tl-tip-row"><span class="tl-name">중첩</span>` +
+      rows.push(`<div class="tl-tip-row"><span class="tl-name">疊層</span>` +
         `<span class="tl-val">${stack} / ${track.maxStack}</span></div>`);
     }
     // 받는 사람은 얼굴로 보인다 — 다섯 명한테 걸리는 버프를 이름으로 늘어놓으면 길기만 하다.
     const targets = faces
-      ? `<div class="tl-tip-faces"><span class="tl-name">받는 사람</span><span>${faces}</span></div>`
+      ? `<div class="tl-tip-faces"><span class="tl-name">受益者</span><span>${faces}</span></div>`
       : '';
     this.tooltip.innerHTML =
       `<div class="tl-tip-time" style="color:${color}">${track.name}</div>${rows.join('')}${targets}`;
@@ -776,6 +790,7 @@ class TimelineChart {
 export function createTimelineBlock(
   entry: DeckResultEntry,
   portraitUrls: Record<string, string> = {},
+  displayNames: Record<string, string> = {},
 ): HTMLElement | null {
   const timeline = entry.result.timeline;
   if (!timeline) return null;
@@ -783,6 +798,7 @@ export function createTimelineBlock(
   const series = buildSeries(timeline, squad, entry.result.duration, {
     immuneWindows: entry.request.immuneWindows,
     elementWindows: entry.request.elementWindows,
+    displayNames,
   });
   if (!series) return null;
 
@@ -794,12 +810,12 @@ export function createTimelineBlock(
   head.className = 'timeline-head';
   const heading = document.createElement('p');
   heading.className = 'timeline-heading';
-  heading.textContent = '전투 타임라인 · 초당 대미지';
+  heading.textContent = '戰鬥時間軸 · 每秒傷害';
   const controls = document.createElement('div');
   controls.className = 'timeline-controls';
-  const zoomOut = button('−', '축소');
-  const zoomIn = button('+', '확대');
-  const reset = button('전체', '전체 보기');
+  const zoomOut = button('−', '縮小');
+  const zoomIn = button('+', '放大');
+  const reset = button('全部', '檢視全部');
   controls.append(zoomOut, zoomIn, reset);
   head.append(heading, controls);
   block.append(head);
@@ -813,7 +829,7 @@ export function createTimelineBlock(
   const canvas = document.createElement('canvas');
   canvas.className = 'timeline-canvas';
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', '캐릭터별 초당 대미지를 한 그래프에 겹쳐 그린 인터랙티브 타임라인. 드래그로 이동, 휠·버튼으로 확대·축소.');
+  canvas.setAttribute('aria-label', '把各角色的每秒傷害疊在同一張圖上的互動時間軸。拖曳可移動,滾輪與按鈕可放大縮小。');
   const tooltip = document.createElement('div');
   tooltip.className = 'timeline-tip';
   tooltip.style.display = 'none';
@@ -822,7 +838,7 @@ export function createTimelineBlock(
 
   const note = document.createElement('p');
   note.className = 'timeline-legend';
-  note.textContent = '드래그 이동 · 휠/버튼 확대·축소 · 노란 밴드 = 풀버스트 · 붉은 밴드 = 족자 · 푸른 밴드 = 속저 · 아래 초상화 = 버스트 사용(배지는 단계)';
+  note.textContent = '拖曳移動 · 滾輪/按鈕縮放 · 黃色帶 = 全爆裂 · 紅色帶 = 免疫 · 藍色帶 = 屬濾 · 下方頭像 = 使用爆裂(徽章為階級)';
   block.append(note);
 
   const chart = new TimelineChart(canvas, tooltip, series, portraitUrls);
@@ -836,10 +852,10 @@ export function createTimelineBlock(
     buffToggle.className = 'timeline-buff-toggle';
     buffToggle.dataset.timelineBuffs = '';
     buffToggle.setAttribute('aria-pressed', 'false');
-    buffToggle.title = '버프가 걸려 있던 구간을 그래프 위에 막대로 보여 줍니다. 막대에 마우스를 올리면 자세히 나옵니다';
+    buffToggle.title = '把 buff 生效的區間以長條顯示在圖表上方。把滑鼠移到長條上會顯示詳細內容';
     const mark = textSpan('', 'tl-buff-mark');
     mark.setAttribute('aria-hidden', 'true');
-    buffToggle.append(mark, textSpan('버프 표시', ''));
+    buffToggle.append(mark, textSpan('顯示 buff', ''));
     buffToggle.addEventListener('click', () => {
       const on = buffToggle.getAttribute('aria-pressed') !== 'true';
       buffToggle.setAttribute('aria-pressed', String(on));
@@ -860,7 +876,7 @@ export function createTimelineBlock(
     const dot = document.createElement('span');
     dot.className = 'tl-dot';
     dot.style.background = series.colors[name]!;
-    item.append(dot, textSpan(name, 'tl-name'), textSpan(formatDamage(series.totals[name] ?? 0), 'tl-total'));
+    item.append(dot, textSpan(series.displayNames[name] ?? name, 'tl-name'), textSpan(formatDamage(series.totals[name] ?? 0), 'tl-total'));
     item.addEventListener('click', () => {
       const off = item.classList.toggle('is-off');
       chart.setHidden(name, off);

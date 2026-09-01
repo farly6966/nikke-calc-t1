@@ -18,7 +18,7 @@ const settings: SettingsCatalog = {
       maxGrowthStage: 10,
       growthOptions: Array.from({ length: 11 }, (_, value) => ({
         value,
-        label: value === 0 ? '명함' : value <= 3 ? `${value}돌` : `코강 ${value - 3}`,
+        label: value === 0 ? '無突破' : value <= 3 ? `${value}突破` : `核心強化 ${value - 3}`,
         affinity: value === 0 ? 10 : value === 1 ? 20 : 30,
       })),
       skillLevels: { '1': 10, '2': 10, '3': 10 },
@@ -42,9 +42,9 @@ const settings: SettingsCatalog = {
       rarity: 'SR',
       maxGrowthStage: 2,
       growthOptions: [
-        { value: 0, label: '명함', affinity: 10 },
-        { value: 1, label: '1돌', affinity: 20 },
-        { value: 2, label: '2돌', affinity: 30 },
+        { value: 0, label: '無突破', affinity: 10 },
+        { value: 1, label: '1突破', affinity: 20 },
+        { value: 2, label: '2突破', affinity: 30 },
       ],
       skillLevels: { '1': 10, '2': 10, '3': 10 },
       skillLevelsLocked: false,
@@ -67,7 +67,7 @@ const settings: SettingsCatalog = {
       maxGrowthStage: 10,
       growthOptions: Array.from({ length: 11 }, (_, value) => ({
         value,
-        label: value === 0 ? '명함' : value <= 3 ? `${value}돌` : `코강 ${value - 3}`,
+        label: value === 0 ? '無突破' : value <= 3 ? `${value}突破` : `核心強化 ${value - 3}`,
         affinity: value === 0 ? 10 : value === 1 ? 20 : 30,
       })),
       skillLevels: { '1': 10, '2': 10, '3': 10 },
@@ -91,7 +91,7 @@ const settings: SettingsCatalog = {
       maxGrowthStage: 10,
       growthOptions: Array.from({ length: 11 }, (_, value) => ({
         value,
-        label: value === 0 ? '명함' : value <= 3 ? `${value}돌` : `코강 ${value - 3}`,
+        label: value === 0 ? '無突破' : value <= 3 ? `${value}突破` : `核心強化 ${value - 3}`,
         affinity: value === 0 ? 10 : value === 1 ? 20 : 30,
       })),
       skillLevels: { '1': 10, '2': 10, '3': 10 },
@@ -110,7 +110,7 @@ const settings: SettingsCatalog = {
   collectionStages: ['없음', 'SR0', 'SR5', 'SR15'],
   normalHitCoeff: { AR: 1, SMG: 1, SG: 0.9, MG: 1, SR: 1, RL: 1 },
   weaponTypes: ['AR', 'SMG', 'SG', 'MG', 'SR', 'RL'],
-  buffTargetWatch: { 미란다: [{ buff: '웨이크업! 4', label: '크확 대상' }] },
+  buffTargetWatch: { 미란다: [{ buff: '웨이크업! 4', label: '暴擊率對象' }] },
   consoleClasses: ['화력형', '방어형', '지원형'],
   consoleCompanies: ['엘리시온', '미실리스', '테트라', '필그림', '어브노말'],
   cubes: {
@@ -166,7 +166,7 @@ describe('character settings editor', () => {
 
   it('shows resolved defaults and opens final-value inputs on demand', () => {
     expect(root.textContent).toContain('技能 10 / 10 / 10');
-    expect(root.textContent).toContain('3돌 · 好感度 30');
+    expect(root.textContent).toContain('3突破 · 好感度 30');
     expect(root.textContent).toContain('優越 88.60');
     expect(root.textContent).toContain('攻增 22.22');
     expect(root.textContent).toContain('裝彈 129.64');
@@ -251,8 +251,8 @@ describe('character settings editor', () => {
     expect(checkbox.checked).toBe(false);
     expect(delay.value).toBe('6');
     expect(delay.disabled).toBe(true);
-    expect(delay.parentElement?.querySelector('em')?.textContent).toBe('초');
-    expect(delay.closest('.weapon-mode-swap')?.textContent).toContain('후부터 전환 시도');
+    expect(delay.parentElement?.querySelector('em')?.textContent).toBe('秒');
+    expect(delay.closest('.weapon-mode-swap')?.textContent).toContain('後開始嘗試切換');
 
     checkbox.checked = true;
     checkbox.dispatchEvent(new Event('change'));
@@ -282,8 +282,8 @@ describe('character settings editor', () => {
 
     const growth = root.querySelector<HTMLSelectElement>('[data-growth-stage]')!;
     expect([...growth.options].map((option) => option.text)).toEqual([
-      '명함', '1돌', '2돌', '3돌', '코강 1', '코강 2', '코강 3', '코강 4',
-      '코강 5', '코강 6', '코강 7',
+      '無突破', '1突破', '2突破', '3突破', '核心強化 1', '核心強化 2', '核心強化 3', '核心強化 4',
+      '核心強化 5', '核心強化 6', '核心強化 7',
     ]);
     expect(root.textContent).toContain('好感度以各突破階段的最大值套用。');
 
@@ -291,7 +291,7 @@ describe('character settings editor', () => {
     growth.dispatchEvent(new Event('change'));
 
     expect(value?.growthStage).toBe(0);
-    expect(root.textContent).toContain('명함 · 好感度 10');
+    expect(root.textContent).toContain('無突破 · 好感度 10');
   });
 
   it('constrains an SR character to card through limit break two', () => {
@@ -300,7 +300,7 @@ describe('character settings editor', () => {
     setToggle('[data-custom-toggle]', true);
 
     const growth = root.querySelector<HTMLSelectElement>('[data-growth-stage]')!;
-    expect([...growth.options].map((option) => option.text)).toEqual(['명함', '1돌', '2돌']);
+    expect([...growth.options].map((option) => option.text)).toEqual(['無突破', '1突破', '2突破']);
     expect(value?.growthStage).toBe(2);
   });
 
@@ -330,7 +330,7 @@ describe('character settings editor', () => {
     const select = root.querySelector<HTMLSelectElement>('[data-collection]')!;
     // 애장품 단계가 먼저 오고, 그 뒤로 소장품 단계가 이어진다.
     expect([...select.options].slice(0, 3).map((option) => option.textContent))
-      .toEqual(['애장품 ★★★', '애장품 ★★☆', '애장품 ★☆☆']);
+      .toEqual(['珍藏品 ★★★', '珍藏品 ★★☆', '珍藏品 ★☆☆']);
     expect(select.value).toBe('favorite:3');
 
     // 실제로는 애장품이 없고 소장품 SR5만 낀 경우.
@@ -536,7 +536,7 @@ describe('character settings editor', () => {
     expect(value).not.toHaveProperty('control');
   });
 
-  it('lets the tap-fire rate be typed in and shows the 톡톡이 equivalent', () => {
+  it('lets the tap-fire rate be typed in and shows the 點射 equivalent', () => {
     characterName = '라피';
     render();
     setToggle('[data-custom-toggle]', true);
@@ -549,18 +549,18 @@ describe('character settings editor', () => {
     const rate = root.querySelector<HTMLInputElement>('[data-tap-rate]')!;
     expect(rate.disabled).toBe(false);
     expect(rate.value).toBe('4.4');
-    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('44톡톡이');
+    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('44 點射');
 
     rate.value = '4';
     rate.dispatchEvent(new Event('input', { bubbles: true }));
     expect(value?.control?.tap_fire).toEqual({ rate: 4, release: 0.03 });
-    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('40톡톡이');
+    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('40 點射');
 
     // 게임이 강제하는 하한(220ms ≈ 4.5발/초)을 넘으면 그 사실을 알린다.
     rate.value = '6';
     rate.dispatchEvent(new Event('input', { bubbles: true }));
     expect(value?.control?.tap_fire?.rate).toBe(6);
-    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('게임 하한');
+    expect(root.querySelector('[data-tap-hint]')?.textContent).toContain('遊戲下限');
   });
 
   it('does not show charge-only controls for a non-charge weapon', () => {
@@ -594,7 +594,7 @@ describe('character settings editor', () => {
     expect(value?.cube).toEqual({ name: '탄충', level: 15 });
     expect(root.textContent).toContain('攻擊 2,780');
     expect(root.textContent).toContain('10발 사격 시 탄환 충전 3발 ▲');
-    expect(root.textContent).toContain('우월 코드 19.09%');
+    expect(root.textContent).toContain('剋制代碼 19.09%');
   });
 
   it('searches, adds, edits, deduplicates, and removes advanced stats', () => {
@@ -604,7 +604,7 @@ describe('character settings editor', () => {
     search.value = '분배';
     search.dispatchEvent(new Event('input'));
     const select = root.querySelector<HTMLSelectElement>('[data-manual-select]')!;
-    expect([...select.options].map((option) => option.text)).toContain('분배 대미지');
+    expect([...select.options].map((option) => option.text)).toContain('分裂傷害增加');
 
     select.value = 'split_dmg_pct';
     root.querySelector<HTMLButtonElement>('[data-add-stat]')!.click();
@@ -635,9 +635,9 @@ describe('character settings editor', () => {
     // 대상이 공격력 순위로 갈려 편성만 보고는 알 수 없다 — 계산 전에는 빈 괄호로
     // 자리만 잡고, 결과가 오면 실제 수령자가 채워진다.
     renderCharacterSettings(root, characterName, settings, value, (next) => { value = next; },
-      [{ label: '크확 대상', buff: '웨이크업! 4', targets: [], count: 0 }]);
+      [{ label: '暴擊率對象', buff: '웨이크업! 4', targets: [], count: 0 }]);
     let row = root.querySelector<HTMLElement>('[data-buff-target]')!;
-    expect(row.textContent).toBe('크확 대상 : []');
+    expect(row.textContent).toBe('暴擊率對象 : []');
     // 접이 **밖**에 선다 — 펴 보지 않아도 보여야 하는 정보다.
     expect(row.closest('[data-loadout-fold]')).toBeNull();
     const fold = root.querySelector<HTMLElement>('[data-loadout-fold]')!;
@@ -648,9 +648,9 @@ describe('character settings editor', () => {
     expect(fold.nextElementSibling!.contains(row)).toBe(true);
 
     renderCharacterSettings(root, characterName, settings, value, (next) => { value = next; },
-      [{ label: '크확 대상', buff: '웨이크업! 4', targets: ['리버렐리오'], count: 3 }]);
+      [{ label: '暴擊率對象', buff: '웨이크업! 4', targets: ['리버렐리오'], count: 3 }]);
     row = root.querySelector<HTMLElement>('[data-buff-target]')!;
-    expect(row.textContent).toBe('크확 대상 : [리버렐리오]');
+    expect(row.textContent).toBe('暴擊率對象 : [리버렐리오]');
     expect(row.title).toContain('發動 3 次');
   });
 
@@ -658,7 +658,7 @@ describe('character settings editor', () => {
     // 대상이 갈리면 이름을 나열해도 읽히지 않는다 — 접고 순서는 버튼으로 넘긴다.
     let opened: BuffTargetRow | undefined;
     const row: BuffTargetRow = {
-      label: '차분한 수심 대상', buff: '차분한 수심 4', count: 4,
+      label: '《차분한 수심》對象', buff: '차분한 수심 4', count: 4,
       targets: ['앨리스', '홍련 : 흑영'],
       sequence: [
         { t: 3.25, target: '앨리스' }, { t: 23.25, target: '홍련 : 흑영' },
@@ -682,19 +682,19 @@ describe('character settings editor', () => {
   it('shows just the name when the target never changes, with no order button', () => {
     // 대상이 고정이면 이름 하나로 충분하다 — 「순서보기」는 갈릴 때만 붙인다.
     renderCharacterSettings(root, characterName, settings, value, (next) => { value = next; },
-      [{ label: '크확 대상', buff: '웨이크업! 4', targets: ['리버렐리오'], count: 3,
+      [{ label: '暴擊率對象', buff: '웨이크업! 4', targets: ['리버렐리오'], count: 3,
          sequence: [{ t: 3.25, target: '리버렐리오' }] }], () => {});
     const box = root.querySelector<HTMLElement>('[data-buff-target]')!;
-    expect(box.textContent).toBe('크확 대상 : [리버렐리오]');
+    expect(box.textContent).toBe('暴擊率對象 : [리버렐리오]');
     expect(root.querySelector('[data-buff-order-open]')).toBeNull();
   });
 
-  it('says 계산중 while the background run is in flight', () => {
+  it('says 計算中 while the background run is in flight', () => {
     // 빈 괄호만 보이면 기능이 꺼진 것처럼 보인다 — 도는 동안은 그렇다고 적는다.
     renderCharacterSettings(root, characterName, settings, value, (next) => { value = next; },
-      [{ label: '크확 대상', buff: '웨이크업! 4', targets: [], count: 0, pending: true }]);
+      [{ label: '暴擊率對象', buff: '웨이크업! 4', targets: [], count: 0, pending: true }]);
     const box = root.querySelector<HTMLElement>('[data-buff-target]')!;
-    expect(box.textContent).toBe('크확 대상 : [계산중]');
+    expect(box.textContent).toBe('暴擊率對象 : [計算中]');
     expect(box.classList.contains('is-pending')).toBe(true);
     expect(box.title).toContain('對象計算中');
   });
@@ -710,7 +710,7 @@ describe('character settings editor', () => {
     );
     setToggle('[data-custom-toggle]', true);
     root.querySelector<HTMLButtonElement>('[data-char-panel-open="settings"]')!.click();
-    expect(opened).toEqual([{ kind: 'settings', label: '돌파 · 스킬 · 오버로드 · 큐브', hasBurst: false }]);
+    expect(opened).toEqual([{ kind: 'settings', label: '突破 · 技能 · 超載 · 魔方', hasBurst: false }]);
     // 넘겼으면 제자리에서 펼치지는 않는다 — 같은 것이 두 곳에 보이면 안 된다.
     expect(root.querySelector<HTMLElement>('[data-char-panel="settings"]')!.hidden).toBe(true);
     // 컨트롤은 애초에 창으로 넘기지 않는다 — 카드에서 그 자리에 펴진다.

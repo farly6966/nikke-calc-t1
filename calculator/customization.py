@@ -410,8 +410,8 @@ def normalize_synchro_level(raw: Any) -> int | None:
 # 발동 조건(미란다는 애장품 2단계 이상)이 안 맞으면 이벤트가 없어 빈 값이 된다.
 # 여기가 정본이고, 브라우저는 settings.json의 `buffTargetWatch`로 받는다.
 BUFF_TARGET_WATCH: dict[str, tuple[tuple[str, str], ...]] = {
-    "리버렐리오": (("차분한 수심 4", "차분한 수심 대상"),),
-    "미란다": (("웨이크업! 4", "크확 대상"),),
+    "리버렐리오": (("차분한 수심 4", "《차분한 수심》對象"),),
+    "미란다": (("웨이크업! 4", "暴擊率對象"),),
 }
 
 

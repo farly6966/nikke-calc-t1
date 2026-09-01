@@ -72,7 +72,7 @@ async function unwrap<T>(response: Response): Promise<T> {
   }
   if (!response.ok) {
     const message = (body as { error?: string } | null)?.error;
-    throw new Error(message ?? `서버가 응답하지 않았습니다 (${response.status}).`);
+    throw new Error(message ?? `伺服器沒有回應(${response.status})。`);
   }
   return body as T;
 }
@@ -156,7 +156,7 @@ export function summarizeSquad(
   const used = filled.filter((squad) => squad.length > 0);
   const total = used.reduce((sum, squad) => sum + squad.length, 0);
   if (used.length <= 1) return used[0]?.join('/') ?? '';
-  return `${used.length}덱 · ${total}명`;
+  return `${used.length} 隊 · ${total} 名`;
 }
 
 /**
@@ -168,9 +168,9 @@ export function summarizeUnion(
 ): string {
   const live = bosses.filter((boss) => boss.enabled
     && (boss.name.trim() !== '' || boss.battleCode.trim() !== ''));
-  const names = live.map((boss, index) => boss.name.trim() || `보스 ${index + 1}`);
+  const names = live.map((boss, index) => boss.name.trim() || `王 ${index + 1}`);
   const decks = live.reduce(
     (sum, boss) => sum + boss.deckCodes.filter((code) => code.trim() !== '').length, 0);
-  if (names.length === 0) return '빈 판';
-  return `${names.join(' / ')} · 덱 ${decks}개`;
+  if (names.length === 0) return '空盤面';
+  return `${names.join(' / ')} · ${decks} 隊`;
 }

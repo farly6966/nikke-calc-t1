@@ -82,7 +82,7 @@ describe('CalculatorWorkerClient', () => {
     client.dispose();
 
     expect(worker.terminated).toBe(true);
-    await expect(pending).rejects.toThrow('계산기가 종료되었습니다.');
+    await expect(pending).rejects.toThrow('計算機已關閉。');
   });
 });
 
