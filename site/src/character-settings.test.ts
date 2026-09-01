@@ -827,8 +827,8 @@ describe('character settings editor', () => {
     // 레벨은 뜻이 없으므로 0으로 못 박고, 레벨 칸도 잠근다.
     expect(value?.cube).toEqual({ name: '없음', level: 0 });
     expect(root.querySelector<HTMLSelectElement>('[data-cube-level]')!.disabled).toBe(true);
-    expect(root.querySelector('.cube-summary')!.textContent).toContain('不裝方塊');
-    expect(root.querySelector('[data-loadout-summary]')!.textContent).toContain('無方塊');
+    expect(root.querySelector('.cube-summary')!.textContent).toContain('不裝魔方');
+    expect(root.querySelector('[data-loadout-summary]')!.textContent).toContain('無魔方');
 
     // 다시 큐브를 고르면 레벨이 되살아난다.
     const first = root.querySelector<HTMLSelectElement>('[data-cube-name]')!.options[1]!.value;

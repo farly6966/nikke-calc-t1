@@ -96,7 +96,7 @@ function summaryText(name: string, catalog: SettingsCatalog, value?: CharacterOv
   return `${value ? '個別數值' : '預設值'} · ${growth.label} · 好感度 ${growth.affinity} · ${skillSummary} · `
     + `優越 ${numberText(overload.element_bonus ?? 0)} · `
     + `攻增 ${numberText(overload.atk_pct ?? 0)} · 裝彈 ${numberText(overload.max_ammo_pct ?? 0)} · `
-    + `${cube.name === NO_CUBE ? '無方塊' : `${cube.name} Lv${cube.level}`} · ${controlSummary}`;
+    + `${cube.name === NO_CUBE ? '無魔方' : `${cube.name} Lv${cube.level}`} · ${controlSummary}`;
 }
 
 /**
@@ -690,7 +690,7 @@ export function renderCharacterSettings(
   const collectionEditor = document.createElement('section');
   collectionEditor.className = 'collection-editor';
   const collectionHeading = document.createElement('h4');
-  collectionHeading.textContent = defaults.favoriteItem ? '收藏品・愛用品' : '收藏品';
+  collectionHeading.textContent = defaults.favoriteItem ? '收藏品・珍藏品' : '收藏品';
   const collectionSelect = document.createElement('select');
   collectionSelect.dataset.collection = '';
   const collectionOptions: Array<{ value: string; label: string }> = [
@@ -757,7 +757,7 @@ export function renderCharacterSettings(
   const cubeBox = document.createElement('section');
   cubeBox.className = 'cube-editor';
   const cubeHeading = document.createElement('h4');
-  cubeHeading.textContent = '和諧方塊';
+  cubeHeading.textContent = '魔方';
   const cubeControls = document.createElement('div');
   cubeControls.className = 'cube-controls';
   const cubeSelect = document.createElement('select');
@@ -767,7 +767,7 @@ export function renderCharacterSettings(
   // (미란다 버프 등)을 재려면 안 낀 상태도 고를 수 있어야 한다.
   const noneOption = document.createElement('option');
   noneOption.value = NO_CUBE;
-  noneOption.textContent = '無(未裝方塊)';
+  noneOption.textContent = '無(未裝魔方)';
   cubeSelect.append(noneOption);
   for (const cubeName of Object.keys(catalog.cubes)) {
     const option = document.createElement('option');
@@ -819,7 +819,7 @@ export function renderCharacterSettings(
   const cubeSummary = document.createElement('p');
   cubeSummary.className = 'cube-summary';
   if (noCube) {
-    cubeSummary.textContent = '不裝方塊 — 方塊的數值與剋制屬性效果都不會生效。';
+    cubeSummary.textContent = '不裝魔方 — 魔方的數值與剋制屬性效果都不會生效。';
   } else if (level) {
     const effect = cubeMeta.template.replace('{0}', String(level.effect));
     cubeSummary.textContent = `攻擊 ${level.atk.toLocaleString('en-US')} · 防禦 ${level.def.toLocaleString('en-US')} · `
@@ -832,7 +832,7 @@ export function renderCharacterSettings(
     const note = document.createElement('p');
     note.className = 'cube-unsupported-note';
     note.dataset.cubeUnsupported = '';
-    note.textContent = `此方塊的專屬效果尚未反映到計算中 — `
+    note.textContent = `此魔方的專屬效果尚未反映到計算中 — `
       + `공격력·방어력·체력과 우월 코드 효과만 적용됩니다. (${cubeMeta.unsupported})`;
     cubeBox.append(note);
   }

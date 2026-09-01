@@ -498,7 +498,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         <div class="hero-copy">
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
           <h1><span>NIKKE</span> 隊伍計算機</h1>
-          <p class="hero-lede">依各角色的超載、方塊與戰鬥條件,以每幀為單位計算預期傷害。</p>
+          <p class="hero-lede">依各角色的超載、魔方與戰鬥條件,以每幀為單位計算預期傷害。</p>
           <div class="trust-row" aria-label="服務特色"><span>支援 ${catalog.length} 名</span><span class="online-now" data-online hidden title="最近 1~2 分鐘內開啟這個計算機的人數。隱藏分頁就不計入"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><button type="button" class="notice-open" data-notice-open title="看看到目前為止改了些什麼">更新紀錄</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="這個計算機的原始儲存庫">向原始演算法開發者致上無限感謝</a></div>
         </div>
         <div class="hero-orbit" aria-hidden="true"><span>01</span><strong>LOCAL<br />SIM</strong></div>
