@@ -163,6 +163,27 @@ describe('generated browser runtime', () => {
     expect(settings.manualStats.ammo_charge_flat).toBeDefined();
   });
 
+  // 화면 이름이 겹치면 목록에 같은 이름이 두 줄 서고, 검색으로도 가를 수 없다.
+  // 카탈로그가 커질 때 조용히 생기는 어긋남이라 여기서 잡는다.
+  it('gives every character a display name nothing else uses', () => {
+    const catalog = JSON.parse(
+      readFileSync(join(publicDir, 'catalog.json'), 'utf8'),
+    ) as CharacterMeta[];
+
+    // 아직 갈라 놓지 않은 이름. 비우면 목록에 같은 이름이 두 줄 서므로 **여기 적힌 것만** 허용한다.
+    // `사쿠라`(SSR)와 `사쿠라 (SR)`은 다른 캐릭터인데 영어 표기가 둘 다 `Sakura`다.
+    const pending = ['Sakura'];
+
+    const seen = new Map<string, string[]>();
+    for (const character of catalog) {
+      const shown = character.displayName ?? character.name;
+      seen.set(shown, [...(seen.get(shown) ?? []), character.name]);
+    }
+    expect([...seen.entries()]
+      .filter(([shown, names]) => names.length > 1 && !pending.includes(shown))
+      .map(([shown, names]) => `${shown}: ${names.join(' / ')}`)).toEqual([]);
+  });
+
   // 큐브 사전은 **이름을 키로** 잡으므로, 데이터 갱신으로 이름이 한 글자만 바뀌어도
   // 조용히 한국어가 화면에 돌아온다(빈칸이 안 되니 CI가 초록불로 지나간다).
   // 여기서 사전과 실제 데이터를 맞대어 그 순간을 잡는다.

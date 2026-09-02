@@ -19,6 +19,13 @@ NIKKE 隊伍計算機的**繁體中文化**。L3 待辦**已全部翻完**,魔�
 - **分類名**:屬性/職業/企業/爆裂階(`site/src/i18n-terms.ts`)
 - **角色名(英文)**:`data/i18n/names.en.json`(韓→英,**200 角色**;
   本次補上 `드레이크 : 그레이트 빌런` → `Drake: Great Villain`)。
+  `레이`/`레이 (가칭)` 改用官方全名 `Rei Ayanami` / `Rei Ayanami (Tentative Name)` —
+  原本只寫 `Rei`,和另一名角色 `라이`(泰特拉 水冷 SMG)的英文名**撞名**,
+  清單上會並排兩個一模一樣的 `Rei`。對照來源是使用者自己的
+  `farly6966/HARSH_nikke_urDMGdist`(日服前 100 公會樣本),
+  它的 93 個英文名和我們這份表其餘 91 個完全吻合。
+  `runtime-assets.test.ts` 新增一條**顯示名不得重複**的測試,
+  `사쿠라`(SSR)與 `사쿠라 (SR)` 目前都叫 `Sakura`,放在 `pending` 允許清單裡待處理。
   `sync-runtime` 產 catalog 時掛 `displayName`;前端顯示用 `displayName ?? name`,
   引擎/鍵仍用韓文 `name`。
 
