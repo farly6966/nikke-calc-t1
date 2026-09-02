@@ -21,6 +21,7 @@ import {
   type UnionShare,
 } from './share-code';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
+import { parseExiaBatch, stripExiaProfile } from './exia-import';
 import type { BattleSettings, DeckState, SimulationResult } from './types';
 
 /** 유니온원 한 명. `GetGuildMembers`가 주는 것만 담는다. */
@@ -678,18 +679,17 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   let running = false;
   let cancelled = false;
 
-  // 모드 — 유니온원을 훑는 «유니온»과, 내 스펙만 쓰는 «개인용».
+  // 模式 —— 掃過每個聯盟成員的「聯盟」，和只用自己規格的「個人用」。
   //
-  // 유니온원 스펙은 프록시로만 받아 온다. 주소가 없는 배포(자체 서버를 두지 않은 fork)에서는
-  // «유니온»을 고를 수 없게 하고 «개인용»만 남긴다 — 눌러도 반드시 실패하는 갈래를 남겨
-  // 두는 쪽이 더 헷갈린다. 보스마다 다른 조건으로 덱 셋을 견주는 자리는 그대로 쓸 수 있다.
+  // 成員規格有三條路進來：代理伺服器掃描、瀏覽器自行擷取、以及匯出檔匯入。**只有第一條
+  // 需要代理伺服器**，所以沒設代理的部署（不自架伺服器的 fork）仍然可以用「聯盟」，
+  // 只是那個掃描按鈕按了一定失敗，所以把它整塊藏起來。
   const canScan = Boolean(deps.proxy);
-  let personal = !canScan;
+  let personal = false;
   const modeButtons = [...panel.querySelectorAll<HTMLButtonElement>('[data-union-mode]')];
   if (!canScan) {
-    for (const button of modeButtons) {
-      if (button.dataset.unionMode === 'union') button.hidden = true;
-    }
+    const scanBox = panel.querySelector<HTMLElement>('[data-union-scan-box]');
+    if (scanBox) scanBox.hidden = true;
   }
 
   /** 내 로스터를 실제로 가져다 뒀는가. 없으면 개인용은 기본 스펙으로 돈다. */
@@ -712,7 +712,9 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   };
 
   const setMode = (next: boolean) => {
-    personal = canScan ? next : true;
+    // 以前沒有代理伺服器時，這裡會強制退回「個人用」。現在有了匯出檔匯入，
+    // 聯盟模式不再綁著代理伺服器，所以按什麼就是什麼。
+    personal = next;
     for (const button of modeButtons) {
       const on = (button.dataset.unionMode === 'personal') === personal;
       button.classList.toggle('is-on', on);
@@ -1069,6 +1071,135 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       }
     })();
   });
+
+  // 匯出檔匯入 —— 三條路裡唯一不需要任何登入的。每位成員各自匯出一個檔案交出來，
+  // 指揮官一次全部拖進來。設「僅對聯盟成員公開」甚至完全不公開的人也算得到，
+  // 因為資料是他自己給的，不是我們去查的。
+  const fileInput = pick<HTMLInputElement>(panel, '[data-union-files]');
+  const fileDrop = pick<HTMLElement>(panel, '[data-union-drop]');
+  const fileStatus = pick(panel, '[data-union-file-status]');
+
+  /**
+   * 讀進來的檔案 → 成員表。
+   *
+   * `openid` 這裡沒有真的 openid（那是 blablalink 的東西），拿暱稱當代號。
+   * 後面每一步都只把它當成「這一列是誰」的鍵，不會拿去查詢，所以夠用。
+   */
+  const takeFiles = async (files: File[]): Promise<void> => {
+    if (files.length === 0) return;
+    fileStatus.textContent = `讀取中… (${files.length} 個檔案)`;
+    try {
+      const texts = await Promise.all(files.map(async (file) => ({
+        name: file.name, text: await file.text(),
+      })));
+      const { profiles, failed } = parseExiaBatch(texts, deps.settings);
+
+      members = [];
+      rosters = new Map();
+      consoles = new Map();
+      results = [];
+      let usable = 0;
+
+      for (const profile of profiles) {
+        const { overrides, matched } = areaToOverrides(profile.raw, deps.settings, deps.catalog);
+        const seat: MemberRow = {
+          name: profile.name,
+          openid: `file:${profile.name}`,
+          synchro: profile.synchro || DEFAULT_SYNCHRO_LEVEL,
+          level: 0,
+          area: profile.area,
+          state: matched.length > 0 ? 'public' : 'error',
+          owned: matched.length,
+          picked: matched.length > 0,
+          note: matched.length > 0
+            ? (profile.notes.length > 0 ? profile.notes.join(' ') : undefined)
+            : '檔案裡沒有計算機認得的妮姬',
+        };
+        members.push(seat);
+        if (matched.length === 0) continue;
+        rosters.set(seat.openid, overrides);
+        const levels = consoleFrom(profile.raw);
+        if (levels) consoles.set(seat.openid, levels);
+        usable += 1;
+      }
+
+      // 讀不起來的檔案也留一列。靜靜地少一個人，會讓人以為那個人的檔案傳丟了。
+      for (const bad of failed) {
+        members.push({
+          name: bad.file, openid: `bad:${bad.file}`, synchro: 0, level: 0, area: 0,
+          state: 'error', picked: false, note: bad.reason,
+        });
+      }
+
+      renderMembers();
+      renderReport();
+      showStep('2', true);
+      if (usable > 0) showStep('3', true);
+      refreshRunGate();
+
+      const parts = [`已讀取 ${usable} 人`];
+      if (failed.length > 0) parts.push(`${failed.length} 個檔案讀不起來`);
+      fileStatus.textContent = `${parts.join(' · ')}。`;
+    } catch (error) {
+      fileStatus.textContent = error instanceof Error ? error.message : String(error);
+    }
+  };
+
+  /** 選檔和拖放走同一條路。拖放要擋掉瀏覽器預設的「直接開啟檔案」。 */
+  const wireDrop = (
+    zone: HTMLElement, input: HTMLInputElement, take: (files: File[]) => void,
+  ): void => {
+    input.addEventListener('change', () => {
+      take([...(input.files ?? [])]);
+      input.value = '';                 // 清空才能重選同一個檔案時仍然觸發 change
+    });
+    for (const type of ['dragenter', 'dragover'] as const) {
+      zone.addEventListener(type, (event) => {
+        event.preventDefault();
+        zone.classList.add('is-over');
+      });
+    }
+    for (const type of ['dragleave', 'drop'] as const) {
+      zone.addEventListener(type, () => zone.classList.remove('is-over'));
+    }
+    zone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      take([...(event.dataTransfer?.files ?? [])]);
+    });
+  };
+
+  wireDrop(fileDrop, fileInput, (files) => { void takeFiles(files); });
+
+  // 清洗工具 —— 傳檔之前用的。瀏覽器改不了硬碟上的原檔，所以這裡是「另存一份乾淨的」。
+  const washInput = pick<HTMLInputElement>(panel, '[data-union-wash-files]');
+  const washDrop = pick<HTMLElement>(panel, '[data-union-wash-drop]');
+  const washStatus = pick(panel, '[data-union-wash-status]');
+
+  const washFiles = async (files: File[]): Promise<void> => {
+    if (files.length === 0) return;
+    let done = 0;
+    const bad: string[] = [];
+    for (const file of files) {
+      try {
+        const clean = stripExiaProfile(await file.text());
+        const url = URL.createObjectURL(new Blob([clean], { type: 'application/json' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name.replace(/(\.json)?$/i, '-clean.json');
+        link.click();
+        // 給瀏覽器一點時間真的開始存檔，再放掉這個網址。
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        done += 1;
+      } catch {
+        bad.push(file.name);
+      }
+    }
+    washStatus.textContent = bad.length === 0
+      ? `已清洗 ${done} 個檔案並下載。傳這些 -clean.json 就好。`
+      : `已清洗 ${done} 個。讀不起來的：${bad.join('、')}`;
+  };
+
+  wireDrop(washDrop, washInput, (files) => { void washFiles(files); });
 
   scanStop.addEventListener('click', () => { cancelled = true; });
   pick<HTMLButtonElement>(panel, '[data-union-pick-all]').addEventListener('click', () => {
@@ -1513,7 +1644,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   }
 
   renderBosses();
-  setMode(!canScan);
+  // 開起來就停在「聯盟」。匯出檔匯入不需要代理伺服器，所以沒設代理也一樣從這裡開始。
+  setMode(false);
 
   return {
     refreshMe() {

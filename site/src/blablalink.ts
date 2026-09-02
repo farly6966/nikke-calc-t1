@@ -63,7 +63,7 @@ export interface ProfileImport {
 
 // 게임 내부 옵션 이름 → 우리 오버로드 키. `scraper/profile_fetch.py` FUNC_TO_EQUIP와
 // 같은 표다. 저쪽이 정본이니 바뀌면 함께 고친다.
-const FUNCTION_TO_OVERLOAD: Record<string, string> = {
+export const FUNCTION_TO_OVERLOAD: Record<string, string> = {
   StatAtk: 'atk_pct',
   IncElementDmg: 'element_bonus',
   StatAmmoLoad: 'max_ammo_pct',

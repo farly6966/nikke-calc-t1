@@ -549,7 +549,31 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         <p class="union-lede" data-union-lede-personal hidden>只用<b>我自己的規格</b>。不必匯入名單,每個 Boss 掛不同戰鬥條件、最多跑三套隊伍一眼比較 — 沿用計算機裡的同步器・主控台・妮姬養成。<b>同步器可以直接在這張表裡改</b>(有連動 Blablalink 的話會帶入帳號值)。</p>
 
         <div class="union-step" data-union-step="1">
-          <h3>匯入聯盟名單</h3>
+          <h3>匯入成員資料</h3>
+
+          <div class="union-source">
+            <p class="union-source-head">從匯出檔匯入<b class="union-pick">推薦</b></p>
+            <p class="field-note">請每位成員各自用 <b>ExiaInvasion</b> 擴充匯出一個 JSON 交給你,一次全部拖進來就好。這條路<b>不需要任何登入</b>,設「僅對聯盟成員公開」甚至完全不公開的人也算得到。</p>
+            <label class="union-drop" data-union-drop>
+              <input type="file" multiple accept=".json,application/json" data-union-files hidden>
+              <b>把 JSON 檔拖到這裡</b>
+              <span>或點一下選擇檔案 — 可一次選 32 個</span>
+            </label>
+            <p class="union-status" data-union-file-status></p>
+            <p class="field-note union-warn"><b>匯出檔裡有登入憑證(cookie)。</b>計算機從頭到尾不會讀它,但那個檔案躺在群組裡的那一份還是有。請成員<b>傳給你之前</b>先用下面的清洗工具過一次。</p>
+            <details class="union-wash">
+              <summary>清洗工具 — 傳檔前先過這裡</summary>
+              <p class="field-note">洗掉登入憑證,只留計算用得到的欄位。檔案也會小十倍左右,傳起來輕鬆。洗過的檔案一樣可以直接匯入。</p>
+              <label class="union-drop union-drop-sm" data-union-wash-drop>
+                <input type="file" multiple accept=".json,application/json" data-union-wash-files hidden>
+                <span>把要清洗的檔案拖進來,或點一下選擇</span>
+              </label>
+              <p class="union-status" data-union-wash-status></p>
+            </details>
+          </div>
+
+          <details class="union-source">
+            <summary class="union-source-head">改從 Blablalink 撈名單 — 需要指揮官本人登入</summary>
           <p class="field-note">聯盟成員名單<b>只能用指揮官本人的登入</b>取得(我們的伺服器擋著)。所以請你自己撈一次就好 — cookie 或密碼我們都不會碰。</p>
           <ol class="union-guide">
             <li>在登入 Blablalink 的狀態下,打開<b>聯盟廣場</b>。</li>
@@ -566,10 +590,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <button type="button" class="roster-import" data-union-read>讀取名單</button>
             <span class="union-status" data-union-list-status></span>
           </div>
+          </details>
         </div>
 
         <div class="union-step" data-union-step="2" hidden>
-          <h3>確認公開狀態</h3>
+          <h3>確認要算誰</h3>
+          <div data-union-scan-box>
           <p class="field-note">要一個一個實際查詢才知道。每次同時查三個,公開的人會連妮姬詳情一起收下。</p>
           <div class="union-actions">
             <button type="button" class="roster-import" data-union-scan>掃描公開狀態</button>
@@ -577,6 +603,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <span class="union-status" data-union-scan-status></span>
           </div>
           <div class="union-progress" data-union-scan-progress hidden><i></i></div>
+          </div>
 
           <details class="union-direct">
             <summary>用我的瀏覽器自行擷取 — 連「僅對聯盟成員公開」也看得到</summary>

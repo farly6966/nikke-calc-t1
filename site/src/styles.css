@@ -1215,6 +1215,27 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 }
 
 /* 직접 긁기 — 기본 길은 서버 스캔이라, 접어 두고 필요한 사람만 편다. */
+/* 匯出檔匯入 — 拖放區與清洗工具。 */
+.union-source { margin-bottom: 14px; padding: 10px 12px;
+  border: 1px solid rgba(146,176,201,.22); background: rgba(3,9,16,.3); }
+.union-source-head { margin: 0 0 6px; color: var(--cyan); font: 700 12px inherit; }
+details.union-source > summary { cursor: pointer; }
+details.union-source > summary:hover { color: #cfeceb; }
+details.union-source[open] > summary { margin-bottom: 8px; }
+.union-pick { margin-left: 8px; padding: 1px 6px; border-radius: 2px;
+  background: var(--cyan); color: #04121a; font: 700 10px inherit; letter-spacing: .04em; }
+.union-drop { display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin: 8px 0; padding: 18px 12px; cursor: pointer; text-align: center;
+  border: 2px dashed rgba(69,214,208,.4); background: rgba(3,9,16,.45);
+  color: var(--muted); font-size: 12px; transition: border-color .12s, background .12s; }
+.union-drop:hover, .union-drop.is-over { border-color: var(--cyan); background: rgba(69,214,208,.08); }
+.union-drop b { color: var(--ink); font-size: 13px; }
+.union-drop-sm { padding: 10px 12px; }
+.union-warn { border-left: 2px solid rgba(240,159,39,.6); padding-left: 8px; }
+.union-wash { margin-top: 8px; }
+.union-wash > summary { cursor: pointer; color: var(--cyan); font: 700 11.5px inherit; }
+.union-wash > summary:hover { color: #cfeceb; }
+
 .union-direct { margin-top: 12px; padding: 10px 12px; border: 1px dashed rgba(146,176,201,.25); background: rgba(3,9,16,.35); }
 .union-direct > summary { cursor: pointer; color: var(--cyan); font: 700 11.5px inherit; }
 .union-direct > summary:hover { color: #cfeceb; }
