@@ -1,10 +1,11 @@
 @echo off
 REM 按兩下就跑。exports\ 裡的匯出檔 -> 排名表 -> 自動打開。
-REM 隊伍要改的話,編輯下面的 SQUAD 那一行(用韓文正式名稱,逗號分隔)。
+REM 隊伍要改的話,編輯下面的 SQUAD 那一行(逗號分隔)。
+REM 英文名、韓文正式名、社群別名都可以。說明:docs\聯盟突襲比較-使用說明.md
 setlocal
 cd /d "%~dp0"
 
-set "SQUAD=라피 : 레드 후드,크라운,리타,앨리스,나가"
+set "SQUAD=Rapi: Red Hood,Crown,Liter,Alice,Naga"
 set "DURATION=90"
 set "ENEMY_CODE="
 

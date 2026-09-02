@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # 按兩下就跑。exports/ 裡的匯出檔 → 排名表 → 自動打開。
 #
-# 隊伍要改的話,編輯下面的 SQUAD 那一行(用韓文正式名稱,逗號分隔)。
-# 名稱對照見 context/ALIASES.md。
+# 隊伍要改的話,編輯下面的 SQUAD 那一行(逗號分隔)。
+# 英文名、韓文正式名、社群別名都可以 — 打錯會列出最接近的幾個給你挑。
+# 完整說明:docs/聯盟突襲比較-使用說明.md
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SQUAD="라피 : 레드 후드,크라운,리타,앨리스,나가"
+SQUAD="Rapi: Red Hood,Crown,Liter,Alice,Naga"
 DURATION=90
 ENEMY_CODE=""          # 풍압 · 수냉 · 작열 · 전격 · 철갑,留空=無屬性
 

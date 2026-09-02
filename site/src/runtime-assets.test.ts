@@ -170,9 +170,10 @@ describe('generated browser runtime', () => {
       readFileSync(join(publicDir, 'catalog.json'), 'utf8'),
     ) as CharacterMeta[];
 
-    // 아직 갈라 놓지 않은 이름. 비우면 목록에 같은 이름이 두 줄 서므로 **여기 적힌 것만** 허용한다.
-    // `사쿠라`(SSR)와 `사쿠라 (SR)`은 다른 캐릭터인데 영어 표기가 둘 다 `Sakura`다.
-    const pending = ['Sakura'];
+    // 아직 갈라 놓지 않은 이름. 비우면 목록에 같은 이름이 두 줄 서므로 **여기 적힌 것만**
+    // 허용한다. 지금은 비어 있다 — `사쿠라 (SR)`이 `Sakura (SR)`로 갈라지면서 마지막
+    // 한 쌍이 없어졌다(`레이 (가칭)`·`퀸(마코토)`와 같은 방식이다).
+    const pending: string[] = [];
 
     const seen = new Map<string, string[]>();
     for (const character of catalog) {
