@@ -38,6 +38,9 @@ jobs:
         working-directory: .
         run: |
           python3 -m unittest discover -s calculator -p 'test_*.py' -v
+          # 수집·변환 스크립트도 시험이 있다. `-s calculator`만 훑으면 이쪽은 한 번도
+          # 돌지 않아, 있으나 마나 한 시험이 초록불 뒤에 숨는다.
+          python3 -m unittest discover -s scraper -p 'test_*.py' -v
           python3 calculator/damage.py
           python3 -m context.doclint
           python3 -m context.snapshot
