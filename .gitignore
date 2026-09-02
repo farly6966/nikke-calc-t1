@@ -19,3 +19,8 @@ worker-share/.wrangler/
 # 규정만 있고 규칙이 없어 실제로는 추적 대상이었다(2026-08-24).
 profiles/
 scraper/.session_cookie
+
+# 남이 건네준 계정 내보내기와 거기서 만든 보고서. `profiles/`와 같은 이유로 통째로 뺀다 —
+# 남의 계정 자료이고, 도구에 따라 로그인 쿠키까지 딸려 온다(`scraper/profile_import.py`).
+exports/
+out/
