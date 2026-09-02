@@ -56,6 +56,18 @@ NAME_CODES = os.path.join("data", "name_codes.json")
 # 통째로 뒤바뀌는데 합계는 그럴듯하게 나와 조용히 틀린다.
 SLOT_TO_PART = {"0": "머리", "1": "몸통", "2": "팔", "3": "다리"}
 
+# 도구가 부위를 이름으로 싣는 형식(2026-08 이후 관측). 같은 순서를 영문 키로 적은 것뿐이다.
+NAMED_SLOT_TO_PART = {"head": "머리", "torso": "몸통", "arm": "팔", "leg": "다리"}
+
+
+def _slot_table(char: dict) -> dict:
+    """이 파일이 부위를 번호로 부르는가 이름으로 부르는가. **키를 보고 정한다** —
+    내보내기에 판본 표시가 없고, 유니온원마다 도구 판본이 다르기 때문이다."""
+    equipments = char.get("equipments") or {}
+    if any(k in equipments for k in NAMED_SLOT_TO_PART):
+        return NAMED_SLOT_TO_PART
+    return SLOT_TO_PART
+
 # 재활용 연구실(계산기의 «콘솔») 영문 키 → 계산기 필드·소속.
 # `profile_fetch.CONSOLE_TIDS`와 같은 표를 영문 이름으로 적은 것이다.
 RESEARCH_TO_CONSOLE = {
@@ -68,6 +80,13 @@ RESEARCH_TO_CONSOLE = {
     "tetra": ("company_level", "테트라"),
     "pilgrim": ("company_level", "필그림"),
     "abnormal": ("company_level", "어브노말"),
+}
+
+# 영문 연구실 키 → 게임 내부 tid. 새 형식이 tid를 키로 싣기 때문에 되돌릴 표가 필요하다.
+RESEARCH_NAME_TO_TID = {
+    "general": 1001,
+    "attacker": 1101, "defender": 1102, "supporter": 1103,
+    "elysion": 1201, "missilis": 1202, "tetra": 1203, "pilgrim": 1204, "abnormal": 1205,
 }
 
 # 호감도 표(`data/base_stat_tables/affinity.json`)는 1~40이고 1이 가산 0이다.
@@ -83,21 +102,30 @@ def _slot_lines(slot: object) -> list[dict]:
     지금 형식은 줄 배열이고, 도구가 티어·강화를 함께 싣기 시작하면 `{"options": [...]}`
     꼴이 될 수 있다. 양쪽 다 받는다 — 형식이 바뀌어도 이 파일만 고치면 된다.
     """
-    if isinstance(slot, list):
-        return [line for line in slot if isinstance(line, dict)]
-    if isinstance(slot, dict):
-        return [line for line in (slot.get("options") or []) if isinstance(line, dict)]
-    return []
+    raw = slot if isinstance(slot, list) else         (slot.get("options") or []) if isinstance(slot, dict) else []
+    # 새 형식은 «줄의 배열»의 배열이다(칸 하나에 줄 하나). 한 겹 더 펴서 둘 다 받는다.
+    out = []
+    for entry in raw:
+        for line in (entry if isinstance(entry, list) else [entry]):
+            if isinstance(line, dict):
+                out.append(line)
+    return out
 
 
-def _slot_value(char: dict, slot_key: str, field: str, nested: str) -> object:
-    """티어·강화 값. 캐릭터 옆의 표(`equipTiers`)에도, 칸 안(`{"tier": …}`)에도 둘 수 있다."""
+def _slot_value(char: dict, slot_key: str, field: str, *nested: str) -> object:
+    """티어·강화 값. 캐릭터 옆의 표(`equipTiers`)에도, 칸 안(`{"tier": …}`)에도 둘 수 있다.
+
+    칸 안의 이름은 판본마다 다르다(강화는 `lv`이기도 `level`이기도 하다). 후보를
+    순서대로 본다 — 하나만 보다가 못 찾으면 «강화 0»으로 접혀 조용히 과소평가된다.
+    """
     table = char.get(field)
     if isinstance(table, dict) and slot_key in table:
         return table[slot_key]
     slot = (char.get("equipments") or {}).get(slot_key)
-    if isinstance(slot, dict) and nested in slot:
-        return slot[nested]
+    if isinstance(slot, dict):
+        for key in nested:
+            if key in slot:
+                return slot[key]
     return None
 
 
@@ -118,7 +146,7 @@ def _equipment(char: dict, slot_key: str, lines: list[dict], gaps: set[str]) -> 
     그 사실을 `gaps`에 남긴다. 0은 «가장 낮은 장착 상태»라 과대평가가 아니라 과소평가다.
     """
     tier = _as_int(_slot_value(char, slot_key, "equipTiers", "tier"))
-    level = _as_int(_slot_value(char, slot_key, "equipLevels", "level"))
+    level = _as_int(_slot_value(char, slot_key, "equipLevels", "lv", "level"))
     if tier is None:
         if not lines:
             return {"tier": NO_ITEM}
@@ -145,8 +173,57 @@ def _collection(char: dict) -> tuple[str, int | None]:
     if rare in ("R", "SR"):
         return f"{rare}{level}", None
     if rare == "SSR":
-        return NO_ITEM, level
+        # 애장품은 SR15와 스탯이 같으므로 등급은 SR15로 적고 단계만 따로 넘긴다.
+        # `item_level` 0/1/2 = 단계 1/2/3이다 — `profile_fetch._collection`과 같은 규칙이다.
+        # 예전에는 여기서 미장착으로 적고 단계도 한 칸 낮았다(SR15 스탯이 통째로 빠졌다).
+        return "SR15", level + 1
     return NO_ITEM, None
+
+
+def _researches(src: dict) -> dict:
+    """회수실 등급 → {영문 키: 등급}. 형식 둘 다 받는다.
+
+        새  {"recycleRoomResearches": {"1001": {"Level": 366}, ...}}   ← 게임 내부 tid
+        옛  {"researchLevels": {"general": 372, ...}}                  ← 영문 이름
+
+    tid의 뜻은 `profile_fetch.CONSOLE_TIDS`가 정본이고 여기서는 영문 키로 되돌린다.
+    """
+    modern = src.get("recycleRoomResearches")
+    if isinstance(modern, dict) and modern:
+        by_tid = {tid: key for key, tid in RESEARCH_NAME_TO_TID.items()}
+        out = {}
+        for raw_tid, value in modern.items():
+            tid = _as_int(raw_tid)
+            key = by_tid.get(tid) if tid is not None else None
+            if key is None:
+                continue
+            level = value.get("Level", value.get("level")) if isinstance(value, dict) else value
+            out[key] = _as_int(level) or 0
+        if out:
+            return out
+    legacy = src.get("researchLevels")
+    return legacy if isinstance(legacy, dict) else {}
+
+
+def _observed_cubes(chars: list) -> dict:
+    """장착 중인 큐브에서 관찰된 {큐브명: 최고 레벨}. 보유분의 **하한**일 뿐이다.
+
+    큐브는 프로필의 육성 항목이 아니다 — 자유롭게 갈아 끼우므로 케이스가 정하는 축이고,
+    `profile_fetch`도 같은 이유로 `_account.cubes`에만 적는다. 러너는 이 값으로
+    «요구 큐브 레벨이 실제 보유분보다 높다»를 알린다.
+    """
+    names = {}
+    path = os.path.join("data", "base_stat_tables", "cube.json")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            table = json.load(f)
+        names = {v["id"]: k for k, v in table.items() if isinstance(v, dict) and "id" in v}
+    out: dict[str, int] = {}
+    for char in chars:
+        name = names.get(_as_int(char.get("cube_id")))
+        if name:
+            out[name] = max(out.get(name, 0), _as_int(char.get("cube_level")) or 0)
+    return dict(sorted(out.items()))
 
 
 def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tuple[dict, dict]:
@@ -164,7 +241,7 @@ def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tup
 
         equipment: dict[str, dict] = {}
         skills: dict[str, object] = {k: ([] if k in PER_LINE_KEYS else 0.0) for k in EQUIP_KEYS}
-        for slot_key, part in SLOT_TO_PART.items():
+        for slot_key, part in _slot_table(char).items():
             lines = _slot_lines((char.get("equipments") or {}).get(slot_key))
             equipment[part] = _equipment(char, slot_key, lines, gaps)
             for line in lines:
@@ -181,6 +258,8 @@ def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tup
             skills[key].sort(reverse=True)  # type: ignore[union-attr]
 
         affinity = _as_int(char.get("affinity"))
+        if affinity is None:
+            affinity = _as_int(char.get("attractive_lv"))
         if affinity is None:
             gaps.add("affinity")
             affinity = default_affinity
@@ -204,7 +283,7 @@ def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tup
         entries[name] = entry
 
     console: dict = {"common_level": 0, "class_level": {}, "company_level": {}}
-    research = src.get("researchLevels") or {}
+    research = _researches(src)
     for key, value in research.items():
         mapped = RESEARCH_TO_CONSOLE.get(key)
         if mapped is None:
@@ -224,6 +303,9 @@ def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tup
     if synchro is None:
         gaps.add("synchro")
 
+    cubes = _observed_cubes([c for group in (src.get("elements") or {}).values()
+                             for c in group])
+
     report = {"roster": len(entries), "gaps": sorted(gaps), "unknown": sorted(set(unknown))}
     profile = {
         "_meta": {
@@ -238,7 +320,7 @@ def convert(src: dict, codes: dict[int, str], default_affinity: int = 30) -> tup
             "synchro_level": synchro,
             "console": console,
             "console_warnings": [],
-            "cubes": {},
+            "cubes": cubes,
         },
         "chars": dict(sorted(entries.items())),
     }

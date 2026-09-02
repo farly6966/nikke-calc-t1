@@ -137,13 +137,74 @@ class ConvertTest(unittest.TestCase):
 
     def test_ssr_item_becomes_favorite_stage_not_a_collection(self):
         # 애장품(SSR)과 소장품(R·SR)은 한 칸을 나눠 쓴다 — 섞으면 없는 단계를 만든다.
+        #
+        # 애장품은 스탯이 SR15와 같으므로 등급을 `SR15`로 적고 단계만 따로 넘긴다.
+        # `item_level` 0/1/2 = 단계 1/2/3이다. 정본은 `profile_fetch._collection`이고,
+        # 예전에는 여기만 «미장착 + 단계 그대로»라 SR15 스탯이 통째로 빠지고 단계도
+        # 한 칸 낮았다.
         ssr = convert(export([character(5129, item_rare="SSR", item_level=2)]), CODES)[0]
         entry = ssr["chars"]["라피 : 레드 후드"]
-        self.assertEqual(entry["favorite_stage"], 2)
-        self.assertEqual(entry["collection_stage"], "없음")
+        self.assertEqual(entry["favorite_stage"], 3)
+        self.assertEqual(entry["collection_stage"], "SR15")
 
         sr = convert(export([character(5129)]), CODES)[0]["chars"]["라피 : 레드 후드"]
         self.assertNotIn("favorite_stage", sr)
+
+    # ── 새 형식(2026-08 이후) ─────────────────────────────────────────────
+    #
+    # 도구가 부위를 이름으로 부르고, 옵션을 한 겹 더 감싸고, 연구실을 tid로 싣게 바뀌었다.
+    # 여기가 어긋나면 **에러 없이 전부 0으로 접힌다** — 장비 미장착·오버로드 0·콘솔 0인데
+    # 합계는 그럴듯해서 아무도 눈치채지 못한다. 실제로 그렇게 한동안 틀려 있었다.
+
+    def test_named_slots_and_nested_options(self):
+        char = character(5129, equipments={
+            "head": {"tier": 10, "lv": 5, "options": [
+                [{"function_type": "StatAtk", "function_value": 12.52}],
+                [{"function_type": "IncElementDmg", "function_value": 22.15}],
+                [],
+            ]},
+            "torso": {"tier": 9, "lv": 0, "options": [[], [], []]},
+            "arm": {"tier": 0, "lv": 0, "options": [[], [], []]},
+            "leg": {"tier": 10, "lv": 3, "options": [[], [], []]},
+        })
+        entry = convert(export([char]), CODES)[0]["chars"]["라피 : 레드 후드"]
+        self.assertEqual(entry["equipment"]["머리"], {"level": 5})
+        self.assertEqual(entry["equipment"]["몸통"], {"tier": "T9"})
+        self.assertEqual(entry["equipment"]["팔"], {"tier": "없음"})
+        self.assertEqual(entry["equipment"]["다리"], {"level": 3})
+        self.assertAlmostEqual(entry["equip_skills"]["atk_pct"], 12.52)
+        self.assertAlmostEqual(entry["equip_skills"]["element_bonus"], 22.15)
+
+    def test_recycle_room_researches_by_tid(self):
+        src = export([character(5129)])
+        del src["researchLevels"]
+        src["recycleRoomResearches"] = {
+            "1001": {"Level": 366, "Exp": 0},
+            "1101": {"Level": 145, "Exp": 0},
+            "1204": {"Level": 162, "Exp": 0},
+        }
+        profile, report = convert(src, CODES)
+        console = profile["_account"]["console"]
+        self.assertEqual(console["common_level"], 366)
+        self.assertEqual(console["class_level"]["화력형"], 145)
+        self.assertEqual(console["company_level"]["필그림"], 162)
+        self.assertNotIn("console", report["gaps"])
+
+    def test_affinity_comes_from_attractive_lv(self):
+        entry = convert(export([character(5129, attractive_lv=20)]), CODES)[0]
+        self.assertEqual(entry["chars"]["라피 : 레드 후드"]["affinity"], 20)
+        self.assertNotIn("affinity", entry["_meta"]["_imported"]["gaps"])
+
+    def test_equipped_cubes_land_in_account_as_a_lower_bound(self):
+        # 큐브는 육성이 아니라 케이스가 정하는 축이라 캐릭터에 적지 않는다.
+        # `_account.cubes`는 «장착 중인 것에서 관찰된 보유 하한»이다(`profile_fetch`와 같다).
+        chars = [
+            character(5129, cube_id=1000304, cube_level=15),
+            character(5169, cube_id=1000304, cube_level=9),
+        ]
+        profile = convert(export(chars), CODES)[0]
+        self.assertEqual(profile["_account"]["cubes"], {"택티컬 베어 큐브": 15})
+        self.assertNotIn("cube", profile["chars"]["라피 : 레드 후드"])
 
     def test_unknown_name_code_is_reported_not_fatal(self):
         profile, report = convert(export([character(5129), character(999_999)]), CODES)

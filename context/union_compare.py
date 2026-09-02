@@ -53,10 +53,16 @@ def _profiles(only: list[str] | None) -> list[str]:
 
 
 def run_one(name: str, squad_names: list[str], config: dict, enemy: dict,
-            seed: int) -> dict:
-    """한 사람의 결과 한 줄. 프로필을 못 읽으면 그 사실을 담아 돌려준다(끊지 않는다)."""
+            seed: int, level_mode: str = "sync") -> dict:
+    """한 사람의 결과 한 줄. 프로필을 못 읽으면 그 사실을 담아 돌려준다(끊지 않는다).
+
+    레벨 정책은 **`sync`가 기본**이다. 러너 공통 기본값은 `fixed`(400 고정)인데 그것은
+    솔로레이드가 레벨을 고정하기 때문이고, 유니온 레이드는 고정하지 않는다 — 각자
+    자기 싱크로 디바이스 레벨로 싸운다. 여기서 400으로 맞춰 버리면 유니온원 사이의
+    **가장 큰 차이가 통째로 지워져** 「누가 얼마나 내나」라는 물음 자체가 무의미해진다.
+    """
     try:
-        profile = char_spec.load_profile(name, allow_unowned=True)
+        profile = char_spec.load_profile(name, allow_unowned=True, level_mode=level_mode)
     except SystemExit as error:
         return {"name": name, "error": str(error)}
     squad = char_spec.build_squad(squad_names, profile=profile)
@@ -174,6 +180,10 @@ def main() -> None:
     parser.add_argument("--core-px", type=int, help="코어 크기(px). 안 주면 코어 없음")
     parser.add_argument("--parts", action="store_true", help="파츠가 있는 보스로 본다")
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument(
+        "--level", choices=char_spec.LEVEL_MODES, default="sync",
+        help="캐릭터 레벨을 무엇으로 볼지. sync(기본) = 각자의 싱크로 디바이스 레벨 — "
+             "유니온 레이드는 레벨을 고정하지 않는다. fixed = 400 고정(솔로레이드 기준)")
     parser.add_argument("--html", help="이 경로에 표 한 장을 쓴다 (예: out/report.html)")
     parser.add_argument("--json", dest="json_out", help="이 경로에 원자료를 쓴다")
     args = parser.parse_args()
@@ -210,7 +220,8 @@ def main() -> None:
 
     # 덱 줄은 `render_text`가 결과와 함께 다시 적는다 — 여기서는 «무엇을 몇 벌 도는가»만.
     shown_squad = [char_names.display(n) for n in squad]
-    print(f"프로필 {len(names)}벌 · {args.duration}초\n")
+    level_note = "각자 싱크로 레벨" if args.level == "sync" else "레벨 400 고정"
+    print(f"프로필 {len(names)}벌 · {args.duration}초 · {level_note}\n")
     # 진행 표시는 **터미널일 때만.** 파이프·로그로 흘리면 커서 제어 문자가 글자로 남아
     # («[K[K») 사람은 그걸 고장으로 읽는다.
     live = sys.stderr.isatty()
@@ -219,7 +230,7 @@ def main() -> None:
         if live:
             print(f"  [{index}/{len(names)}] {name}\033[K", end="\r",
                   file=sys.stderr, flush=True)
-        results.append(run_one(name, squad, config, enemy, args.seed))
+        results.append(run_one(name, squad, config, enemy, args.seed, args.level))
     if live:
         print("\033[K", end="\r", file=sys.stderr, flush=True)
 
