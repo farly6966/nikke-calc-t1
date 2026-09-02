@@ -3,9 +3,10 @@
 > 給接手的人(其他 Cowork session 或未來的自己)。搭配 `docs/hanhua-glossary.md`(術語表)一起看。
 
 ## 一句話現況
-NIKKE 隊伍計算機的**繁體中文化**。原本列的 L3 待辦**已全部翻完**,魔方名稱與效果句也補上了;
-跑完一次模擬並打開角色設定後,畫面上只剩 `렐릭 커버 큐브` 一個韓文項目(使用者判斷可暫緩)
-與**引擎資料鍵本身**。
+NIKKE 隊伍計算機的**繁體中文化**。L3 待辦**已全部翻完**,魔方名稱與效果句也補上了。
+用**實際出貨的 `catalog.json` / `settings.json`** 把畫面掛在 jsdom 上整個走過一遍
+(主畫面、角色設定面板、各分頁與所有能點開的面板),掃出來的殘留韓文只剩
+`렐릭 커버 큐브` 一個魔方名(使用者判斷可暫緩)與**引擎資料鍵/識別值本身**。
 角色名用**官方英文**顯示(CDN 沒有中文,見下方調查結果)。
 
 - **倉庫 / 分支**:`farly6966/nikke-calc-t1`,主線 `master`
@@ -18,6 +19,13 @@ NIKKE 隊伍計算機的**繁體中文化**。原本列的 L3 待辦**已全部�
 - **分類名**:屬性/職業/企業/爆裂階(`site/src/i18n-terms.ts`)
 - **角色名(英文)**:`data/i18n/names.en.json`(韓→英,**200 角色**;
   本次補上 `드레이크 : 그레이트 빌런` → `Drake: Great Villain`)。
+  `레이`/`레이 (가칭)` 改用官方全名 `Rei Ayanami` / `Rei Ayanami (Tentative Name)` —
+  原本只寫 `Rei`,和另一名角色 `라이`(泰特拉 水冷 SMG)的英文名**撞名**,
+  清單上會並排兩個一模一樣的 `Rei`。對照來源是使用者自己的
+  `farly6966/HARSH_nikke_urDMGdist`(日服前 100 公會樣本),
+  它的 93 個英文名和我們這份表其餘 91 個完全吻合。
+  `runtime-assets.test.ts` 新增一條**顯示名不得重複**的測試,
+  `사쿠라`(SSR)與 `사쿠라 (SR)` 目前都叫 `Sakura`,放在 `pending` 允許清單裡待處理。
   `sync-runtime` 產 catalog 時掛 `displayName`;前端顯示用 `displayName ?? name`,
   引擎/鍵仍用韓文 `name`。
 
@@ -49,6 +57,30 @@ NIKKE 隊伍計算機的**繁體中文化**。原本列的 L3 待辦**已全部�
   `spec_deviations` 直接存那些字串,動了 29 個基準線會全部假性失敗。
 - `calculator/customization.py` `BUFF_TARGET_WATCH` 的 `label`(`크확 대상` → `暴擊率對象`)。
 
+### 收尾掃描補的漏(2026-09-02)
+靜態 grep 看不出來的五處 — 都是**資料值混進畫面**或**翻譯時選擇器沒跟上**:
+
+- `styles.css` 的 `.notice-tag[data-notice-tag="새 기능"/"개선"/"고침"]`
+  在 `NoticeTag` 改成 `新功能`/`改善`/`修正` 後**全部對不上**,更新公告的標籤
+  靜靜地掉了顏色(CI 照樣綠燈)。已改成中文值,並在 `notices.test.ts` 加一條
+  把 CSS 選擇器和 `NoticeTag` 對起來的測試,之後再改字就會紅燈。
+- `createElementIcon()` 的 `title` / `aria-label` 直接放屬性代碼(`철갑`…),
+  滑過屬性圖示與螢幕閱讀器都會讀到韓文。已改走 `termZh()`。
+- 進階設定的**屬濾(屬性階段)下拉**把選項文字設成代碼本身。
+  `option.value` 保持韓文(引擎識別值),`textContent` 改走 `termZh()`。
+- 超載/追加數值**超出範圍的驗證訊息**用的是引擎下來的韓文 `meta.label`。
+  已改用 `stat-names.ts` 的 `statName(key)`,和設定面板的欄位名同一份表。
+- `styles.css` 兩個 `content:` 的韓文標籤:預覽插槽的 `임시 · 창작 스킬` → `暫定 · 自訂技能`、
+  ENIKK 不支援組合的 ` 미지원` → ` 不支援`。CSS 產生的字不在 DOM 文字節點裡,
+  只用 grep TS 檔是掃不到的。
+
+### 順手修掉的一個真 bug(不是翻譯)
+`custom-nikke.ts` 的 `customToSettings()` 把自訂妮姬的預設魔方寫成舊通稱 `재장`。
+魔方改用遊戲正式名稱之後 `settings.cubes` 裡**沒有這個鍵**,`ui.ts` 的
+`LEGACY_CUBE_NAMES` 遷移又只在讀取舊存檔時跑,所以自訂妮姬拿到的是一顆不存在的魔方。
+已改成 `렐릭 베어 큐브`(與 `context/spec.py` 的 `DEFAULT_CHAR` 一致)。
+測試大量使用 `재장` 的假目錄查不到這件事 — 新加的迴歸測試改讀**實際的 `public/settings.json`**。
+
 ### 顯示名的通道(新增)
 角色名原本只在 `ui.ts` 裡解析,以下地方本來還是韓文,現在都接上了:
 - `timeline.ts`:`TimelineSeries.displayNames`,由 `createTimelineBlock(entry, portraits, displayNames)` 傳入。
@@ -69,8 +101,9 @@ NIKKE 隊伍計算機的**繁體中文化**。原本列的 L3 待辦**已全部�
 
 ## 剩下的缺口 ⬜
 
-1. **`렐릭 커버 큐브`(掩體體力)** — 唯一還會顯示韓文的地方。使用者判斷「沒人用」而暫緩,
-   不是漏掉。要補就在 `CUBE_ZH` 加一行即可(數值:7.26 / 10.91 / 14.54%)。
+1. **`렐릭 커버 큐브`(掩體體力)** — 唯一還會顯示韓文的地方,出現在角色設定面板的
+   魔方下拉。使用者判斷「沒人用」而暫緩,不是漏掉。要補就在 `CUBE_ZH` 加一行即可
+   (數值:7.26 / 10.91 / 14.54%;**效果說明句早就翻好了**,只差名字)。
    `runtime-assets.test.ts` 有一個 `pending` 允許清單放行它 — 補上名字後把它從清單移掉。
 2. **繁中角色名** — 見下節。CDN 沒有中文,目前顯示官方英文。
 3. **技能名**(`부착형 유탄 4` 等)— 依鐵則不翻,是資料值。
@@ -112,11 +145,20 @@ NIKKE 隊伍計算機的**繁體中文化**。原本列的 L3 待辦**已全部�
    要翻那一層就得重產 29 個基準線,而基準線正是回歸的護欄,別為了美觀動它。
 5. **改完必跑測試**:很多測試寫死韓文斷言,翻譯後要同步改測試的預期值(這是正常的,不是弄壞測試)。
 
+## 怎麼再掃一次殘留韓文
+grep 只會撈出一堆識別值(`풍압`、`머리`、CSV 欄名…),分不出「顯示的字」和「資料值」。
+有效的做法是**把畫面掛起來看**:寫一支暫時的 jsdom 測試,用 `public/catalog.json` +
+`public/settings.json`(不是測試假資料)`mountCalculator()`,再把所有 `button` / `summary`
+點過幾輪、`details` 全開,然後走訪 DOM 的**文字節點與 `title`/`aria-label`/`placeholder`**,
+撈出含韓文又不是角色名的字。`renderCharacterSettings()` 要另外掛一次
+(記得先打開 `[data-custom-toggle]`,魔方與超載欄位才會出現)。掃完把那支測試刪掉。
+CSS 的 `content:` 不在 DOM 裡,要另外 grep `styles.css`。
+
 ## 開發/驗證流程(在 `site/` 目錄)
 ```bash
 cd site
 npm ci                      # 第一次
-npm test -- --run           # 417 個前端測試
+npm test -- --run           # 419 個前端測試
 npx tsc --noEmit            # 型別檢查
 npm run sync-runtime        # 改了 calculator/ context/ data/ 之後必跑
 npm run check-runtime

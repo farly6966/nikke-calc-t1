@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { LATEST_NOTICE_ID, NOTICES, noticeFragment, noticeToShow } from './notices';
@@ -57,5 +60,18 @@ describe('업데이트 공지', () => {
         expect(unknown, `${notice.id}: ${item.text.slice(0, 40)}`).toEqual([]);
       }
     }
+  });
+
+  // 갈래 이름을 한국어에서 중국어로 옮길 때 CSS 선택자가 따라오지 않아, 색이 조용히
+  // 빠진 채로 지나갔다(2026-09). 글자를 다시 바꿔도 같은 일이 없게 여기서 맞대어 본다.
+  it('갈래마다 색을 주는 CSS 선택자가 있다', () => {
+    const css = readFileSync(join(import.meta.dirname, 'styles.css'), 'utf8');
+    const styled = new Set(
+      [...css.matchAll(/\.notice-tag\[data-notice-tag="([^"]+)"\]/g)].map((match) => match[1]!),
+    );
+    expect([...new Set(NOTICES.flatMap((notice) => notice.items.map((item) => item.tag)))]
+      .filter((tag) => !styled.has(tag))).toEqual([]);
+    // 사전에만 있고 화면에는 없는 선택자 = 오타이거나 옛 이름이다.
+    expect([...styled].filter((tag) => !['新功能', '改善', '修正'].includes(tag))).toEqual([]);
   });
 });

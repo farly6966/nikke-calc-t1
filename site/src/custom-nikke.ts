@@ -227,7 +227,10 @@ export function customToSettings(custom: CustomCharacter): CharacterSettingsDefa
       element_bonus: 88.6, atk_pct: 22.22, def_pct: 0, max_ammo_pct: 129.64,
       crit_rate: 0, crit_dmg: 0, charge_speed_pct: 0, charge_dmg_pct: 0, accuracy_pct: 0,
     },
-    cube: { name: '재장', level: 15 },
+    // 기본 스펙과 같은 큐브다(`context/spec.py` DEFAULT_CHAR). 큐브 이름이 짧은
+    // 통칭에서 인게임 정식 명칭으로 바뀔 때 여기만 옛 이름으로 남아, 직접 추가한
+    // 니케는 카탈로그에 없는 큐브를 가리키고 있었다.
+    cube: { name: '렐릭 베어 큐브', level: 15 },
   };
 }
 
