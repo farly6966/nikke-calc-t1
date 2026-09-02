@@ -523,7 +523,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
       <nav class="view-tabs" aria-label="畫面切換">
         <button type="button" class="view-tab is-on" data-view-tab="calc" aria-pressed="true">計算機</button>
-        ${blablaProxy ? '<button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">聯盟突襲<b class="tab-beta">BETA</b></button>' : ''}
+        <button type="button" class="view-tab" data-view-tab="union" aria-pressed="false">聯盟突襲<b class="tab-beta">BETA</b></button>
         <button type="button" class="view-tab" data-view-tab="enikk" aria-pressed="false">匯入 ENIKK 組合</button>
         <button type="button" class="view-tab" data-view-tab="links" aria-pressed="false">外部連結</button>
       </nav>
@@ -537,7 +537,6 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         <div class="links-grid" data-links-grid></div>
       </section>
 
-      ${blablaProxy ? `
       <section class="panel union-panel" data-view="union" aria-labelledby="union-heading" hidden>
         <div class="section-heading">
           <div><p class="step">UNION</p><h2 id="union-heading">聯盟突襲 <b class="beta-tag">BETA</b></h2></div>
@@ -643,7 +642,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <div class="union-progress" data-union-run-progress hidden><i></i></div>
           <div class="union-report" data-union-report></div>
         </div>
-      </section>` : ''}
+      </section>
 
       <section class="panel enikk-panel" data-view="enikk" aria-labelledby="enikk-heading" hidden>
         <div class="section-heading">
@@ -4716,9 +4715,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   applyParallel(false);
 
   // ── 유니온 레이드 (BETA) ────────────────────────────────────────────────
-  // 프록시가 있어야 유니온원 스펙을 받아 올 수 있다 — 없으면 탭 자체를 안 그렸다.
+  // 프록시는 «유니온원 스펙 받아 오기»에만 필요하다. 없으면 그 두 단계(명단·공개여부)만
+  // 접고 «개인용»은 그대로 쓴다 — 보스마다 다른 전투 조건으로 덱 셋을 견주는 자리는
+  // 남의 계정과 아무 상관이 없기 때문이다. 예전에는 탭 자체를 안 그려 통째로 사라졌다.
   const unionPanel = root.querySelector<HTMLElement>('[data-view="union"]');
-  if (unionPanel && blablaProxy) {
+  if (unionPanel) {
     unionHandle = mountUnionRaid({ panel: unionPanel }, {
       proxy: blablaProxy,
       shareServer,
