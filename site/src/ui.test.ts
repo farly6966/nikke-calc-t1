@@ -543,6 +543,32 @@ describe('calculator UI', () => {
     expect(step.textContent).toContain('聯盟成員名單不會被包含');
   });
 
+  // 자체 서버를 두지 않은 배포(이 fork)에서는 프록시 주소가 비어 있다. 예전에는 그때
+  // 유니온 탭을 통째로 안 그려, 남의 계정과 아무 상관 없는 «개인용»까지 함께 사라졌다.
+  it('프록시가 없어도 유니온 탭은 남고 «개인용»만 남긴다', () => {
+    mountCalculator(root, {
+      catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage,
+      blablaProxy: '',
+    } as Parameters<typeof mountCalculator>[1] & { blablaProxy: string });
+
+    expect(root.querySelector('[data-view-tab="union"]')).not.toBeNull();
+    expect(root.querySelector('[data-view="union"]')).not.toBeNull();
+
+    // 유니온원을 훑는 갈래는 고를 수 없다 — 누르면 반드시 실패한다.
+    const union = root.querySelector<HTMLElement>('[data-union-mode="union"]');
+    const personal = root.querySelector<HTMLElement>('[data-union-mode="personal"]');
+    expect(union?.hidden).toBe(true);
+    expect(personal?.hidden).toBe(false);
+    expect(personal?.classList.contains('is-on')).toBe(true);
+
+    // 명단·공개여부는 프록시가 있어야 도는 두 단계다.
+    expect(root.querySelector<HTMLElement>('[data-union-step="1"]')?.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>('[data-union-step="2"]')?.hidden).toBe(true);
+
+    // 프록시가 없으면 로스터 가져오기의 «Blablalink 연동»도 그리지 않는다.
+    expect(root.querySelector('[data-blabla-open]')).toBeNull();
+  });
+
   it('공유 서버 주소가 없으면 「공유에서 판 고르기」를 감춘다', () => {
     mountCalculator(root, {
       catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage,

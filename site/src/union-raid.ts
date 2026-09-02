@@ -679,8 +679,18 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   let cancelled = false;
 
   // 모드 — 유니온원을 훑는 «유니온»과, 내 스펙만 쓰는 «개인용».
-  let personal = false;
+  //
+  // 유니온원 스펙은 프록시로만 받아 온다. 주소가 없는 배포(자체 서버를 두지 않은 fork)에서는
+  // «유니온»을 고를 수 없게 하고 «개인용»만 남긴다 — 눌러도 반드시 실패하는 갈래를 남겨
+  // 두는 쪽이 더 헷갈린다. 보스마다 다른 조건으로 덱 셋을 견주는 자리는 그대로 쓸 수 있다.
+  const canScan = Boolean(deps.proxy);
+  let personal = !canScan;
   const modeButtons = [...panel.querySelectorAll<HTMLButtonElement>('[data-union-mode]')];
+  if (!canScan) {
+    for (const button of modeButtons) {
+      if (button.dataset.unionMode === 'union') button.hidden = true;
+    }
+  }
 
   /** 내 로스터를 실제로 가져다 뒀는가. 없으면 개인용은 기본 스펙으로 돈다. */
   const hasMyRoster = () => (rosters.get('me') ? Object.keys(rosters.get('me')!).length > 0 : false);
@@ -702,7 +712,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   };
 
   const setMode = (next: boolean) => {
-    personal = next;
+    personal = canScan ? next : true;
     for (const button of modeButtons) {
       const on = (button.dataset.unionMode === 'personal') === personal;
       button.classList.toggle('is-on', on);
@@ -1503,7 +1513,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   }
 
   renderBosses();
-  setMode(false);
+  setMode(!canScan);
 
   return {
     refreshMe() {
