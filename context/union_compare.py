@@ -27,6 +27,7 @@ import sys
 from pathlib import Path
 
 from calculator.timeline import simulate
+from context import names as char_names
 from context import spec as char_spec
 
 PROFILE_DIR = Path("profiles")
@@ -162,7 +163,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="여러 프로필을 같은 덱으로 돌려 견준다",
         formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
-    parser.add_argument("--squad", required=True, help="쉼표로 구분한 다섯 이름")
+    parser.add_argument("--squad", required=True,
+                        help="쉼표로 구분한 다섯 이름. 정식 명칭·별칭·영어 표기 아무거나 "
+                             "된다 (Rapi: Red Hood · 라피 : 레드 후드 · 흑련)")
     parser.add_argument("--profiles", help="쉼표로 구분한 프로필 이름 (기본: profiles/ 전부)")
     parser.add_argument("--duration", type=int, default=90, help="전투 길이(초). 기본 90")
     parser.add_argument("--enemy-code", default="", help="적 속성 (풍압·수냉·작열·전격·철갑)")
@@ -175,7 +178,18 @@ def main() -> None:
     parser.add_argument("--json", dest="json_out", help="이 경로에 원자료를 쓴다")
     args = parser.parse_args()
 
-    squad = [n.strip() for n in args.squad.split(",") if n.strip()]
+    # 화면에서 본 이름을 그대로 쳐도 되게 한다 — 한국어 정식 명칭을 한 글자도 안 틀리고
+    # 치라고 요구하면 한국어를 안 쓰는 사람에게는 사실상 못 쓰는 도구가 된다.
+    try:
+        squad = char_names.resolve_squad(args.squad)
+    except char_names.UnknownCharacter as error:
+        hint = ("\n  가까운 이름: " + ", ".join(
+            f"{n} ({char_names.display(n)})" for n in error.suggestions)
+        ) if error.suggestions else ""
+        raise SystemExit(
+            f"--squad에 모르는 이름이 있다: {error.typed!r}{hint}\n"
+            f"  이름 목록은 context/ALIASES.md. 영어 표기·별칭도 그대로 쓸 수 있다."
+        ) from error
     if not squad:
         raise SystemExit("--squad가 비어 있다")
     names = _profiles([n.strip() for n in args.profiles.split(",")] if args.profiles else None)
@@ -194,20 +208,28 @@ def main() -> None:
     if args.parts:
         enemy["has_parts"] = True
 
-    print(f"덱: {' / '.join(squad)}")
+    # 덱 줄은 `render_text`가 결과와 함께 다시 적는다 — 여기서는 «무엇을 몇 벌 도는가»만.
+    shown_squad = [char_names.display(n) for n in squad]
     print(f"프로필 {len(names)}벌 · {args.duration}초\n")
+    # 진행 표시는 **터미널일 때만.** 파이프·로그로 흘리면 커서 제어 문자가 글자로 남아
+    # («[K[K») 사람은 그걸 고장으로 읽는다.
+    live = sys.stderr.isatty()
     results = []
     for index, name in enumerate(names, 1):
-        print(f"  [{index}/{len(names)}] {name}\033[K", end="\r", file=sys.stderr, flush=True)
+        if live:
+            print(f"  [{index}/{len(names)}] {name}\033[K", end="\r",
+                  file=sys.stderr, flush=True)
         results.append(run_one(name, squad, config, enemy, args.seed))
-    print("\033[K", end="\r", file=sys.stderr, flush=True)
+    if live:
+        print("\033[K", end="\r", file=sys.stderr, flush=True)
 
     rows = _rows(results)
-    print(render_text(rows, squad, config))
+    print(render_text(rows, shown_squad, config))
 
     if args.html:
         Path(args.html).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.html).write_text(render_html(rows, squad, config, enemy), encoding="utf-8")
+        Path(args.html).write_text(
+            render_html(rows, shown_squad, config, enemy), encoding="utf-8")
         print(f"\n[+] {args.html}")
     if args.json_out:
         Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
