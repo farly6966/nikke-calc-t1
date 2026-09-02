@@ -47,6 +47,7 @@ import { startPresence } from './presence';
 import { mountUnionRaid, type UnionHandle } from './union-raid';
 import { EXTERNAL_LINKS, hostOf } from './external-links';
 import { termZh, FILTER_TITLE_ZH } from './i18n-terms';
+import { statName } from './stat-names';
 import {
   BURST_STAGES,
   candidatesFor, cycleLine, cyclesFromTimeline, estimateCycles, HOTKEYS, MAX_CYCLES,
@@ -153,8 +154,9 @@ const createElementIcon = (elementCode: string, className: string): HTMLElement 
   if (!slug) return null;
   const icon = document.createElement('span');
   icon.className = `${className} element-icon is-${slug}`;
-  icon.title = elementCode;
-  icon.ariaLabel = elementCode;
+  // 그림만으로는 속성을 못 읽는 사람이 있어 이름을 붙인다 — 화면 말로 붙여야 한다.
+  icon.title = termZh(elementCode);
+  icon.ariaLabel = termZh(elementCode);
   return icon;
 };
 
@@ -2213,8 +2215,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       code.dataset.phaseCode = String(index);
       for (const value of ['풍압', '수냉', '작열', '전격', '철갑']) {
         const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
+        option.value = value;          // 값은 엔진이 받는 코드 그대로
+        option.textContent = termZh(value);
         code.append(option);
       }
       code.value = w.code || '풍압';
@@ -2456,7 +2458,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       for (const [key, value] of Object.entries(custom.overload ?? {})) {
         const meta = settings.overloadFields[key];
         if (!meta || !Number.isFinite(value) || value < meta.min || value > meta.max) {
-          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${meta?.label ?? key} 的值超出允許範圍。`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${statName(key)} 的值超出允許範圍。`);
         }
       }
       if (custom.cube && (!settings.cubes[custom.cube.name] || !Number.isInteger(custom.cube.level)
@@ -2473,7 +2475,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       for (const [key, value] of Object.entries(custom.manualStats ?? {})) {
         const meta = settings.manualStats[key];
         if (!meta || !Number.isFinite(value) || value < meta.min || value > meta.max) {
-          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${meta?.label ?? key} 的值超出允許範圍。`);
+          messages.push(`隊 ${deck.id} · ${resolveDisplayName(name)}:${statName(key)} 的值超出允許範圍。`);
         }
       }
     }
