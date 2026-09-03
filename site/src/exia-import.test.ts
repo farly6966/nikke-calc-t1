@@ -219,6 +219,9 @@ describe('계정 접근권은 어디에도 남지 않는다', () => {
     // 계산에 쓰는 것은 그대로 살아 있어야 한다.
     expect(JSON.parse(washed).synchroLevel).toBe(787);
     expect(JSON.parse(washed).recycleRoomResearches['1001'].Level).toBe(366);
+    // 好感度는 웹에서는 안 쓰지만 `scraper/profile_import.py`가 읽는다. 씻은 파일이
+    // 본체를 대신하므로 여기서 지우면 그쪽만 조용히 추정값으로 떨어진다.
+    expect(JSON.parse(washed).elements.Fire[0].attractive_lv).toBe(20);
   });
 
   it('씻어 낸 파일을 다시 읽어도 같은 규격이 나온다', () => {

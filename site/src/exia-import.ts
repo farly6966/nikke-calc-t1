@@ -422,6 +422,10 @@ export function stripExiaProfile(input: string | Record<string, unknown>): strin
         item_rare: char.item_rare,
         item_level: char.item_level,
         equipments: char.equipments,
+        // 好感度網站這邊用不到（它從突破階段推導）。但還是留著：洗過的檔會取代本體，
+        // 而讀本體的另一條路（scraper/profile_import.py）真的會用這個值。
+        // 在這裡刪掉，就只有那邊會靜靜地掉回推估值。
+        attractive_lv: char.attractive_lv,
       };
       if (char.cube_id) { kept.cube_id = char.cube_id; kept.cube_level = char.cube_level; }
       return kept;
