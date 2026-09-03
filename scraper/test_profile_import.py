@@ -249,5 +249,40 @@ class ConvertTest(unittest.TestCase):
         self.assertEqual(built[0]["name"], "라피 : 레드 후드")
 
 
+class FolderRunTest(unittest.TestCase):
+    """폴더 하나를 통째로 돌리는 길. 서른 명분을 받으면 못 읽는 것이 섞인다."""
+
+    def _run(self, source: str, out: str) -> None:
+        from scraper import profile_import
+        argv = sys.argv
+        sys.argv = ["profile_import.py", source, "--out", out]
+        try:
+            profile_import.main()
+        finally:
+            sys.argv = argv
+
+    def test_a_broken_file_does_not_stop_the_rest(self):
+        # 중간에 끊긴 다운로드 하나 때문에 나머지 스물아홉 명이 통째로 사라지면 안 된다.
+        with tempfile.TemporaryDirectory() as tmp:
+            src, out = Path(tmp) / "in", Path(tmp) / "out"
+            src.mkdir()
+            (src / "a.json").write_text(
+                json.dumps(export([character(5129)], name="AAA")), encoding="utf-8")
+            (src / "broken.json").write_text("{oops", encoding="utf-8")
+            (src / "b.json").write_text(
+                json.dumps(export([character(5169)], name="BBB")), encoding="utf-8")
+            self._run(str(src), str(out))
+            self.assertEqual(sorted(p.name for p in out.glob("*.json")),
+                             ["AAA.json", "BBB.json"])
+
+    def test_all_broken_stops_with_a_message_not_an_empty_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, out = Path(tmp) / "in", Path(tmp) / "out"
+            src.mkdir()
+            (src / "broken.json").write_text("{oops", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                self._run(str(src), str(out))
+
+
 if __name__ == "__main__":
     unittest.main()

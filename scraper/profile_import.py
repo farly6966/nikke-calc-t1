@@ -355,11 +355,18 @@ def main() -> None:
         codes = {int(k): v for k, v in json.load(f).items()}
 
     os.makedirs(args.out, exist_ok=True)
-    made, all_gaps = [], set()
+    made, all_gaps, failed = [], set(), []
     for path in paths:
-        with open(path, encoding="utf-8") as f:
-            src = json.load(f)
-        profile, report = convert(src, codes, args.affinity)
+        # 한 파일이 깨졌다고 나머지를 멈추지 않는다. 서른 명분을 받으면 못 읽는 것이
+        # 하나쯤 섞이는데(중간에 끊긴 다운로드, 다른 도구의 파일), 거기서 통째로
+        # 끊기면 나머지 스물아홉 명도 못 본다. 못 읽은 것은 끝에 모아 알린다.
+        try:
+            with open(path, encoding="utf-8") as f:
+                src = json.load(f)
+            profile, report = convert(src, codes, args.affinity)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            failed.append((os.path.basename(path), str(error).splitlines()[0][:80]))
+            continue
         name = _safe_name(profile["_meta"]["name"])
         target = os.path.join(args.out, f"{name}.json")
         with open(target, "w", encoding="utf-8") as f:
@@ -371,7 +378,13 @@ def main() -> None:
         for item in report["unknown"]:
             print(f"    ! 모르는 항목: {item}")
 
-    print(f"\n[=] 프로필 {len(made)}벌")
+    for name, why in failed:
+        print(f"[!] {name} — 읽지 못했다: {why}")
+    if not made:
+        raise SystemExit("[!] 읽을 수 있는 파일이 하나도 없다")
+
+    print(f"\n[=] 프로필 {len(made)}벌"
+          + (f" · 못 읽은 파일 {len(failed)}개" if failed else ""))
     if all_gaps:
         print(f"[!] 내보내기에 없어 추정한 값: {', '.join(sorted(all_gaps))}")
         print("    도구가 그 필드를 실어 주기 시작하면 이 줄은 저절로 사라진다.")
