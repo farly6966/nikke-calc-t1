@@ -94,10 +94,11 @@ const PLAIN_BATTLE_CODE = 'NK3-e30';
 /**
  * 유니온 레이드 한 판의 길이(초).
  *
- * 계산기 기본값은 180초(솔로레이드 기준)라 그대로 두면 딜이 두 배로 나온다.
- * `context/union_compare.py`의 기본값과 같은 값을 쓴다.
+ * **180초다.** 한때 90으로 뒀었는데(`context/union_compare.py`의 기본값을 따라간
+ * 것이었다) 그 값이 틀렸다 — 실제로 뛰는 지휘관이 바로잡아 주었다(2026-09-04).
+ * 길이를 반으로 두면 딜도 대략 반으로 나오므로, 표의 모든 칸이 조용히 절반이 된다.
  */
-export const UNION_DURATION = 90;
+export const UNION_DURATION = 180;
 
 /** 유니온 레이드에서 고를 수 있는 보스 속성. 빈 값은 «무속성»이다. */
 export const BOSS_CODES: ElementCode[] = ['', '전격', '수냉', '작열', '풍압', '철갑'];

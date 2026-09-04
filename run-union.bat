@@ -6,7 +6,7 @@ setlocal
 cd /d "%~dp0"
 
 set "SQUAD=Rapi: Red Hood,Crown,Liter,Alice,Naga"
-set "DURATION=90"
+set "DURATION=180"
 set "ENEMY_CODE="
 
 where python >nul 2>&1 || (echo 找不到 python。請先安裝 Python 3.13+。& pause & exit /b 1)

@@ -15,7 +15,7 @@
 사용
 
     python -m context.union_compare --squad "리타,크라운,라피 : 레드 후드,앨리스,나가"
-    python -m context.union_compare --squad "..." --duration 90 --enemy-code 전격
+    python -m context.union_compare --squad "..." --duration 180 --enemy-code 전격
     python -m context.union_compare --squad "..." --html out/report.html
 """
 from __future__ import annotations
@@ -173,7 +173,9 @@ def main() -> None:
                         help="쉼표로 구분한 다섯 이름. 정식 명칭·별칭·영어 표기 아무거나 "
                              "된다 (Rapi: Red Hood · 라피 : 레드 후드 · 흑련)")
     parser.add_argument("--profiles", help="쉼표로 구분한 프로필 이름 (기본: profiles/ 전부)")
-    parser.add_argument("--duration", type=int, default=90, help="전투 길이(초). 기본 90")
+    # 유니온 레이드 한 판은 180초다. 한때 90으로 두어 결과가 통째로 절반이었다
+    # (실제로 뛰는 지휘관이 바로잡아 주었다, 2026-09-04).
+    parser.add_argument("--duration", type=int, default=180, help="전투 길이(초). 기본 180")
     parser.add_argument("--enemy-code", default="", help="적 속성 (풍압·수냉·작열·전격·철갑)")
     parser.add_argument("--enemy-def", type=int,
                         help="적 방어력. 안 주면 계산기 기본값(31,784)을 쓴다 — 0을 주는 것과 다르다")

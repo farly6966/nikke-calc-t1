@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 SQUAD="Rapi: Red Hood,Crown,Liter,Alice,Naga"
-DURATION=90
+DURATION=180
 ENEMY_CODE=""          # 풍압 · 수냉 · 작열 · 전격 · 철갑,留空=無屬性
 
 PY=$(command -v python3 || command -v python || true)

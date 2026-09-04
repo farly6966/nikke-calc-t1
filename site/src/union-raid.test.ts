@@ -168,7 +168,7 @@ describe('보스·덱 칸', () => {
     const code = encodeBattleCode(battle);
     const slot = readBossCode({ name: '', code, enabled: true, decks: [] });
     expect(slot.error).toBeUndefined();
-    expect(slot.battle?.duration).toBe(90);
+    expect(slot.battle?.duration).toBe(90);   // 이 시제 자료는 일부러 기본값이 아니다
     expect(slot.battle?.enemyCode).toBe('전격');
     expect(slot.battle?.console.common_level).toBe(0);
     expect(Object.keys(slot.battle!.console.class_level).sort())
@@ -437,8 +437,8 @@ describe('속성만 골라 전투 조건 세우기', () => {
     for (const element of ['전격', '수냉', '작열', '풍압', '철갑'] as const) {
       const slot = readBossCode({ name: '', code: bossCodeForElement(element), enabled: true, decks: [] });
       expect(slot.battle?.enemyCode).toBe(element);
-      // 유니온 레이드는 90초다. 계산기 기본값(180초)이 새면 딜이 두 배로 나온다.
-      expect(slot.battle?.duration).toBe(90);
+      // 유니온 레이드는 180초다. 한때 90으로 잘못 두어 표의 모든 칸이 절반이었다.
+      expect(slot.battle?.duration).toBe(180);
       expect(slot.error).toBeUndefined();
     }
   });
@@ -447,6 +447,6 @@ describe('속성만 골라 전투 조건 세우기', () => {
     const slot = readBossCode({ name: '', code: bossCodeForElement(''), enabled: true, decks: [] });
     expect(slot.battle).toBeDefined();
     expect(slot.battle?.enemyCode).toBe('');
-    expect(slot.battle?.duration).toBe(90);
+    expect(slot.battle?.duration).toBe(180);
   });
 });
