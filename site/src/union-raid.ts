@@ -17,11 +17,12 @@
  */
 
 import {
-  decodeBattleCode, decodeShareCode, decodeUnionCode, encodeUnionCode,
+  decodeBattleCode, decodeShareCode, decodeUnionCode, encodeShareCode, encodeUnionCode,
   type UnionShare,
 } from './share-code';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
+import { UnionSquadPicker } from './union-squad';
 import type { BattleSettings, DeckState, SimulationResult } from './types';
 
 /** 유니온원 한 명. `GetGuildMembers`가 주는 것만 담는다. */
@@ -1214,6 +1215,15 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   // ── 3단계 · 보스와 덱 ────────────────────────────────────────────────────
   const bossBox = pick(panel, '[data-union-bosses]');
 
+  // 視覺排隊器。판은 **하나뿐**이고 겨눈 덱 줄 아래로 옮겨 다닌다 — 덱 줄이 열다섯이라
+  // 줄마다 격자를 그리면 니케 200명이 열다섯 벌 깔린다.
+  const picker = new UnionSquadPicker({
+    catalog: deps.catalog,
+    labelOf: deps.labelOf,
+    imageOf: deps.imageOf,
+    onRedraw: () => renderBosses(),
+  });
+
   // ── 공유에서 고르기 ──────────────────────────────────────────────────────
   // 보스 조건·덱·판 전체가 같은 목록 구조를 쓰므로 창 하나에 판 셋을 얹고 필요한 것만
   // 보인다. 「어디에 넣을지」는 창을 열 때 정하고, 아래 콜백들이 그 값을 읽는다.
@@ -1485,6 +1495,59 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       const deckBox = el('div', 'union-decks');
       boss.decks.forEach((deck, deckIndex) => {
         const row = el('div', 'union-deck');
+        row.append(el('p', 'union-deck-label', `第 ${deckIndex + 1} 隊`));
+
+        // 視覺排隊 —— 點頭像放入。代碼欄仍在下面的「代碼」摺疊裡，因為盤面碼(NK4)
+        // 是靠它組出來的，而且貼別人給的組合代碼還是最快的路。
+        const slots = el('div', 'union-slots');
+        // **먼저 붙이고 그린다.** 판은 `host.after(...)`로 이 줄 아래에 끼어드는데,
+        // 아직 부모가 없는 동안 그리면 그 호출이 조용히 아무 일도 하지 않는다.
+        row.append(slots);
+        picker.renderSlots(slots, `${index}-${deckIndex}`, deck.squad ?? [], (squad) => {
+          // 이름 다섯을 코드로 되돌려 둔다 — 판 코드(NK4)와 «지금 무엇이 들어 있나»의
+          // 정본이 둘로 갈리면 어느 쪽이 맞는지 알 수 없게 된다.
+          const filled = squad.filter(Boolean);
+          boss.decks[deckIndex] = filled.length > 0
+            ? readDeckCode({ code: encodeShareCode(
+              [{ id: 1, squad: [...squad], characters: {} } as DeckState], false) },
+            deps.catalogNames())
+            : { code: '', squad: undefined, error: undefined };
+          renderBosses();
+        });
+
+        const tools = el('div', 'union-deck-tools');
+        const take = el('button', 'roster-import', `帶入計算機第 ${deckIndex + 1} 隊`);
+        (take as HTMLButtonElement).type = 'button';
+        take.title = '直接帶入計算機裡目前排好的這一隊';
+        take.addEventListener('click', () => {
+          boss.decks[deckIndex] = readDeckCode({ code: deps.currentDeckCode(deckIndex) }, deps.catalogNames());
+          renderBosses();
+        });
+        tools.append(take);
+        if (openSharePicker) {
+          const open = openSharePicker;
+          const fromShare = el('button', 'roster-import', '從分享選取');
+          (fromShare as HTMLButtonElement).type = 'button';
+          fromShare.title = '從別人上傳的組合清單中挑選';
+          fromShare.addEventListener('click', () =>
+            open({ kind: 'squad', boss: index, deck: deckIndex }));
+          tools.append(fromShare);
+        }
+        if (deck.squad) {
+          const clear = el('button', 'roster-import', '清空');
+          (clear as HTMLButtonElement).type = 'button';
+          clear.addEventListener('click', () => {
+            boss.decks[deckIndex] = { code: '', squad: undefined, error: undefined };
+            renderBosses();
+          });
+          tools.append(clear);
+        }
+        row.append(tools);
+
+        const codeFold = document.createElement('details');
+        codeFold.className = 'union-deck-code';
+        const codeSummary = document.createElement('summary');
+        codeSummary.textContent = '組合代碼 (NK2-)';
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'union-code';
@@ -1494,24 +1557,9 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
           boss.decks[deckIndex] = readDeckCode({ code: input.value }, deps.catalogNames());
           renderBosses();
         });
-        const take = el('button', 'roster-import', `目前第 ${deckIndex + 1} 隊`);
-        (take as HTMLButtonElement).type = 'button';
-        take.title = '直接帶入計算機裡目前排好的這一隊';
-        take.addEventListener('click', () => {
-          boss.decks[deckIndex] = readDeckCode({ code: deps.currentDeckCode(deckIndex) }, deps.catalogNames());
-          renderBosses();
-        });
-        row.append(input, take);
-        if (openSharePicker) {
-          const open = openSharePicker;
-          const fromShare = el('button', 'roster-import', '從分享選取');
-          (fromShare as HTMLButtonElement).type = 'button';
-          fromShare.title = '從別人上傳的組合清單中挑選';
-          fromShare.addEventListener('click', () =>
-            open({ kind: 'squad', boss: index, deck: deckIndex }));
-          row.append(fromShare);
-        }
-        if (deck.squad) row.append(squadPreview([deck.squad.filter(Boolean)], deps.imageOf, deps.labelOf));
+        codeFold.append(codeSummary, input);
+        row.append(codeFold);
+
         if (deck.error) row.append(el('p', 'union-error', deck.error));
         deckBox.append(row);
       });

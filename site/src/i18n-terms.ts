@@ -122,3 +122,24 @@ const ALL_TERMS: Record<string, string> = { ...ELEMENT_ZH, ...CLASS_ZH, ...CORP_
 export function termZh(value: string): string {
   return ALL_TERMS[value] ?? value;
 }
+
+// 속성(코드) 아이콘 — 그림은 `image/icon/icon-code-*.png`가 정본이다.
+// 목록에 없는 코드(직접 추가한 니케)는 조용히 아이콘을 생략한다.
+const ELEMENT_ICON: Record<string, string> = {
+  작열: 'fire', 수냉: 'water', 풍압: 'wind', 전격: 'electronic', 철갑: 'iron',
+};
+
+/**
+ * 속성 아이콘 한 조각. 계산기의 편성 슬롯과 유니온 탭의 편성기가 함께 쓴다 —
+ * 같은 그림이 두 자리에서 다르게 생기면 같은 것으로 안 보인다.
+ */
+export function createElementIcon(elementCode: string, className: string): HTMLElement | null {
+  const slug = ELEMENT_ICON[elementCode];
+  if (!slug) return null;
+  const icon = document.createElement('span');
+  icon.className = `${className} element-icon is-${slug}`;
+  // 그림만으로는 속성을 못 읽는 사람이 있어 이름을 붙인다 — 화면 말로 붙여야 한다.
+  icon.title = termZh(elementCode);
+  icon.ariaLabel = termZh(elementCode);
+  return icon;
+}

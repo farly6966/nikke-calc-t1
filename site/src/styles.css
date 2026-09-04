@@ -1215,6 +1215,48 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 }
 
 /* 직접 긁기 — 기본 길은 서버 스캔이라, 접어 두고 필요한 사람만 편다. */
+/* 聯盟分頁的視覺排隊器 — 五格 + 角色格柵。格柵樣式沿用 .roster-* 不另外寫。 */
+.union-deck { display: block; padding: 8px 0; border-top: 1px solid rgba(146,176,201,.12); }
+.union-deck:first-child { border-top: 0; }
+.union-deck-label { margin: 0 0 6px; color: var(--cyan); font: 700 11px inherit; }
+.union-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.union-slot { position: relative; min-width: 0; }
+.union-slot-pick { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 6px;
+  cursor: pointer; text-align: center; background: rgba(7,15,25,.6);
+  border: 1px solid var(--line); border-radius: 9px; color: inherit; font: inherit; }
+.union-slot-pick:hover { border-color: rgba(69,214,208,.55); }
+.union-slot.is-aiming .union-slot-pick { border-color: var(--cyan); background: rgba(69,214,208,.1); }
+.union-slot.is-empty .union-slot-pick { border-style: dashed; }
+.union-slot-pick .roster-portrait { aspect-ratio: 1; }
+.union-slot-pick strong { font-size: 10.5px; line-height: 1.3; color: var(--ink); word-break: keep-all; }
+.union-slot-pick span { color: var(--muted); font-size: 9px; line-height: 1.3; }
+.union-slot-clear { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px;
+  padding: 0; cursor: pointer; background: rgba(2,6,12,.9); border: 1px solid var(--line);
+  border-radius: 50%; color: var(--muted); font: 700 10px inherit; }
+.union-slot-clear:hover { color: #ff9c8a; border-color: rgba(255,120,100,.6); }
+.union-deck-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.union-deck-code { margin-top: 6px; }
+.union-deck-code > summary { cursor: pointer; color: var(--muted); font-size: 11px; }
+.union-deck-code > summary:hover { color: var(--cyan); }
+.union-deck-code .union-code { width: 100%; margin-top: 6px; }
+
+.union-picker { margin: 8px 0 4px; padding: 10px 12px; background: rgba(3,9,16,.6);
+  border: 1px solid rgba(69,214,208,.35); border-radius: 10px; }
+.union-picker-head { display: flex; align-items: center; gap: 8px; }
+.union-picker-title { color: var(--cyan); font-size: 12px; }
+.union-picker-count { color: var(--muted); font-size: 11px; }
+.union-picker-close { margin-left: auto; width: 24px; height: 24px; padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); }
+.union-picker-filters { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.union-picker-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.union-picker-filter-label { min-width: 32px; color: var(--muted); font-size: 10px; }
+.union-chip { padding: 2px 8px; cursor: pointer; background: rgba(7,15,25,.7);
+  border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font: 11px inherit; }
+.union-chip:hover { color: var(--ink); }
+.union-chip.is-on { background: var(--cyan); border-color: var(--cyan); color: #04121a; font-weight: 700; }
+.union-picker .roster-grid { max-height: 46vh; overflow-y: auto; }
+.union-picker .roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
+
 /* 匯出檔匯入 — 拖放區與清洗工具。 */
 .union-source { margin-bottom: 14px; padding: 10px 12px;
   border: 1px solid rgba(146,176,201,.22); background: rgba(3,9,16,.3); }
