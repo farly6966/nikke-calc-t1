@@ -1215,6 +1215,26 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 }
 
 /* 직접 긁기 — 기본 길은 서버 스캔이라, 접어 두고 필요한 사람만 편다. */
+/* 分配表 — 列是人、欄是王。公會排班表照這張抄。 */
+.union-grid-box { margin: 12px 0; }
+.union-grid-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.union-grid-head h4 { margin: 0; color: var(--cyan); font-size: 13px; }
+.union-grid-head .roster-import { margin-left: auto; }
+.union-grid { width: 100%; border-collapse: collapse; font-size: 12px;
+  font-variant-numeric: tabular-nums; }
+.union-grid th, .union-grid td { padding: 6px 8px; border: 1px solid rgba(146,176,201,.16);
+  text-align: right; white-space: nowrap; }
+.union-grid thead th { position: sticky; top: 0; background: rgba(7,15,25,.96);
+  color: var(--cyan); font-weight: 700; }
+.union-grid tbody th { text-align: left; color: var(--ink); font-weight: 500; }
+.union-grid tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+.union-grid-sync { color: var(--muted); }
+.union-grid-num { color: var(--ink); }
+/* 안 맡긴 보스와 못 치는 보스는 다른 뜻이다 — 배정을 다시 짤 때 갈라 보여야 한다. */
+.union-grid-off { background: rgba(3,9,16,.5); }
+.union-grid-miss { color: #ffab8f; font-size: 11px; }
+.union-grid-box { overflow-x: auto; }
+
 /* 聯盟分頁的視覺排隊器 — 五格 + 角色格柵。格柵樣式沿用 .roster-* 不另外寫。 */
 .union-deck { display: block; padding: 8px 0; border-top: 1px solid rgba(146,176,201,.12); }
 .union-deck:first-child { border-top: 0; }

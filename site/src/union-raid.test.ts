@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildJobs, deckForMember, estimateScanSeconds, groupResults, humanSeconds,
+  buildGrid, buildJobs, deckForMember, estimateScanSeconds, gridToCsv, groupResults, humanSeconds,
   DIRECT_SNIPPET, MEMBER_SNIPPET, parseDirectScan, parseMemberList, readBossCode, readDeckCode,
   readUnionCode, remainingSeconds, unionCodeOf, unionShareOf,
 } from './union-raid';
@@ -303,7 +303,7 @@ describe('유니온 판 코드 (NK4)', () => {
   it('판을 코드로 냈다가 그대로 되살린다', () => {
     const back = readUnionCode(unionCodeOf(board()), NAMES);
 
-    expect(back).toHaveLength(5);
+    expect(back).toHaveLength(6);   // 다섯 보스 + 무한 단계 칸
     expect(back[0]!.name).toBe('작열 글러트니');
     expect(back[0]!.enabled).toBe(true);
     expect(back[0]!.battle?.enemyCode).toBe('작열');
@@ -344,5 +344,84 @@ describe('유니온 판 코드 (NK4)', () => {
 
   it('종류가 다른 코드는 거절한다', () => {
     expect(() => readUnionCode(encodeBattleCode(battle), NAMES)).toThrow(/NK4/);
+  });
+});
+
+describe('배정표', () => {
+  const job = (name: string, sync: number, bossIndex: number, bossName: string, deckIndex: number) => ({
+    member: member({ name, openid: name, synchro: sync }),
+    bossIndex, bossName, deckIndex, squad: ['리타'], battle,
+  });
+
+  const results: JobResult[] = [
+    { job: job('가', 700, 0, '수냉', 0), damage: 10 },
+    { job: job('가', 700, 0, '수냉', 1), damage: 30 },      // 같은 보스, 더 높은 덱
+    { job: job('가', 700, 2, '철갑', 0), damage: 5 },
+    { job: job('나', 600, 0, '수냉', 0), damage: 40 },
+    { job: job('나', 600, 2, '철갑', 0), missing: ['라피'] },
+  ];
+
+  it('한 보스에 덱이 여럿이면 가장 높은 것을 적는다', () => {
+    const grid = buildGrid(results, []);
+    const first = grid.rows.find((row) => row.member.name === '가')!;
+    expect(first.cells.get(0)!.damage).toBe(30);
+    expect(first.cells.get(0)!.deckIndex).toBe(1);
+  });
+
+  it('맡은 보스만 칸이 생긴다 — 안 맡긴 보스는 빈칸이 아니라 아예 없다', () => {
+    // 배정표의 «빈칸»과 같은 뜻이다. 0을 적으면 «쳤는데 0딜»로 읽힌다.
+    const grid = buildGrid(results, []);
+    const first = grid.rows.find((row) => row.member.name === '가')!;
+    expect(first.cells.has(1)).toBe(false);
+    expect(grid.bosses.map((boss) => boss.name)).toEqual(['수냉', '철갑']);
+  });
+
+  it('미보유는 빈칸이 아니라 이유를 적는다', () => {
+    const grid = buildGrid(results, []);
+    const second = grid.rows.find((row) => row.member.name === '나')!;
+    expect(second.cells.get(2)!.damage).toBeUndefined();
+    expect(second.cells.get(2)!.note).toContain('라피');
+  });
+
+  it('한 덱이라도 돌면 «못 친다»가 아니다', () => {
+    const mixed: JobResult[] = [
+      { job: job('다', 500, 0, '수냉', 0), missing: ['라피'] },
+      { job: job('다', 500, 0, '수냉', 1), damage: 7 },
+    ];
+    const cell = buildGrid(mixed, []).rows[0]!.cells.get(0)!;
+    expect(cell.damage).toBe(7);
+    expect(cell.note).toBeUndefined();
+  });
+
+  it('총 기여가 높은 사람부터 세운다', () => {
+    // 가 = 30 + 5 = 35, 나 = 40. 공회가 보고 싶은 것은 «총 기여»라 그 순서로 세운다.
+    const grid = buildGrid(results, []);
+    expect(grid.rows.map((row) => row.member.name)).toEqual(['나', '가']);
+    expect(grid.rows.map((row) => row.total)).toEqual([40, 35]);
+  });
+});
+
+describe('배정표 내려받기', () => {
+  const grid = () => buildGrid([
+    { job: { member: member({ name: '가', openid: '가', synchro: 700 }),
+      bossIndex: 0, bossName: '수냉', deckIndex: 0, squad: ['리타'], battle }, damage: 12.6 },
+    { job: { member: member({ name: '나, 쉼표', openid: '나', synchro: 600 }),
+      bossIndex: 1, bossName: '철갑', deckIndex: 0, squad: ['리타'], battle }, missing: ['라피'] },
+  ], []);
+
+  it('엑셀이 한글을 읽도록 BOM을 단다', () => {
+    // 없으면 더블클릭으로 열었을 때 이름이 통째로 깨진다.
+    expect(gridToCsv(grid()).charCodeAt(0)).toBe(0xfeff);
+  });
+
+  it('수치는 날것으로 적는다 — «12.3億»으로 적으면 합계도 정렬도 안 된다', () => {
+    const lines = gridToCsv(grid()).split(String.fromCharCode(13, 10));
+    expect(lines[0]).toContain('名稱');
+    expect(lines[1]).toContain('13');
+    expect(lines[1]).not.toContain('億');
+  });
+
+  it('쉼표가 든 이름을 따옴표로 감싼다', () => {
+    expect(gridToCsv(grid())).toContain('"나, 쉼표"');
   });
 });

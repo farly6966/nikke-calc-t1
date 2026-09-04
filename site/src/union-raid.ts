@@ -74,7 +74,18 @@ export interface DeckSlot {
   error?: string;
 }
 
-export const BOSS_SLOTS = 5;
+/**
+ * 보스 칸 수.
+ *
+ * 유니온 레이드의 보스는 다섯이지만 **여섯 칸**을 둔다. 모든 단계를 깬 뒤 다섯 번째
+ * 보스가 «무한 단계»(체력 상한 없음)로 열리고, 그때는 유니온원 전원이 그 하나만 친다.
+ * 회차 표에서도 그 칸이 따로 한 줄을 차지한다(공회 배정표의 «철1·철2»가 그것이다).
+ * 다섯 번째와 같은 랩처지만 조건과 편성을 따로 잡으므로 칸을 나눠 둔다.
+ *
+ * 안 쓰는 칸은 비워 두면 그만이고, 판 코드(NK4)는 채운 칸 수만 싣는다 —
+ * 다섯 칸 시절의 코드도 그대로 읽힌다.
+ */
+export const BOSS_SLOTS = 6;
 export const DECK_SLOTS = 3;
 
 /**
@@ -574,6 +585,104 @@ export function groupResults(results: JobResult[]): MemberReport[] {
     });
   }
   return [...byMember.values()];
+}
+
+/**
+ * 배정표 한 칸. 공회 배정표(스프레드시트)의 «1·0.5·빈칸» 자리에 실제 수치가 들어간다.
+ *
+ * 빈칸의 뜻이 둘이라 나눠 적는다 — «안 맡겼다»와 «맡겼지만 못 친다(미보유)»는
+ * 배정을 다시 짤 때 완전히 다른 뜻이다.
+ */
+export interface GridCell {
+  /** 그 보스에서 낸 딜. 덱이 여럿이면 가장 높은 것. */
+  damage?: number;
+  /** 어느 덱이 그 값을 냈는지(0부터). 같은 보스에 덱이 여럿일 때만 뜻이 있다. */
+  deckIndex?: number;
+  /** 못 친 이유. 미보유 니케 이름들, 또는 오류 한 줄. */
+  note?: string;
+}
+
+export interface GridRow {
+  member: MemberRow;
+  /** 보스 칸 번호(0부터) → 그 칸의 결과. 안 맡긴 보스는 아예 없다. */
+  cells: Map<number, GridCell>;
+  /** 맡은 보스들의 딜 합. 정렬 기본값이다 — 공회가 보고 싶은 것은 «총 기여»다. */
+  total: number;
+}
+
+export interface Grid {
+  /** 실제로 쓰는 보스 칸만, 판에 놓인 순서대로. */
+  bosses: Array<{ index: number; name: string }>;
+  rows: GridRow[];
+}
+
+/**
+ * 결과를 «유니온원 × 보스» 표로 접는다.
+ *
+ * 한 보스에 덱이 셋까지 있는데 표는 칸이 하나다. **가장 높은 것**을 적는다 —
+ * 배정표가 답하려는 물음이 「이 사람을 이 보스에 넣으면 얼마나 나오나」이고,
+ * 그 답은 그 사람이 낼 수 있는 최선이기 때문이다. 어느 덱이었는지는 함께 남긴다.
+ */
+export function buildGrid(results: JobResult[], bosses: BossSlot[]): Grid {
+  const used = new Map<number, string>();
+  const rows = new Map<string, GridRow>();
+
+  for (const result of results) {
+    const { member, bossIndex, bossName } = result.job;
+    if (!used.has(bossIndex)) used.set(bossIndex, bossName);
+
+    let row = rows.get(member.openid);
+    if (!row) {
+      row = { member, cells: new Map(), total: 0 };
+      rows.set(member.openid, row);
+    }
+    const cell = row.cells.get(bossIndex) ?? {};
+    if (result.damage !== undefined) {
+      if (cell.damage === undefined || result.damage > cell.damage) {
+        cell.damage = result.damage;
+        cell.deckIndex = result.job.deckIndex;
+        delete cell.note;                       // 한 덱이라도 되면 «못 친다»가 아니다
+      }
+    } else if (cell.damage === undefined) {
+      cell.note = result.missing ? `缺 ${result.missing.join('、')}` : (result.error ?? '計算失敗');
+    }
+    row.cells.set(bossIndex, cell);
+  }
+
+  for (const row of rows.values()) {
+    row.total = [...row.cells.values()]
+      .reduce((sum, cell) => sum + (cell.damage ?? 0), 0);
+  }
+
+  return {
+    // 판에 놓인 순서 그대로 — 사람이 짜 둔 순서가 곧 읽는 순서다.
+    bosses: [...used.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([index, name]) => ({ index, name: name || bosses[index]?.name || `王 ${index + 1}` })),
+    rows: [...rows.values()].sort((a, b) => b.total - a.total),
+  };
+}
+
+/**
+ * 표를 스프레드시트에 그대로 붙일 수 있는 글자로. **BOM을 앞에 단다** —
+ * 없으면 엑셀이 UTF-8을 못 알아보고 한자·한글이 통째로 깨진다(더블클릭으로 열 때).
+ */
+export function gridToCsv(grid: Grid): string {
+  const quote = (value: string): string =>
+    /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  const lines: string[] = [];
+  lines.push(['名稱', '同步器等級', ...grid.bosses.map((boss) => boss.name)].map(quote).join(','));
+  for (const row of grid.rows) {
+    const cells = grid.bosses.map((boss) => {
+      const cell = row.cells.get(boss.index);
+      if (!cell) return '';                     // 안 맡긴 보스 — 배정표의 빈칸과 같다
+      // 수치는 **날것 그대로** 낸다. 「12.3億」으로 적으면 스프레드시트가 글자로 읽어
+      // 합계도 정렬도 안 된다.
+      return cell.damage !== undefined ? String(Math.round(cell.damage)) : (cell.note ?? '');
+    });
+    lines.push([row.member.name, String(row.member.synchro || ''), ...cells].map(quote).join(','));
+  }
+  return `﻿${lines.join('\r\n')}\r\n`;
 }
 
 /** 시뮬 한 판이 얼마나 걸리는지는 기기마다 달라 **재 보고** 알린다. */
@@ -1584,6 +1693,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   const runStatus = pick(panel, '[data-union-run-status]');
   const runBar = pick(panel, '[data-union-run-progress]');
   const reportBox = pick(panel, '[data-union-report]');
+  const gridBox = pick(panel, '[data-union-grid]');
 
   function refreshRunGate(): void {
     const jobs = buildJobs(members, bosses);
@@ -1660,7 +1770,83 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   runButton.addEventListener('click', () => { void runAll(); });
   runStop.addEventListener('click', () => { cancelled = true; });
 
+  /**
+   * 배정표 — 공회가 실제로 보는 모양. 줄이 사람, 칸이 보스다.
+   *
+   * 아래의 «사람 한 장씩» 보고서는 그대로 둔다. 표는 «누구를 어디에 넣나»를 정하는
+   * 자리이고, 카드는 «왜 그 숫자인가»(어느 덱, 무엇이 없어서 못 치나)를 보는 자리다.
+   */
+  function renderGrid(): void {
+    gridBox.replaceChildren();
+    if (results.length === 0) return;
+    const grid = buildGrid(results, bosses);
+    if (grid.bosses.length === 0) return;
+
+    const head = el('div', 'union-grid-head');
+    head.append(el('h4', undefined, '分配表'));
+    const save = el('button', 'roster-import', '下載 Excel (CSV)');
+    (save as HTMLButtonElement).type = 'button';
+    save.title = '下載後可直接用 Excel 開啟,或貼進現有的分配表';
+    save.addEventListener('click', () => {
+      const blob = new Blob([gridToCsv(grid)], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const day = new Date().toISOString().slice(0, 10);
+      link.download = `聯盟突襲分配表_${day}.csv`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    });
+    head.append(save);
+    gridBox.append(head);
+
+    const table = document.createElement('table');
+    table.className = 'union-grid';
+    const thead = document.createElement('thead');
+    const hrow = document.createElement('tr');
+    for (const label of ['名稱', '同步器', ...grid.bosses.map((boss) => boss.name)]) {
+      const th = document.createElement('th');
+      th.textContent = label;
+      hrow.append(th);
+    }
+    thead.append(hrow);
+    table.append(thead);
+
+    const tbody = document.createElement('tbody');
+    for (const row of grid.rows) {
+      const tr = document.createElement('tr');
+      const name = document.createElement('th');
+      name.scope = 'row';
+      name.textContent = row.member.name;
+      tr.append(name);
+      const sync = document.createElement('td');
+      sync.className = 'union-grid-sync';
+      sync.textContent = row.member.synchro ? String(row.member.synchro) : '';
+      tr.append(sync);
+      for (const boss of grid.bosses) {
+        const td = document.createElement('td');
+        const cell = row.cells.get(boss.index);
+        if (!cell) {
+          // 안 맡긴 보스. 배정표의 빈칸과 같은 뜻이라 비워 둔다.
+          td.className = 'union-grid-off';
+        } else if (cell.damage !== undefined) {
+          td.className = 'union-grid-num';
+          td.textContent = DAMAGE.format(Math.round(cell.damage));
+        } else {
+          td.className = 'union-grid-miss';
+          td.textContent = cell.note ?? '—';
+          td.title = cell.note ?? '';
+        }
+        tr.append(td);
+      }
+      tbody.append(tr);
+    }
+    table.append(tbody);
+    gridBox.append(table);
+  }
+
   function renderReport(): void {
+    renderGrid();
     reportBox.replaceChildren();
     for (const report of groupResults(results)) {
       const card = el('div', 'union-report-card');
