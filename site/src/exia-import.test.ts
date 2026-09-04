@@ -42,8 +42,8 @@ const slot = (tier: number, lv: number, lines: Array<[string, number]>) => ({
 function exportFile(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     name: 'NOIR',
-    game_uid: '4344331436314217',
-    cookie: 'game_token=deadbeef; game_uid=4344331436314217',
+    game_uid: '1234567890123456',
+    cookie: 'game_token=deadbeef; game_uid=1234567890123456',
     synchroLevel: 787,
     area_id: '81',
     recycleRoomResearches: {
@@ -208,14 +208,14 @@ describe('계정 접근권은 어디에도 남지 않는다', () => {
     const dumped = JSON.stringify(profile);
     expect(dumped).not.toContain('deadbeef');
     expect(dumped).not.toContain('game_token');
-    expect(dumped).not.toContain('4344331436314217');
+    expect(dumped).not.toContain('1234567890123456');
   });
 
   it('씻어 낸 파일에도 없다', () => {
     const washed = stripExiaProfile(exportFile());
     expect(washed).not.toContain('deadbeef');
     expect(washed).not.toContain('game_token');
-    expect(washed).not.toContain('4344331436314217');
+    expect(washed).not.toContain('1234567890123456');
     // 계산에 쓰는 것은 그대로 살아 있어야 한다.
     expect(JSON.parse(washed).synchroLevel).toBe(787);
     expect(JSON.parse(washed).recycleRoomResearches['1001'].Level).toBe(366);

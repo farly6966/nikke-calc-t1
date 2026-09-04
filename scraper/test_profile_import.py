@@ -216,12 +216,12 @@ class ConvertTest(unittest.TestCase):
         # 내보내기에 로그인 쿠키가 딸려 온다. 계산에 필요 없으므로 **쳐다보지 않는다** —
         # 옮겨 적는 순간 이 파일이 그것을 흘릴 수 있는 자리가 된다.
         src = export([character(5129)], cookie="game_token=SECRET; game_uid=42",
-                     game_uid="4344331436314217")
+                     game_uid="1234567890123456")
         profile, _ = convert(src, CODES)
         dumped = json.dumps(profile, ensure_ascii=False)
         self.assertNotIn("SECRET", dumped)
         self.assertNotIn("cookie", dumped)
-        self.assertNotIn("4344331436314217", dumped)
+        self.assertNotIn("1234567890123456", dumped)
 
     def test_missing_console_and_synchro_are_flagged(self):
         src = export([character(5129)])
