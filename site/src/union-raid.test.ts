@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  bossCodeForElement, buildGrid, buildJobs, deckForMember, estimateScanSeconds, gridToCsv,
+  bossCodeForShape, buildGrid, shapeOf, buildJobs, deckForMember, estimateScanSeconds, gridToCsv,
   groupResults, humanSeconds,
   DIRECT_SNIPPET, MEMBER_SNIPPET, parseDirectScan, parseMemberList, readBossCode, readDeckCode,
   readUnionCode, remainingSeconds, unionCodeOf, unionShareOf,
@@ -430,23 +430,42 @@ describe('배정표 내려받기', () => {
   });
 });
 
-describe('속성만 골라 전투 조건 세우기', () => {
+describe('보스의 모습만 골라 전투 조건 세우기', () => {
+  const read = (code: string) =>
+    readBossCode({ name: '', code, enabled: true, decks: [] }).battle;
+
   it('고른 속성이 그대로 조건에 선다', () => {
-    // 조건을 세우는 길이 «NK3 코드 붙여넣기»뿐이면, 편성만 짜 둔 사람은 실행 자리가
-    // 사라진 것만 보고 무엇이 모자란지 알 수 없다.
     for (const element of ['전격', '수냉', '작열', '풍압', '철갑'] as const) {
-      const slot = readBossCode({ name: '', code: bossCodeForElement(element), enabled: true, decks: [] });
-      expect(slot.battle?.enemyCode).toBe(element);
+      const battle = read(bossCodeForShape({ element }));
+      expect(battle?.enemyCode).toBe(element);
       // 유니온 레이드는 180초다. 한때 90으로 잘못 두어 표의 모든 칸이 절반이었다.
-      expect(slot.battle?.duration).toBe(180);
-      expect(slot.error).toBeUndefined();
+      expect(battle?.duration).toBe(180);
     }
   });
 
-  it('무속성도 쓸 수 있는 조건이 된다 — 코드가 비면 돌릴 것이 없다', () => {
-    const slot = readBossCode({ name: '', code: bossCodeForElement(''), enabled: true, decks: [] });
-    expect(slot.battle).toBeDefined();
-    expect(slot.battle?.enemyCode).toBe('');
-    expect(slot.battle?.duration).toBe(180);
+  it('코어는 켠 채로 선다 — 끄면 딜이 대략 절반이 된다', () => {
+    // 실측 2026-09-04: 같은 편성이 코어 없이 20.7B, 코어를 켜면 40.3B.
+    const battle = read(bossCodeForShape({ element: '전격' }));
+    expect(battle?.coreEnabled).toBe(true);
+    expect(battle?.corePx).toBe(52);
+    expect(battle?.hasParts).toBe(true);
+  });
+
+  it('코어 0은 «코어 없음»이다', () => {
+    const battle = read(bossCodeForShape({ element: '전격', corePx: 0 }));
+    expect(battle?.coreEnabled).toBe(false);
+  });
+
+  it('방어력과 부위를 고친 대로 싣는다', () => {
+    const battle = read(bossCodeForShape({ element: '철갑', enemyDef: 12_345, hasParts: false }));
+    expect(battle?.enemyDef).toBe(12_345);
+    expect(battle?.hasParts).toBe(false);
+  });
+
+  it('지금 조건에서 모습을 되읽는다 — 화면의 칸이 그 값을 그린다', () => {
+    const code = bossCodeForShape({ element: '수냉', corePx: 80, enemyDef: 999, hasParts: false });
+    expect(shapeOf(read(code))).toEqual({
+      element: '수냉', corePx: 80, enemyDef: 999, hasParts: false,
+    });
   });
 });

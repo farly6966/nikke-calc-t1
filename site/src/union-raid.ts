@@ -103,20 +103,62 @@ export const UNION_DURATION = 180;
 /** 유니온 레이드에서 고를 수 있는 보스 속성. 빈 값은 «무속성»이다. */
 export const BOSS_CODES: ElementCode[] = ['', '전격', '수냉', '작열', '풍압', '철갑'];
 
+/** 보스 한 마리의 «어떤 놈인가». 코드 없이 이것만 고르면 조건이 선다. */
+export interface BossShape {
+  element: ElementCode;
+  /** 코어 지름(px). 0이면 코어 없음. */
+  corePx: number;
+  hasParts: boolean;
+  enemyDef: number;
+}
+
 /**
- * 속성 하나로 전투 조건 코드를 만든다.
+ * 유니온 레이드 보스의 기본 모습.
  *
- * 보스 조건을 세우는 길이 «NK3 코드를 붙여넣기»뿐이면, 편성만 짜 둔 사람은 실행 자리가
- * 통째로 사라지는 것만 본다(실제 제보). 유니온 레이드에서 회차마다 실제로 바뀌는 것은
- * 속성이므로, 그것만 고르면 나머지는 기본값으로 서게 한다.
+ * **코어는 켜져 있다.** 유니온 레이드 보스에는 코어가 있고, 꺼 두면 딜이 대략 절반이
+ * 된다(실측 2026-09-04: 같은 편성 20.7B → 40.3B). 예전에는 속성만 고르게 해 두어
+ * 코어가 꺼진 채로 돌았고, 표의 모든 칸이 실제의 절반쯤이었다.
+ *
+ * 방어력은 계산기 기본값을 그대로 쓴다 — 회차·단계마다 다른 값이라 정본이 없다.
+ * 아는 사람이 고칠 수 있게 화면에 칸을 둔다.
  */
-export function bossCodeForElement(
-  element: ElementCode, coeff: Record<string, number> = {},
+export const DEFAULT_BOSS_SHAPE: BossShape = {
+  element: '', corePx: 52, hasParts: true, enemyDef: 31_784,
+};
+
+/** 지금 조건에서 «보스의 모습»만 읽어 낸다. 화면의 칸들이 이 값을 그린다. */
+export function shapeOf(battle: BattleSettings | undefined): BossShape {
+  if (!battle) return { ...DEFAULT_BOSS_SHAPE, element: '' };
+  return {
+    element: battle.enemyCode,
+    corePx: battle.coreEnabled ? battle.corePx : 0,
+    hasParts: battle.hasParts,
+    enemyDef: battle.enemyDef,
+  };
+}
+
+/**
+ * 보스의 모습으로 전투 조건 코드를 만든다.
+ *
+ * 조건을 세우는 길이 «NK3 코드를 붙여넣기»뿐이면, 편성만 짜 둔 사람은 실행 자리가
+ * 통째로 사라지는 것만 본다(실제 제보). 회차마다 실제로 바뀌는 것들만 고르게 하고
+ * 나머지는 기본값으로 채운다.
+ */
+export function bossCodeForShape(
+  shape: Partial<BossShape> = {}, coeff: Record<string, number> = {},
 ): string {
+  const full = { ...DEFAULT_BOSS_SHAPE, ...shape };
   const base = decodeBattleCode(PLAIN_BATTLE_CODE);
   return encodeBattleCode({
-    ...base, enemyCode: element, duration: UNION_DURATION,
-    synchroLevel: DEFAULT_SYNCHRO_LEVEL, console: emptyConsole(),
+    ...base,
+    enemyCode: full.element,
+    duration: UNION_DURATION,
+    coreEnabled: full.corePx > 0,
+    corePx: full.corePx > 0 ? full.corePx : DEFAULT_BOSS_SHAPE.corePx,
+    hasParts: full.hasParts,
+    enemyDef: full.enemyDef,
+    synchroLevel: DEFAULT_SYNCHRO_LEVEL,
+    console: emptyConsole(),
   } as BattleSettings, coeff);
 }
 /**
@@ -1612,8 +1654,16 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       head.append(toggle, name, el('span', 'union-boss-summary', battleSummary(boss)));
       card.append(head);
 
-      // 속성 고르개. 회차마다 실제로 바뀌는 것이 이것이고, 이것만 고르면 전투 조건이 선다.
+      // 보스의 모습. 회차마다 실제로 바뀌는 것들만 여기서 고르고, 나머지는 기본값이다.
+      // 코드를 붙여넣지 않아도 조건이 서야 편성만 짜 둔 사람이 막히지 않는다.
       const codeRow = el('div', 'union-code-row');
+      const shape = shapeOf(boss.battle);
+      const applyShape = (next: Partial<BossShape>): void => {
+        const code = bossCodeForShape({ ...shape, ...next }, deps.settings.normalHitCoeff);
+        bosses[index] = { ...readBossCode({ ...boss, code }), decks: boss.decks };
+        renderBosses();
+      };
+
       const pickCode = el('label', 'union-boss-code');
       pickCode.append(el('span', undefined, '屬性'));
       const codeSelect = document.createElement('select');
@@ -1623,14 +1673,52 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         option.textContent = value ? termZh(value) : '無屬性';
         codeSelect.append(option);
       }
-      codeSelect.value = boss.battle?.enemyCode ?? '';
-      codeSelect.addEventListener('change', () => {
-        const next = bossCodeForElement(codeSelect.value as ElementCode, deps.settings.normalHitCoeff);
-        bosses[index] = { ...readBossCode({ ...boss, code: next }), decks: boss.decks };
-        renderBosses();
-      });
+      codeSelect.value = shape.element;
+      codeSelect.addEventListener('change', () =>
+        applyShape({ element: codeSelect.value as ElementCode }));
       pickCode.append(codeSelect);
       codeRow.append(pickCode);
+
+      // 조건이 선 보스에만 나머지 칸을 그린다 — 속성을 고르기 전에는 고칠 것이 없다.
+      if (boss.battle) {
+        const core = el('label', 'union-boss-code');
+        core.append(el('span', undefined, '核心'));
+        const corePx = document.createElement('input');
+        corePx.type = 'number';
+        corePx.min = '0';
+        corePx.max = '400';
+        corePx.step = '1';
+        corePx.className = 'union-boss-num';
+        corePx.value = String(shape.corePx);
+        corePx.title = '核心直徑(px)。0 = 沒有核心。開核心的傷害差快兩倍。';
+        corePx.addEventListener('change', () =>
+          applyShape({ corePx: Math.max(0, Math.trunc(Number(corePx.value) || 0)) }));
+        core.append(corePx, el('span', undefined, 'px'));
+        codeRow.append(core);
+
+        const def = el('label', 'union-boss-code');
+        def.append(el('span', undefined, '防禦'));
+        const defInput = document.createElement('input');
+        defInput.type = 'number';
+        defInput.min = '0';
+        defInput.step = '1';
+        defInput.className = 'union-boss-num';
+        defInput.value = String(shape.enemyDef);
+        defInput.title = '王的防禦力。每期・每階段不同,知道實際值就填進來。';
+        defInput.addEventListener('change', () =>
+          applyShape({ enemyDef: Math.max(0, Math.trunc(Number(defInput.value) || 0)) }));
+        def.append(defInput);
+        codeRow.append(def);
+
+        const parts = el('label', 'union-boss-code');
+        const partsBox = document.createElement('input');
+        partsBox.type = 'checkbox';
+        partsBox.checked = shape.hasParts;
+        partsBox.title = '這隻王有可破壞部位';
+        partsBox.addEventListener('change', () => applyShape({ hasParts: partsBox.checked }));
+        parts.append(partsBox, el('span', undefined, '有部位'));
+        codeRow.append(parts);
+      }
 
       const code = document.createElement('input');
       code.type = 'text';
@@ -1742,6 +1830,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     if (!boss.battle) return '無條件';
     const parts = [`${boss.battle.duration}秒`,
       boss.battle.enemyCode ? termZh(boss.battle.enemyCode) : '無屬性',
+      // 코어는 켜고 끄는 것만으로 딜이 두 배 갈린다 — 요약에 반드시 적는다.
+      boss.battle.coreEnabled ? `核心 ${boss.battle.corePx}px` : '無核心',
       `防禦 ${DAMAGE.format(boss.battle.enemyDef)}`];
     const decks = boss.decks.filter((deck) => deck.squad).length;
     parts.push(decks > 0 ? `${decks} 隊` : '無隊伍');
