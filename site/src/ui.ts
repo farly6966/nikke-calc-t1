@@ -302,6 +302,17 @@ function renderCharacterCards(
       const summary = document.createElement('summary');
       summary.append(createText('span', `普攻 ${normalPct.toFixed(0)}%`, 'legend-normal'));
       summary.append(createText('span', `技能 ${skillPct.toFixed(0)}%`, 'legend-skill'));
+      // 核心命中率。「開了核心,卻只有這隻妮姬傷害沒上升」的疑問到這裡結束 —
+      // 每個武器種的彈著群大小不同,變身模式則以**該模式的武器**判定。
+      // 沒有射擊(純技能傷害的場合)就沒有可寫的東西。
+      const shots = breakdown.shots ?? 0;
+      if (shots > 0) {
+        const corePct = (breakdown.coreShots ?? 0) / shots * 100;
+        const core = createText('span', `核心 ${corePct.toFixed(0)}%`, 'legend-core');
+        core.title = '射出的子彈中命中核心的比率。由武器種的彈著群大小與核心大小決定,'
+          + '變身模式下以該模式的武器判定。技能傷害沒有瞄準判定,不計入此處。';
+        summary.append(core);
+      }
       details.append(summary);
 
       const splitTrack = document.createElement('div');
