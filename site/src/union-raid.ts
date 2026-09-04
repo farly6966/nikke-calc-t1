@@ -17,13 +17,14 @@
  */
 
 import {
-  decodeBattleCode, decodeShareCode, decodeUnionCode, encodeShareCode, encodeUnionCode,
-  type UnionShare,
+  decodeBattleCode, decodeShareCode, decodeUnionCode, encodeBattleCode, encodeShareCode,
+  encodeUnionCode, type UnionShare,
 } from './share-code';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
 import { UnionSquadPicker } from './union-squad';
-import type { BattleSettings, DeckState, SimulationResult } from './types';
+import { termZh } from './i18n-terms';
+import type { BattleSettings, DeckState, ElementCode, SimulationResult } from './types';
 
 /** 유니온원 한 명. `GetGuildMembers`가 주는 것만 담는다. */
 export interface UnionMember {
@@ -86,7 +87,46 @@ export interface DeckSlot {
  * 다섯 칸 시절의 코드도 그대로 읽힌다.
  */
 export const BOSS_SLOTS = 6;
-export const DECK_SLOTS = 3;
+
+/** 모든 값이 기본값인 전투 조건(`{}`). 속성만 갈아 끼울 바탕으로 쓴다. */
+const PLAIN_BATTLE_CODE = 'NK3-e30';
+
+/**
+ * 유니온 레이드 한 판의 길이(초).
+ *
+ * 계산기 기본값은 180초(솔로레이드 기준)라 그대로 두면 딜이 두 배로 나온다.
+ * `context/union_compare.py`의 기본값과 같은 값을 쓴다.
+ */
+export const UNION_DURATION = 90;
+
+/** 유니온 레이드에서 고를 수 있는 보스 속성. 빈 값은 «무속성»이다. */
+export const BOSS_CODES: ElementCode[] = ['', '전격', '수냉', '작열', '풍압', '철갑'];
+
+/**
+ * 속성 하나로 전투 조건 코드를 만든다.
+ *
+ * 보스 조건을 세우는 길이 «NK3 코드를 붙여넣기»뿐이면, 편성만 짜 둔 사람은 실행 자리가
+ * 통째로 사라지는 것만 본다(실제 제보). 유니온 레이드에서 회차마다 실제로 바뀌는 것은
+ * 속성이므로, 그것만 고르면 나머지는 기본값으로 서게 한다.
+ */
+export function bossCodeForElement(
+  element: ElementCode, coeff: Record<string, number> = {},
+): string {
+  const base = decodeBattleCode(PLAIN_BATTLE_CODE);
+  return encodeBattleCode({
+    ...base, enemyCode: element, duration: UNION_DURATION,
+    synchroLevel: DEFAULT_SYNCHRO_LEVEL, console: emptyConsole(),
+  } as BattleSettings, coeff);
+}
+/**
+ * 보스 하나에 덱 하나.
+ *
+ * 유니온 레이드는 하루에 보스마다 한 번씩 친다 — 배정표의 칸도 보스마다 하나다.
+ * 예전에는 «대안 셋을 나란히 견주라»고 셋을 뒀는데, 그러면 배정표의 한 칸에 값이
+ * 셋이 되어 «이 사람 이 보스에서 얼마?»라는 물음에 답이 흐려진다. 조합을 견주는 일은
+ * 계산기 탭의 5덱 모드가 하는 일이다.
+ */
+export const DECK_SLOTS = 1;
 
 /**
  * 명단을 뜨는 한 줄. 유니온 스퀘어에 **로그인한 채로** 콘솔에 붙여넣으면
@@ -1571,7 +1611,26 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       head.append(toggle, name, el('span', 'union-boss-summary', battleSummary(boss)));
       card.append(head);
 
+      // 속성 고르개. 회차마다 실제로 바뀌는 것이 이것이고, 이것만 고르면 전투 조건이 선다.
       const codeRow = el('div', 'union-code-row');
+      const pickCode = el('label', 'union-boss-code');
+      pickCode.append(el('span', undefined, '屬性'));
+      const codeSelect = document.createElement('select');
+      for (const value of BOSS_CODES) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value ? termZh(value) : '無屬性';
+        codeSelect.append(option);
+      }
+      codeSelect.value = boss.battle?.enemyCode ?? '';
+      codeSelect.addEventListener('change', () => {
+        const next = bossCodeForElement(codeSelect.value as ElementCode, deps.settings.normalHitCoeff);
+        bosses[index] = { ...readBossCode({ ...boss, code: next }), decks: boss.decks };
+        renderBosses();
+      });
+      pickCode.append(codeSelect);
+      codeRow.append(pickCode);
+
       const code = document.createElement('input');
       code.type = 'text';
       code.className = 'union-code';
@@ -1680,7 +1739,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
   const battleSummary = (boss: BossSlot): string => {
     if (!boss.battle) return '無條件';
-    const parts = [`${boss.battle.duration}秒`, boss.battle.enemyCode || '無屬性',
+    const parts = [`${boss.battle.duration}秒`,
+      boss.battle.enemyCode ? termZh(boss.battle.enemyCode) : '無屬性',
       `防禦 ${DAMAGE.format(boss.battle.enemyDef)}`];
     const decks = boss.decks.filter((deck) => deck.squad).length;
     parts.push(decks > 0 ? `${decks} 隊` : '無隊伍');
@@ -1695,18 +1755,40 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   const reportBox = pick(panel, '[data-union-report]');
   const gridBox = pick(panel, '[data-union-grid]');
 
+  /**
+   * 무엇이 모자라 못 도는지 한 줄로.
+   *
+   * 예전에는 돌릴 것이 없으면 실행 자리를 **통째로 감췄다**. 편성만 짜 둔 사람은 화면에서
+   * 실행 단추가 사라진 것만 보고 무엇이 모자란지 알 길이 없었다(실제 제보). 자리는 늘
+   * 두고, 모자란 것을 짚어 말한다.
+   */
+  function missingReason(): string {
+    if (members.length === 0) return '先在上面匯入成員資料。';
+    const picked = members.filter((row) => row.picked && row.state === 'public');
+    if (picked.length === 0) return '還沒選取任何成員 — 請在上面的名單勾選。';
+    const on = bosses.filter((boss) => boss.enabled);
+    if (on.length === 0) return '所有王都被取消勾選了。';
+    const noBattle = on.filter((boss) => !boss.battle).length;
+    const noDeck = on.filter((boss) => boss.battle && !boss.decks.some((deck) => deck.squad)).length;
+    if (noBattle > 0 && noDeck > 0) return `有 ${noBattle} 個王沒設屬性、${noDeck} 個王沒排隊伍。`;
+    if (noBattle > 0) return `有 ${noBattle} 個王還沒設屬性 — 在王的「屬性」下拉選單選一個。`;
+    if (noDeck > 0) return `有 ${noDeck} 個王還沒排隊伍 — 點王底下的空格放入妮姬。`;
+    return '沒有可執行的組合。';
+  }
+
   function refreshRunGate(): void {
     const jobs = buildJobs(members, bosses);
     const ready = jobs.length > 0 && !running;
     runButton.disabled = !ready;
-    showStep('4', jobs.length > 0 || results.length > 0);
+    // 자리는 명단이 들어온 뒤로 늘 보인다 — 모자란 것을 말해 주려면 보여야 한다.
+    showStep('4', members.length > 0 || results.length > 0);
     if (!running) {
       const people = new Set(jobs.map((job) => job.member.openid)).size;
       runStatus.textContent = jobs.length === 0
-        ? (personal ? '要先填好王與隊伍才能執行。' : '要有選取的聯盟成員與王・隊伍才能執行。')
+        ? (personal ? '要先填好王與隊伍才能執行。' : missingReason())
         : (personal
           ? `將執行 ${jobs.length} 盤 — 等於王・隊伍的組合數。`
-          : `將執行 ${jobs.length} 盤 — 聯盟成員 ${people} 人 × 王・隊伍。`);
+          : `將執行 ${jobs.length} 盤 — 聯盟成員 ${people} 人 × 王。`);
     }
   }
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildGrid, buildJobs, deckForMember, estimateScanSeconds, gridToCsv, groupResults, humanSeconds,
+  bossCodeForElement, buildGrid, buildJobs, deckForMember, estimateScanSeconds, gridToCsv,
+  groupResults, humanSeconds,
   DIRECT_SNIPPET, MEMBER_SNIPPET, parseDirectScan, parseMemberList, readBossCode, readDeckCode,
   readUnionCode, remainingSeconds, unionCodeOf, unionShareOf,
 } from './union-raid';
@@ -307,9 +308,10 @@ describe('유니온 판 코드 (NK4)', () => {
     expect(back[0]!.name).toBe('작열 글러트니');
     expect(back[0]!.enabled).toBe(true);
     expect(back[0]!.battle?.enemyCode).toBe('작열');
+    // 보스마다 덱은 하나다. 코드에 여럿이 들어 있어도 첫 칸만 편다 —
+    // 배정표의 한 칸에 값이 여럿이면 «이 사람 이 보스에서 얼마?»의 답이 흐려진다.
+    expect(back[0]!.decks).toHaveLength(1);
     expect(back[0]!.decks[0]!.squad?.slice(0, 2)).toEqual(['리타', '라피']);
-    expect(back[0]!.decks[1]!.squad?.slice(0, 2)).toEqual(['크라운', '앨리스']);
-    expect(back[0]!.decks[2]!.squad).toBeUndefined();
 
     expect(back[1]!.name).toBe('전격 기차');
     expect(back[1]!.enabled).toBe(false);        // 꺼 둔 보스는 꺼진 채로 온다
@@ -320,7 +322,7 @@ describe('유니온 판 코드 (NK4)', () => {
     const back = readUnionCode(unionCodeOf(board()), NAMES);
     expect(back[2]!.enabled).toBe(false);
     expect(back[2]!.name).toBe('');
-    expect(back[2]!.decks).toHaveLength(3);
+    expect(back[2]!.decks).toHaveLength(1);
     expect(back[4]!.enabled).toBe(false);
   });
 
@@ -332,14 +334,16 @@ describe('유니온 판 코드 (NK4)', () => {
     expect(Object.keys(share)).toEqual(['bosses']);
   });
 
-  it('덱 칸은 언제나 셋으로 채워 온다 — 코드에 하나만 들었어도', () => {
-    const one = unionCodeOf([{
+  it('덱 칸이 여럿 든 옛 코드도 첫 덱만 펴서 읽는다', () => {
+    // 덱 셋이던 시절의 판 코드가 유니온방에 돌아다닌다. 거절하지 않고 받아 준다.
+    const many = unionCodeOf([{
       name: '수냉 니힐', code: encodeBattleCode(battle), enabled: true,
-      decks: [{ code: deckCode(['리타', '', '', '', '']) }],
+      decks: [{ code: deckCode(['리타', '', '', '', '']) },
+        { code: deckCode(['앨리스', '', '', '', '']) }, { code: '' }],
     }]);
-    const back = readUnionCode(one, NAMES);
-    expect(back[0]!.decks).toHaveLength(3);
-    expect(back[0]!.decks[1]!.code).toBe('');
+    const back = readUnionCode(many, NAMES);
+    expect(back[0]!.decks).toHaveLength(1);
+    expect(back[0]!.decks[0]!.squad?.[0]).toBe('리타');
   });
 
   it('종류가 다른 코드는 거절한다', () => {
@@ -423,5 +427,26 @@ describe('배정표 내려받기', () => {
 
   it('쉼표가 든 이름을 따옴표로 감싼다', () => {
     expect(gridToCsv(grid())).toContain('"나, 쉼표"');
+  });
+});
+
+describe('속성만 골라 전투 조건 세우기', () => {
+  it('고른 속성이 그대로 조건에 선다', () => {
+    // 조건을 세우는 길이 «NK3 코드 붙여넣기»뿐이면, 편성만 짜 둔 사람은 실행 자리가
+    // 사라진 것만 보고 무엇이 모자란지 알 수 없다.
+    for (const element of ['전격', '수냉', '작열', '풍압', '철갑'] as const) {
+      const slot = readBossCode({ name: '', code: bossCodeForElement(element), enabled: true, decks: [] });
+      expect(slot.battle?.enemyCode).toBe(element);
+      // 유니온 레이드는 90초다. 계산기 기본값(180초)이 새면 딜이 두 배로 나온다.
+      expect(slot.battle?.duration).toBe(90);
+      expect(slot.error).toBeUndefined();
+    }
+  });
+
+  it('무속성도 쓸 수 있는 조건이 된다 — 코드가 비면 돌릴 것이 없다', () => {
+    const slot = readBossCode({ name: '', code: bossCodeForElement(''), enabled: true, decks: [] });
+    expect(slot.battle).toBeDefined();
+    expect(slot.battle?.enemyCode).toBe('');
+    expect(slot.battle?.duration).toBe(90);
   });
 });

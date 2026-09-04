@@ -1215,6 +1215,11 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 }
 
 /* 직접 긁기 — 기본 길은 서버 스캔이라, 접어 두고 필요한 사람만 편다. */
+.union-boss-code { display: inline-flex; align-items: center; gap: 6px; margin-right: 8px; }
+.union-boss-code > span { color: var(--muted); font-size: 11px; }
+.union-boss-code select { padding: 5px 8px; background: rgba(3,9,16,.7); border: 1px solid var(--line);
+  border-radius: 6px; color: var(--ink); font: inherit; font-size: 12px; }
+
 /* 分配表 — 列是人、欄是王。公會排班表照這張抄。 */
 .union-grid-box { margin: 12px 0; }
 .union-grid-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
