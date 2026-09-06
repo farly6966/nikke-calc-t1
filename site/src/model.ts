@@ -35,6 +35,7 @@ export function normalizeRequest(request: SimulationRequest): SimulationRequest 
   const customForSquad = pickCustomForSquad(request.customCharacters, squad);
   return {
     squad,
+    ...(request.strictNoBurst ? { strictNoBurst: true } : {}),
     ...(Object.keys(characters).length > 0 ? { characters } : {}),
     ...(customForSquad ? { customCharacters: customForSquad } : {}),
     duration: Math.trunc(request.duration),
@@ -266,6 +267,7 @@ export function requestForDeck(
     burstReaction: battle.burstReaction,
     // 편성이 바뀌었으면 없는 이름을 떨궈서 싣는다 — 조용히 틀린 순서로 돌지 않게.
     ...(sequenceForDeck(deck) ? { burstSequence: sequenceForDeck(deck)! } : {}),
+    ...(deck.strictNoBurst ? { strictNoBurst: true } : {}),
   });
 }
 

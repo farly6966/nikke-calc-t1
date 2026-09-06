@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import type { StorageLike } from './cache';
 import { LATEST_NOTICE_ID } from './notices';
 import { mountCalculator, type CalculatorClientLike } from './ui';
-import { decodeBattleCode, encodeBattleCode } from './share-code';
+import { decodeBattleCode, encodeBattleCode, encodeShareCode } from './share-code';
+import { encodeUnionDraft } from './union-raid';
 import './styles.css';
 import type {
   CharacterMeta,
@@ -541,6 +542,139 @@ describe('calculator UI', () => {
     // 명단이 담기지 않는다는 사실은 화면에 적혀 있어야 한다 — 남의 계정 정보다.
     const step = root.querySelector<HTMLElement>('[data-union-step="3"]')!;
     expect(step.textContent).toContain('聯盟成員名單不會被包含');
+  });
+
+  function seedUnionDraft(fourJobs = false): void {
+    const code = encodeShareCode([{ id: 1, squad: names.slice(0, 5), characters: {} }], false);
+    localStorage.setItem('nikke-union-board-v1', encodeUnionDraft(Array.from({ length: 6 }, (_, index) => ({
+      name: `Test ${index + 1}`, code: 'NK3-eyJlYyI6M30', enabled: index === 0 || (fourJobs && index === 1),
+      decks: Array.from({ length: 3 }, (_, deckIndex) => ({
+        code: deckIndex === 0 || (fourJobs && index === 0) ? code : '',
+      })),
+    }))));
+  }
+
+  it('discards an in-flight union result when its squad changes', async () => {
+    seedUnionDraft();
+    const client = new FakeClient();
+    let finish!: (result: SimulationResult) => void;
+    vi.spyOn(client, 'simulate').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await flush();
+    expect(finish).toBeTypeOf('function');
+    root.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
+    finish(calculated);
+    await flush();
+    expect(root.querySelector('[data-union-report]')!.textContent).not.toContain('123,456');
+    expect(root.querySelector('[data-union-run-status]')!.textContent).toContain('舊模擬已作廢');
+    expect(root.querySelector<HTMLButtonElement>('[data-union-run]')!.disabled).toBe(false);
+  });
+
+  it('sends per-round union choices to the engine and preserves them through team exchange and reload', async () => {
+    seedUnionDraft();
+    const client = new FakeClient();
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    const picker = root.querySelector<HTMLSelectElement>('.union-burst-editor [aria-label="第 1 輪 B3"]')!;
+    picker.value = '앨리스'; picker.dispatchEvent(new Event('change'));
+    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    expect(stored()[0].decks[0].burstSequence[0]['3']).toEqual(['앨리스']);
+    [...root.querySelectorAll<HTMLButtonElement>('.union-deck-tools button')].find(button => button.textContent === '與第 2 隊交換')!.click();
+    expect(stored()[0].decks[1].burstSequence[0]['3']).toEqual(['앨리스']);
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await flush();
+    expect(client.lastRequest?.burstSequence?.[0]).toEqual({ '1': ['리타'], '2': ['크라운', '나가'], '3': ['앨리스'] });
+    root.replaceChildren();
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    expect(root.querySelectorAll<HTMLSelectElement>('.union-burst-editor [aria-label="第 1 輪 B3"]')[0]!.value).toBe('앨리스');
+  });
+
+  it('generates owned SSR squads through the UI and keeps imported stats and permanent bans', async () => {
+    seedUnionDraft();
+    const roster = Object.fromEntries(names.map(name => [name, { growthStage: 2 }]));
+    localStorage.setItem('nikke-roster-v1', JSON.stringify(roster));
+    const client = new FakeClient();
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    const ban = root.querySelector<HTMLInputElement>('[aria-label="禁止爆裂：나가"]')!;
+    ban.checked = true; ban.dispatchEvent(new Event('change'));
+    expect(JSON.parse(localStorage.getItem('nikke-union-board-v1')!)[0].decks[0].noBurst).toEqual(['나가']);
+    root.querySelector<HTMLInputElement>('[aria-label="每個王搜尋盤數"]')!.value = '10';
+    root.querySelector<HTMLButtonElement>('.union-auto-search button')!.click();
+    await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('本輪搜尋完成'), { timeout: 8000 });
+    expect(client.requests).toHaveLength(10);
+    expect(client.requests[0]!.strictNoBurst).toBe(true);
+    expect(client.requests[0]!.characters?.['나가']?.burst).toEqual({ mode: 'skip' });
+    for (const request of client.requests) {
+      expect(request.squad).toHaveLength(5);
+      expect(request.squad.every(name => names.includes(name))).toBe(true);
+      expect(Object.values(request.characters ?? {}).every(c => c.growthStage === 2)).toBe(true);
+    }
+    expect(JSON.parse(localStorage.getItem('nikke-roster-v1')!)).toEqual(roster);
+    expect([...root.querySelectorAll<HTMLInputElement>('[aria-label^="納入三刀："]')].filter(c => c.checked)).toHaveLength(1);
+  });
+
+  it('stops automatic generation after the active simulation and retains the completed candidate', async () => {
+    seedUnionDraft();
+    localStorage.setItem('nikke-roster-v1', JSON.stringify(Object.fromEntries(names.map(name => [name, {}]))));
+    const client = new FakeClient();
+    let finish!: (result: SimulationResult) => void;
+    vi.spyOn(client, 'simulate').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    const buttons = root.querySelectorAll<HTMLButtonElement>('.union-auto-search button');
+    buttons[0]!.click(); await flush();
+    expect(finish).toBeTypeOf('function');
+    buttons[1]!.click(); finish(calculated);
+    await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('已停止'));
+    expect(client.simulate).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('[data-union-report]')!.textContent).toContain('123,456');
+    expect(buttons[0]!.disabled).toBe(false);
+  });
+
+  it('enables automatic planning after simulation and selects the best conflict-free result', async () => {
+    seedUnionDraft(true);
+    const client = new FakeClient();
+    let damage = 0;
+    vi.spyOn(client, 'simulate').mockImplementation(async () => ({ ...calculated, squadTotal: ++damage * 100 }));
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await flush(); await flush();
+    const optimize = [...root.querySelectorAll<HTMLButtonElement>('[data-union-report] button')].find(button => button.textContent === '自動選擇最佳三刀')!;
+    expect(optimize.disabled).toBe(false); optimize.click();
+    const checked = [...root.querySelectorAll<HTMLInputElement>('[aria-label^="納入三刀："]')].filter(input => input.checked);
+    expect(checked).toHaveLength(1);
+    expect(checked[0]!.ariaLabel).toContain('Test 2');
+    expect(root.querySelector('[data-union-report] .union-status')!.textContent).toContain('合計 400');
+  });
+
+  it('keeps three-shot selections as later results arrive and refuses a fourth shot', async () => {
+    seedUnionDraft(true);
+    const client = new FakeClient();
+    const pending: Array<(result: SimulationResult) => void> = [];
+    vi.spyOn(client, 'simulate').mockImplementation(() => new Promise(resolve => { pending.push(resolve); }));
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await flush();
+    pending.shift()!(calculated);
+    await flush();
+    const selection = () => [...root.querySelectorAll<HTMLInputElement>('[aria-label^="納入三刀："]')];
+    expect(selection()).toHaveLength(1);
+    selection()[0]!.click();
+    for (let index = 0; index < 3; index++) {
+      pending.shift()!(calculated);
+      await flush();
+    }
+    expect(selection()).toHaveLength(4);
+    expect(selection()[0]!.checked).toBe(true);
+    selection()[1]!.click(); selection()[2]!.click(); selection()[3]!.click();
+    expect(selection().filter(input => input.checked)).toHaveLength(3);
+    expect(selection()[3]!.checked).toBe(false);
+    expect(root.querySelector('[data-union-report]')!.textContent).toContain('角色重複');
   });
 
   // 자체 서버를 두지 않은 배포(이 fork)에서는 프록시 주소가 비어 있다. 예전에는 그때

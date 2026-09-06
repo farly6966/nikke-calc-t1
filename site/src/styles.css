@@ -1252,6 +1252,8 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
   cursor: pointer; text-align: center; background: rgba(7,15,25,.6);
   border: 1px solid var(--line); border-radius: 9px; color: inherit; font: inherit; }
 .union-slot-pick:hover { border-color: rgba(69,214,208,.55); }
+.union-slot.is-dragging .union-slot-pick { opacity: .48; }
+.union-slot.is-drop .union-slot-pick { border-color: var(--cyan); background: rgba(69,214,208,.14); }
 .union-slot.is-aiming .union-slot-pick { border-color: var(--cyan); background: rgba(69,214,208,.1); }
 .union-slot.is-empty .union-slot-pick { border-style: dashed; }
 .union-slot-pick .roster-portrait { aspect-ratio: 1; }
@@ -1261,6 +1263,20 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
   padding: 0; cursor: pointer; background: rgba(2,6,12,.9); border: 1px solid var(--line);
   border-radius: 50%; color: var(--muted); font: 700 10px inherit; }
 .union-slot-clear:hover { color: #ff9c8a; border-color: rgba(255,120,100,.6); }
+.union-slot-move { width: 44px; min-height: 44px; max-width: 50%; padding: 0;
+  cursor: pointer; background: rgba(2,6,12,.9); border: 1px solid var(--line); border-radius: 50%;
+  color: var(--muted); font-family: inherit; font-size: 20px; font-weight: 700; }
+.union-slot-move:hover { color: var(--cyan); border-color: rgba(69,214,208,.6); }
+.union-slot-move:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.union-burst-cycle { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; }
+.union-burst-cycle label { display: grid; gap: 4px; min-width: 0; flex: 1 1 100px; }
+.union-burst-cycle select { width: 100%; min-width: 0; min-height: 44px; }
+@media (max-width: 560px) {
+  .union-slots { grid-template-columns: repeat(auto-fit, minmax(94px, 1fr)); gap: 10px; }
+  .union-slot-pick { min-height: 140px; }
+  .union-slot-pick strong { font-size: 12px; }
+  .union-slot-move { max-width: none; }
+}
 .union-deck-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .union-deck-code { margin-top: 6px; }
 .union-deck-code > summary { cursor: pointer; color: var(--muted); font-size: 11px; }
@@ -1538,3 +1554,6 @@ details.union-source[open] > summary { margin-bottom: 8px; }
   .burst-slot-stage { font-size: 9px; }
   .burst-slot-face { width: 24px; height: 24px; }
 }
+.union-auto-search > label { display: block; margin: 0.7rem 0; }
+.union-auto-search > label > select { display: block; width: min(100%, 28rem); }
+.union-auto-search > select { max-width: 100%; }

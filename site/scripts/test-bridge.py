@@ -322,6 +322,23 @@ class BrowserBridgeTest(unittest.TestCase):
         # 그래도 전투는 돌아간다 — 다른 캐릭터는 계속 버스트를 쓴다.
         self.assertTrue(skipped["timeline"]["bursts"]["나가"])
 
+    def test_union_strict_ban_survives_manual_sequence_and_auto_fallback(self):
+        base = {
+            "squad": ["리타", "크라운", "라피 : 레드 후드", "앨리스", "나가"],
+            "duration": 90, "enemyDef": 31784, "enemyCode": "", "corePx": 0,
+            "hasParts": False, "seed": 42,
+            "characters": {"크라운": {"burst": {"mode": "skip"}}},
+            "burstSequence": [{"1": ["리타"], "2": ["나가"], "3": ["앨리스"]}],
+        }
+        legacy = json.loads(run_request(json.dumps(base, ensure_ascii=False)))
+        strict = json.loads(run_request(json.dumps({**base, "strictNoBurst": True}, ensure_ascii=False)))
+        self.assertTrue(legacy["timeline"]["bursts"]["크라운"])
+        self.assertEqual(strict["timeline"]["bursts"]["크라운"], [])
+        self.assertGreater(len(strict["timeline"]["bursts"]["나가"]), 1)
+        base["burstSequence"][0]["2"] = ["크라운"]
+        forced = json.loads(run_request(json.dumps({**base, "strictNoBurst": True}, ensure_ascii=False)))
+        self.assertEqual(forced["timeline"]["bursts"]["크라운"], [])
+
     def test_no_cube_drops_both_its_stats_and_its_effect(self):
         """「없음」은 큐브를 안 낀 상태다 — 스탯도, 우월 코드 효과도 붙지 않는다."""
         base = {

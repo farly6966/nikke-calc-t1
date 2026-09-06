@@ -20,9 +20,14 @@ import {
   decodeBattleCode, decodeShareCode, decodeUnionCode, encodeBattleCode, encodeShareCode,
   encodeUnionCode, type UnionShare,
 } from './share-code';
+import type { BurstSequence } from './burst-order';
+import { cleanUnionSequence, createUnionBurstEditor, cleanNoBurst, applyUnionBurst } from './union-burst';
+import { bestThreeShots } from './union-planning';
+import { ownedSSR, searchSquads } from './union-search';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
 import { UnionSquadPicker } from './union-squad';
+import { createTimelineBlock } from './timeline';
 import { termZh } from './i18n-terms';
 import type { BattleSettings, DeckState, ElementCode, SimulationResult } from './types';
 
@@ -70,9 +75,43 @@ export interface BossSlot {
 
 /** 덱 한 칸. 니케 이름 다섯만 쓴다 — 수치는 유니온원 각자의 것을 쓴다. */
 export interface DeckSlot {
+  noBurst?: string[];
   code: string;
   squad?: string[];
   error?: string;
+  cycle?: Pick<BattleSettings, 'burstReaction' | 'burstRegenTime'>;
+  burstSequence?: BurstSequence;
+}
+
+/** Local board draft only: never store imported account data or credentials. */
+export function encodeUnionDraft(bosses: BossSlot[]): string {
+  return JSON.stringify(bosses.map(boss => ({
+    name: boss.name, code: boss.code, enabled: boss.enabled,
+    decks: boss.decks.map(deck => ({ code: deck.code, cycle: deck.cycle ? {
+      burstReaction: deck.cycle.burstReaction, burstRegenTime: deck.cycle.burstRegenTime,
+    } : undefined, burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad ?? []), noBurst: cleanNoBurst(deck.noBurst, deck.squad ?? []) })),
+  })));
+}
+
+export function decodeUnionDraft(text: string, names: string[]): BossSlot[] {
+  const raw = JSON.parse(text);
+  if (!Array.isArray(raw) || raw.length !== BOSS_SLOTS) throw new Error('盤面草稿格式錯誤');
+  return raw.map(item => {
+    if (!item || typeof item.name !== 'string' || typeof item.code !== 'string'
+      || typeof item.enabled !== 'boolean' || !Array.isArray(item.decks)) throw new Error('盤面草稿格式錯誤');
+    const decks = Array.from({ length: DECK_SLOTS }, (_, index) => {
+      const value = item.decks[index];
+      const deck = readDeckCode({ code: typeof value?.code === 'string' ? value.code : '' }, names);
+      deck.burstSequence = cleanUnionSequence(value?.burstSequence, deck.squad ?? []);
+      deck.noBurst = cleanNoBurst(value?.noBurst, deck.squad ?? []);
+      if (value?.cycle && ['burstReaction', 'burstRegenTime'].every(key =>
+        typeof value.cycle[key] === 'number' && Number.isFinite(value.cycle[key]) && value.cycle[key] >= 0 && value.cycle[key] <= 180)) {
+        deck.cycle = { burstReaction: value.cycle.burstReaction, burstRegenTime: value.cycle.burstRegenTime };
+      }
+      return deck;
+    });
+    return readBossCode({ name: item.name, code: item.code, enabled: item.enabled, decks });
+  });
 }
 
 /**
@@ -169,7 +208,7 @@ export function bossCodeForShape(
  * 셋이 되어 «이 사람 이 보스에서 얼마?»라는 물음에 답이 흐려진다. 조합을 견주는 일은
  * 계산기 탭의 5덱 모드가 하는 일이다.
  */
-export const DECK_SLOTS = 1;
+export const DECK_SLOTS = 3;
 
 /**
  * 명단을 뜨는 한 줄. 유니온 스퀘어에 **로그인한 채로** 콘솔에 붙여넣으면
@@ -505,7 +544,7 @@ export function readDeckCode(slot: DeckSlot, catalogNames: string[]): DeckSlot {
     const squad = (payload.decks[0]?.squad ?? []).map((name) => name.trim());
     const filled = squad.filter(Boolean);
     if (filled.length === 0) return { ...slot, squad: undefined, error: '代碼裡沒有妮姬。' };
-    return { ...slot, squad, error: undefined };
+    return { ...slot, squad, noBurst: cleanNoBurst(slot.noBurst, squad), burstSequence: cleanUnionSequence(slot.burstSequence, squad), error: undefined };
   } catch (error) {
     return { ...slot, squad: undefined, error: error instanceof Error ? error.message : String(error) };
   }
@@ -570,12 +609,14 @@ export function readUnionCode(
 
 /** 시뮬레이션 한 칸. 유니온원 × 보스 × 덱. */
 export interface Job {
+  noBurst?: string[];
   member: MemberRow;
   bossIndex: number;
   bossName: string;
   deckIndex: number;
   squad: string[];
   battle: BattleSettings;
+  burstSequence?: BurstSequence;
 }
 
 /**
@@ -598,7 +639,9 @@ export function buildJobs(members: MemberRow[], bosses: BossSlot[]): Job[] {
           bossName: boss.name.trim() || `王 ${bossIndex + 1}`,
           deckIndex,
           squad: deck.squad,
-          battle: boss.battle!,
+          burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad),
+          noBurst: cleanNoBurst(deck.noBurst, deck.squad),
+          battle: { ...boss.battle!, ...deck.cycle, ...(deck.cycle ? { burstRegenPerDeck: undefined } : {}) },
         });
       });
     });
@@ -610,6 +653,7 @@ export function buildJobs(members: MemberRow[], bosses: BossSlot[]): Job[] {
 export interface JobResult {
   job: Job;
   damage?: number;
+  detail?: { deckId: number; request: ReturnType<typeof requestForDeck>; result: SimulationResult };
   /** 못 돌렸을 때: 미보유 니케 이름들, 또는 오류 한 줄. */
   missing?: string[];
   error?: string;
@@ -781,7 +825,7 @@ export type Simulate = (squad: string[], characters: DeckState['characters'],
 
 import { areaToOverrides, consoleFrom, emptyConsole, pickArea } from './blablalink';
 import type { RawProfile } from './blablalink';
-import { requestForDeck } from './model';
+import { requestForDeck, normalizeRequest } from './model';
 import { mountSharePanel, squadPreview, type SharePanel } from './share-panel';
 import { summarizeBattle, summarizeSquad, summarizeUnion, type ShareItem, type ShareKind, type ShareServer } from './share-server';
 import type { CharacterMeta, CharacterOverrides, SettingsCatalog } from './types';
@@ -803,6 +847,7 @@ export interface UnionDeps {
   currentBattleCode: () => string;
   /** 지금 계산기 덱 하나를 코드로. 인자는 0부터. */
   currentDeckCode: (index: number) => string;
+  currentDeckSequence?: (index: number) => BurstSequence | undefined;
   /** 계산기가 아는 니케 이름 전부 — 조합 코드 해석에 쓴다. */
   catalogNames: () => string[];
   /**
@@ -869,6 +914,26 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     decks: Array.from({ length: DECK_SLOTS }, () => ({ code: '' } as DeckSlot)),
   }));
   let results: JobResult[] = [];
+  const planSelections = new Set<JobResult>();
+  const draftKey = 'nikke-union-board-v1';
+  try {
+    const saved = localStorage.getItem(draftKey);
+    if (saved) bosses = decodeUnionDraft(saved, deps.catalogNames());
+  } catch { /* Invalid or unavailable storage must not prevent opening the editor. */ }
+  let resultBoard = '';
+  let resultsInvalidated = false;
+  const boardState = () => encodeUnionDraft(bosses);
+  const invalidateResults = () => {
+    try { localStorage.setItem(draftKey, boardState()); } catch { /* Storage can be unavailable. */ }
+    if ((results.length || running) && resultBoard !== boardState()) {
+      resultsInvalidated = true;
+      if (running) cancelled = true;
+      results = [];
+      planSelections.clear();
+      renderReport();
+      runStatus.textContent = '編成或條件已變更，請重新執行模擬。';
+    }
+  };
   let running = false;
   let cancelled = false;
 
@@ -902,6 +967,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     rosters = new Map([['me', me.roster]]);
     consoles = new Map([['me', me.console]]);
     results = [];
+    planSelections.clear();
   };
 
   const setMode = (next: boolean) => {
@@ -1623,6 +1689,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   }
 
   function renderBosses(): void {
+    invalidateResults();
     bossBox.replaceChildren();
     bosses.forEach((boss, index) => {
       const card = el('div', 'union-boss');
@@ -1645,6 +1712,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       name.value = boss.name;
       name.addEventListener('input', () => {
         boss.name = name.value;
+        invalidateResults();
         refreshRunGate();
         for (const chip of memberBox.querySelectorAll<HTMLElement>('.union-boss-chip')) {
           const at = Number(chip.querySelector<HTMLInputElement>('[data-union-boss-pick]')?.dataset.unionBossPick);
@@ -1766,18 +1834,74 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
           const filled = squad.filter(Boolean);
           boss.decks[deckIndex] = filled.length > 0
             ? readDeckCode({ code: encodeShareCode(
-              [{ id: 1, squad: [...squad], characters: {} } as DeckState], false) },
+              [{ id: 1, squad: [...squad], characters: {} } as DeckState], false), cycle: deck.cycle, burstSequence: deck.burstSequence, noBurst: deck.noBurst },
             deps.catalogNames())
             : { code: '', squad: undefined, error: undefined };
           renderBosses();
         });
 
         const tools = el('div', 'union-deck-tools');
+        const cycle = el('details', 'union-deck-code');
+        cycle.append(el('summary', undefined, '爆裂循環'));
+        for (const [field, label] of [
+          ['burstReaction', '每階段爆裂反應（秒）'],
+          ['burstRegenTime', '全爆裂後充能（秒）'],
+        ] as const) {
+          const wrap = el('label', 'union-boss-code', label);
+          const input = el('input', 'union-boss-num');
+          input.type = 'number'; input.min = '0'; input.max = '180'; input.step = '0.1';
+          input.value = String(deck.cycle?.[field] ?? boss.battle?.[field] ?? (field === 'burstReaction' ? 0.1 : 2));
+          input.addEventListener('input', () => {
+            const value = Number(input.value);
+            if (!Number.isFinite(value) || value < 0 || value > 180) { input.reportValidity(); return; }
+            deck.cycle = {
+              burstReaction: deck.cycle?.burstReaction ?? boss.battle?.burstReaction ?? 0.1,
+              burstRegenTime: deck.cycle?.burstRegenTime ?? boss.battle?.burstRegenTime ?? 2,
+              [field]: value,
+            };
+            invalidateResults();
+          });
+          wrap.append(input); cycle.append(wrap);
+        }
+        cycle.append(el('p', 'field-note', '循環設定會隨盤面保存在此瀏覽器；NK2／NK4 分享碼仍只攜帶編成與王條件。'));
+        row.append(cycle);
+        const skipBox = el('details', 'union-deck-code');
+        skipBox.append(el('summary', undefined, '禁止爆裂（仍提供被動技能）'));
+        for (const name of (deck.squad ?? []).filter(Boolean)) {
+          const label = el('label', undefined, deps.labelOf(name));
+          const check = el('input'); check.type = 'checkbox'; check.ariaLabel = `禁止爆裂：${deps.labelOf(name)}`;
+          check.checked = deck.noBurst?.includes(name) ?? false;
+          check.addEventListener('change', () => {
+            deck.noBurst = cleanNoBurst(check.checked ? [...(deck.noBurst ?? []), name] : (deck.noBurst ?? []).filter(n => n !== name), deck.squad ?? []);
+            renderBosses();
+          });
+          label.prepend(check); skipBox.append(label);
+        }
+        skipBox.append(el('p', 'field-note', '僅保存在本機盤面，不包含在分享碼；若禁用必要階段，可能無法進入全爆裂。'));
+        row.append(skipBox);
+        row.append(createUnionBurstEditor({
+          squad: deck.squad ?? [], sequence: deck.burstSequence, catalog: deps.catalog, noBurst: deck.noBurst,
+          duration: boss.battle?.duration ?? 180, labelOf: deps.labelOf,
+          onChange: sequence => { deck.burstSequence = sequence; invalidateResults(); refreshRunGate(); },
+        }));
+        for (const target of [-1, 1]) {
+          const to = deckIndex + target;
+          if (to < 0 || to >= boss.decks.length) continue;
+          const exchange = el('button', 'roster-import', `與第 ${to + 1} 隊交換`);
+          exchange.type = 'button';
+          exchange.addEventListener('click', () => {
+            picker.close();
+            [boss.decks[deckIndex], boss.decks[to]] = [boss.decks[to]!, boss.decks[deckIndex]!];
+            renderBosses();
+          });
+          tools.append(exchange);
+        }
         const take = el('button', 'roster-import', `帶入計算機第 ${deckIndex + 1} 隊`);
         (take as HTMLButtonElement).type = 'button';
         take.title = '直接帶入計算機裡目前排好的這一隊';
         take.addEventListener('click', () => {
-          boss.decks[deckIndex] = readDeckCode({ code: deps.currentDeckCode(deckIndex) }, deps.catalogNames());
+          boss.decks[deckIndex] = readDeckCode({ code: deps.currentDeckCode(deckIndex),
+            burstSequence: deps.currentDeckSequence?.(deckIndex) }, deps.catalogNames());
           renderBosses();
         });
         tools.append(take);
@@ -1840,6 +1964,27 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
   // ── 4단계 · 실행 ─────────────────────────────────────────────────────────
   const runButton = pick<HTMLButtonElement>(panel, '[data-union-run]');
+  const searchBox = el('details', 'union-deck-code union-auto-search');
+  searchBox.append(el('summary', undefined, '自動生成 SSR 隊伍與推薦三刀（試用）'));
+  searchBox.append(el('p', 'field-note', '只使用帳號持有、計算器支援的正式 SSR 與原有養成。每個啟用的王各搜尋指定盤數，實際模擬評分後跨王挑選不重複三刀。有限搜尋不保證全角色全域最優；不含血量、轉階段、出刀先後與操作極限。盤面既有隊伍會優先測試。'));
+  const searchMember = el('select'); searchMember.ariaLabel = '自動組隊帳號';
+  const searchBudget = el('input'); searchBudget.type = 'number'; searchBudget.min = '10'; searchBudget.max = '300'; searchBudget.step = '10'; searchBudget.value = '60'; searchBudget.ariaLabel = '每個王搜尋盤數';
+  const budgetLabel = el('label', undefined, '每個王搜尋盤數（10–300）'); budgetLabel.append(searchBudget);
+  const searchExclude = el('select'); searchExclude.multiple = true; searchExclude.size = 6; searchExclude.ariaLabel = '自動組隊排除角色';
+  const excludeLabel = el('label', undefined, '排除角色（可多選；不會自動排除冷門 SSR）'); excludeLabel.append(searchExclude);
+  const searchStart = el('button', 'roster-import', '開始生成並搜尋三刀'); searchStart.type = 'button';
+  const searchStop = el('button', 'roster-import', '停止搜尋並保留結果'); searchStop.type = 'button'; searchStop.hidden = true;
+  const searchStatus = el('p', 'union-status'); searchStatus.setAttribute('aria-live', 'polite');
+  searchBox.append(searchMember, budgetLabel, excludeLabel, searchStart, searchStop, searchStatus);
+  runButton.parentElement!.before(searchBox);
+  const refreshExclusions = () => {
+    const excluded = new Set([...searchExclude.selectedOptions].map(o => o.value));
+    searchExclude.replaceChildren();
+    for (const char of ownedSSR(deps.catalog, deps.settings, rosters.get(searchMember.value) ?? {})) {
+      const option = el('option', undefined, deps.labelOf(char.name)); option.value = char.name; option.selected = excluded.has(char.name); searchExclude.append(option);
+    }
+  };
+  searchMember.addEventListener('change', refreshExclusions);
   const runStop = pick<HTMLButtonElement>(panel, '[data-union-stop]');
   const runStatus = pick(panel, '[data-union-run-status]');
   const runBar = pick(panel, '[data-union-run-progress]');
@@ -1868,14 +2013,26 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   }
 
   function refreshRunGate(): void {
+    if (!running) {
+      const prior = searchMember.value;
+      searchMember.replaceChildren();
+      for (const member of members.filter(m => m.picked && m.state === 'public' && Object.keys(rosters.get(m.openid) ?? {}).length)) {
+        const option = el('option', undefined, member.name); option.value = member.openid; searchMember.append(option);
+      }
+      if ([...searchMember.options].some(o => o.value === prior)) searchMember.value = prior;
+      refreshExclusions();
+    }
+    searchStart.disabled = running || comparing || !searchMember.value || !bosses.some(b => b.enabled && b.battle);
     const jobs = buildJobs(members, bosses);
-    const ready = jobs.length > 0 && !running;
+    const ready = jobs.length > 0 && !running && !comparing;
     runButton.disabled = !ready;
     // 자리는 명단이 들어온 뒤로 늘 보인다 — 모자란 것을 말해 주려면 보여야 한다.
     showStep('4', members.length > 0 || results.length > 0);
     if (!running) {
       const people = new Set(jobs.map((job) => job.member.openid)).size;
-      runStatus.textContent = jobs.length === 0
+      runStatus.textContent = resultsInvalidated
+        ? '編成或條件已變更，請重新執行模擬。'
+        : jobs.length === 0
         ? (personal ? '要先填好王與隊伍才能執行。' : missingReason())
         : (personal
           ? `將執行 ${jobs.length} 盤 — 等於王・隊伍的組合數。`
@@ -1883,7 +2040,87 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     }
   }
 
+  let comparing = false;
+  searchStop.addEventListener('click', () => { cancelled = true; });
+  searchStart.addEventListener('click', () => { void runSearch(); });
+  async function runSearch(): Promise<void> {
+    if (running || comparing) return;
+    if (personal) { loadMe(); renderMembers(); }
+    const member = members.find(m => m.openid === searchMember.value);
+    if (!member) { searchStatus.textContent = '請先匯入有持有角色資料的帳號。'; return; }
+    const budget = Number(searchBudget.value);
+    if (!Number.isInteger(budget) || budget < 10 || budget > 300) { searchStatus.textContent = '每王盤數請輸入 10–300 的整數。'; return; }
+    const roster = structuredClone(rosters.get(member.openid) ?? {});
+    const pool = ownedSSR(deps.catalog, deps.settings, roster, [...searchExclude.selectedOptions].map(o => o.value));
+    if (pool.length < 5) { searchStatus.textContent = `可用 SSR 僅 ${pool.length} 位，至少需要 5 位。`; return; }
+    const targets = bosses.map((boss, index) => ({ boss: structuredClone(boss), index }))
+      .filter(({ boss, index }) => boss.enabled && boss.battle && member.bossPicks?.[index] !== false);
+    if (!targets.length) { searchStatus.textContent = '此帳號沒有啟用的王。'; return; }
+    // A new search must not recommend an old candidate containing an excluded/non-SSR unit.
+    const eligible = new Set(pool.map(c => c.name));
+    results = results.filter(row => row.job.member.openid !== member.openid || row.job.squad.every(name => eligible.has(name)));
+    for (const row of [...planSelections]) if (!results.includes(row)) planSelections.delete(row);
+    const accountState = () => JSON.stringify([members.find(m => m.openid === member.openid), rosters.get(member.openid), consoles.get(member.openid)]);
+    const accountSnapshot = accountState();
+    const memberSnapshot = structuredClone(member);
+    const consoleSnapshot = structuredClone(consoles.get(member.openid));
+    running = true; cancelled = false; resultsInvalidated = false; resultBoard = boardState();
+    searchStart.disabled = true; runButton.disabled = true; searchStop.hidden = false;
+    searchMember.disabled = searchBudget.disabled = searchExclude.disabled = true;
+    const current = () => !resultsInvalidated && resultBoard === boardState() && accountSnapshot === accountState();
+    let completed = 0, failures = 0;
+    const selectBest = () => {
+      for (const row of [...planSelections]) if (row.job.member.openid === member.openid) planSelections.delete(row);
+      for (const row of bestThreeShots(results.filter(r => r.job.member.openid === member.openid))) planSelections.add(row);
+    };
+    try {
+      for (const { boss, index } of targets) {
+        if (cancelled || !current()) break;
+        const base = completed, priorFailures = failures;
+        await searchSquads({ pool, budget, element: boss.battle!.enemyCode,
+          seeds: boss.decks.filter(d => d.squad?.filter(Boolean).length === 5).map(d => ({ squad: d.squad!, noBurst: d.noBurst, burstSequence: d.burstSequence, cycle: d.cycle })),
+          stopped: () => cancelled || !current(),
+          evaluate: async candidate => {
+            const { deck, missing } = deckForMember(candidate.squad, roster);
+            if (missing.length) throw new Error('缺少持有資料');
+            applyUnionBurst(deck, candidate.burstSequence, deps.catalog, candidate.noBurst);
+            const battle = { ...boss.battle!, ...candidate.cycle, ...(candidate.cycle ? { burstRegenPerDeck: undefined } : {}), synchroLevel: memberSnapshot.synchro > 0 ? memberSnapshot.synchro : boss.battle!.synchroLevel,
+              console: consoleSnapshot ?? boss.battle!.console };
+            const request = requestForDeck(deck, battle);
+            const result = await deps.simulate(request);
+            if (!current()) throw new Error('搜尋條件已變更');
+            if (!Number.isFinite(result.squadTotal) || result.squadTotal < 0) throw new Error('無效模擬結果');
+            const job: Job = { member: memberSnapshot, bossIndex: index, bossName: boss.name || `王 ${index + 1}`,
+              deckIndex: 3 + completed, battle, ...candidate };
+            results.push({ job, damage: result.squadTotal, detail: { deckId: 1, request, result } });
+            return result.squadTotal;
+          },
+          progress: (done, failed) => {
+            completed = base + done; failures = priorFailures + failed;
+            searchStatus.textContent = `${memberSnapshot.name} · ${boss.name || `王 ${index + 1}`} · 已測 ${completed}/${targets.length * budget} 盤 · 失敗 ${failures} · SSR 池 ${pool.length} 位`;
+            if (completed % 10 === 0 && current()) { selectBest(); renderReport(); }
+          },
+        });
+      }
+      if (!current()) {
+        results = []; planSelections.clear();
+        searchStatus.textContent = '帳號或條件已變更，舊搜尋結果已作廢，請重新搜尋。';
+      } else {
+        selectBest();
+        const best = bestThreeShots(results.filter(r => r.job.member.openid === member.openid));
+        searchStatus.textContent = `${cancelled ? '已停止，保留完成結果' : '本輪搜尋完成'} · 已測 ${completed} 盤，失敗 ${failures} · 找到 ${best.length}/3 刀，合計 ${DAMAGE.format(Math.round(best.reduce((sum, r) => sum + r.damage!, 0)))}。`
+          + (best.length < 3 ? '尚未找到三隊不重複候選；不代表帳號沒有三刀。可增加盤數或加入不同的種子隊伍。' : '已勾選本輪候選中的最佳三刀；不保證全域最優。');
+      }
+    } catch (error) {
+      searchStatus.textContent = `搜尋中斷：${error instanceof Error ? error.message : String(error)}；已完成結果保留。`;
+    } finally {
+      running = false; searchStop.hidden = true;
+      searchMember.disabled = searchBudget.disabled = searchExclude.disabled = false;
+      renderReport(); refreshRunGate();
+    }
+  }
   const runAll = async () => {
+    if (comparing) return;
     // 개인용은 돌리기 직전에 내 스펙을 다시 읽는다 — 그 사이 싱크로나 로스터를
     // 바꿨을 수 있고, 그때 화면에 적힌 값과 계산이 어긋나면 안 된다.
     if (personal) { loadMe(); renderMembers(); }
@@ -1894,6 +2131,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     runButton.disabled = true;
     runStop.hidden = false;
     results = [];
+    resultsInvalidated = false;
+    resultBoard = boardState();
     renderReport();
     const started = Date.now();
     let done = 0;
@@ -1901,7 +2140,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       const roster = rosters.get(job.member.openid) ?? {};
       const { deck, missing } = deckForMember(job.squad, roster, personal && !hasMyRoster());
       if (missing.length > 0) {
-        results.push({ job, missing });
+        if (!resultsInvalidated) results.push({ job, missing });
       } else {
         try {
           const battle: BattleSettings = {
@@ -1910,10 +2149,12 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             synchroLevel: job.member.synchro > 0 ? job.member.synchro : job.battle.synchroLevel,
             console: consoles.get(job.member.openid) ?? job.battle.console,
           };
-          const result = await deps.simulate(requestForDeck(deck, battle));
-          results.push({ job, damage: result.squadTotal });
+          applyUnionBurst(deck, job.burstSequence, deps.catalog, job.noBurst);
+          const request = requestForDeck(deck, battle);
+          const result = await deps.simulate(request);
+          if (!resultsInvalidated && resultBoard === boardState()) results.push({ job, damage: result.squadTotal, detail: { deckId: job.deckIndex + 1, request, result } });
         } catch (error) {
-          results.push({ job, error: lastLine(error instanceof Error ? error.message : String(error)) });
+          if (!resultsInvalidated) results.push({ job, error: lastLine(error instanceof Error ? error.message : String(error)) });
         }
       }
       done += 1;
@@ -1932,10 +2173,13 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     await Promise.all(Array.from({ length: Math.min(lanes, jobs.length) }, lane));
     running = false;
     runStop.hidden = true;
+    renderReport(); // Re-enable planning controls now that every lane has finished.
     runButton.disabled = false;
     // 문지기가 «몇 판을 돌립니다»로 되돌리기 전에 부르고, 마무리 문구를 마지막에 적는다.
     refreshRunGate();
-    runStatus.textContent = cancelled
+    runStatus.textContent = resultsInvalidated
+      ? '編成或條件已變更，舊模擬已作廢，請重新執行。'
+      : cancelled
       ? `已中止 (${results.length}/${jobs.length} 盤)。`
       : `${jobs.length} 盤已在 ${humanSeconds((Date.now() - started) / 1000)} 內完成。`;
   };
@@ -2027,21 +2271,144 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       head.append(el('b', 'union-report-name', report.member.name),
         el('span', 'union-report-sync', `同步器 ${report.member.synchro}`));
       card.append(head);
+      const selected = new Map<JobResult, HTMLInputElement>();
+      const plan = el('p', 'union-status', '三刀規劃：勾選最多 3 隊，檢查角色重複並合計傷害。');
+      card.append(plan);
+      const optimize = el('button', 'roster-import', '自動選擇最佳三刀'); optimize.type = 'button';
+      optimize.disabled = running;
+      const scope = el('p', 'field-note', '從此帳號已完成的五人候選隊伍，跨王精確挑選最多三刀、角色不得重複，以总傷害最大為準；可用上方「自動生成 SSR 隊伍」新增候選，不估算王血量、轉階段或出刀先後。');
+      optimize.addEventListener('click', () => {
+        if (running) return;
+        const best = new Set(bestThreeShots(report.bosses.flatMap(boss => boss.rows)));
+        for (const [row, checkbox] of selected) {
+          checkbox.checked = best.has(row);
+          if (checkbox.checked) planSelections.add(row); else planSelections.delete(row);
+        }
+        updatePlan();
+        plan.append(best.size === 0 ? ' · 沒有可用的完整五人結果。'
+          : best.size < 3 ? ' · 最佳方案不足三刀：新增不重複候選後可再搜尋。' : ' · 已選取候選中的最高總傷害方案。');
+      });
+      card.append(optimize, scope);
+      const updatePlan = () => {
+        const chosen = [...selected].filter(([, checkbox]) => checkbox.checked).map(([row]) => row);
+        const names = chosen.flatMap(row => row.job.squad.filter(Boolean));
+        const repeated = [...new Set(names.filter((name, index) => names.indexOf(name) !== index))];
+        plan.textContent = repeated.length
+          ? `角色重複，無法作為三刀編成：${repeated.map(deps.labelOf).join('、')}`
+          : `已選 ${chosen.length}/3 刀 · 合計 ${DAMAGE.format(Math.round(chosen.reduce((sum, row) => sum + (row.damage ?? 0), 0)))}`;
+      };
       for (const boss of report.bosses) {
         card.append(el('h4', 'union-report-boss', boss.name));
         for (const row of boss.rows) {
           const line = el('div', 'union-report-row');
           line.append(squadPreview([row.job.squad.filter(Boolean)], deps.imageOf, deps.labelOf));
+          if (row.job.noBurst?.length) line.append(el('span', 'field-note', `禁止爆裂：${row.job.noBurst.map(deps.labelOf).join('、')}`));
           if (row.damage !== undefined) {
             line.append(el('b', 'union-report-damage', DAMAGE.format(Math.round(row.damage))));
+            const choose = el('input'); choose.type = 'checkbox'; choose.ariaLabel = `納入三刀：${boss.name} 第 ${row.job.deckIndex + 1} 隊`;
+            choose.checked = planSelections.has(row);
+            selected.set(row, choose);
+            choose.addEventListener('change', () => {
+              if ([...selected.values()].filter(input => input.checked).length > 3) choose.checked = false;
+              if (choose.checked) planSelections.add(row); else planSelections.delete(row);
+              updatePlan();
+            });
+            line.append(choose);
           } else if (row.missing) {
             line.append(el('span', 'union-report-skip', `未持有 · ${row.missing.join(', ')}`));
           } else {
             line.append(el('span', 'union-report-skip', row.error ?? '計算失敗'));
           }
           card.append(line);
+          if (row.detail) {
+            const detail = el('details', 'union-deck-code');
+            detail.append(el('summary', undefined, `第 ${row.job.deckIndex + 1} 隊傷害明細與時間軸`));
+            const table = el('table');
+            const header = el('tr');
+            for (const label of ['角色', '總傷害', '普攻', '技能', '命中次數']) header.append(el('th', undefined, label));
+            table.append(header);
+            for (const name of row.job.squad.filter(Boolean)) {
+              const values = row.detail.result.charBreakdown?.[name];
+              const tr = el('tr');
+              for (const value of [deps.labelOf(name), DAMAGE.format(Math.round(row.detail.result.charTotals[name] ?? 0)),
+                values ? DAMAGE.format(Math.round(values.normal)) : '—', values ? DAMAGE.format(Math.round(values.skill)) : '—',
+                values ? String(values.normalHits + values.skillHits) : '—']) tr.append(el('td', undefined, value));
+              table.append(tr);
+            }
+            detail.append(table);
+            const compare = el('details', 'union-deck-code');
+            compare.append(el('summary', undefined, '換人／B3 站位順序比較'));
+            const position = el('select'); position.ariaLabel = '換人位置';
+            row.job.squad.forEach((name, index) => {
+              const option = el('option', undefined, `第 ${index + 1} 格 ${deps.labelOf(name)}`); option.value = String(index); position.append(option);
+            });
+            const replace = el('button', 'roster-import', '比較同爆裂階段的持有角色'); replace.type = 'button';
+            const order = el('button', 'roster-import', '比較 B3 站位排列'); order.type = 'button';
+            const stop = el('button', 'roster-import', '停止比較'); stop.type = 'button'; stop.hidden = true;
+            const output = el('div');
+            let stopped = false;
+            stop.addEventListener('click', () => { stopped = true; });
+            const evaluate = async (squads: string[][]) => {
+              if (running || comparing) { output.textContent = '請等目前模擬或比較完成。'; return; }
+              comparing = true;
+              runButton.disabled = true;
+              replace.disabled = true; order.disabled = true; stop.hidden = false; stopped = false;
+              output.replaceChildren();
+              const progress = el('p'); output.append(progress);
+              const ranked: { squad: string[]; damage: number }[] = [];
+              let failures = 0;
+              for (const squad of squads) {
+                if (stopped || !compare.isConnected) break;
+                const candidate = deckForMember(squad, rosters.get(row.job.member.openid) ?? {}, personal && !hasMyRoster());
+                if (candidate.missing.length) continue;
+                try {
+                  applyUnionBurst(candidate.deck, row.job.burstSequence, deps.catalog, row.job.noBurst);
+                  const request = normalizeRequest({ ...row.detail!.request, squad: candidate.deck.squad, characters: candidate.deck.characters,
+                    burstSequence: candidate.deck.burstSequence, strictNoBurst: candidate.deck.strictNoBurst });
+                  const result = await deps.simulate(request);
+                  ranked.push({ squad, damage: result.squadTotal });
+                } catch { failures += 1; }
+                progress.textContent = `已完成 ${ranked.length + failures}/${squads.length} · 失敗 ${failures}`;
+              }
+              ranked.sort((a, b) => b.damage - a.damage);
+              for (const entry of ranked) {
+                output.append(el('p', undefined, `${entry.squad.map(deps.labelOf).join(' → ')}：${DAMAGE.format(Math.round(entry.damage))}（差 ${DAMAGE.format(Math.round(entry.damage - row.damage!))}）`));
+              }
+              if (stopped) progress.append(' · 已停止');
+              replace.disabled = false; order.disabled = false; stop.hidden = true;
+              comparing = false;
+              refreshRunGate();
+            };
+            replace.addEventListener('click', () => {
+              const at = Number(position.value);
+              const stage = deps.catalog.find(char => char.name === row.job.squad[at])?.burstStage;
+              const roster = rosters.get(row.job.member.openid) ?? {};
+              const candidates = deps.catalog.filter(char => char.burstStage === stage && !row.job.squad.includes(char.name)
+                && (roster[char.name] || (personal && !hasMyRoster())));
+              void evaluate([row.job.squad, ...candidates.map(char => row.job.squad.map((name, index) => index === at ? char.name : name))]);
+            });
+            order.addEventListener('click', () => {
+              const indices = row.job.squad.map((name, index) => deps.catalog.find(char => char.name === name)?.burstStage === '3' ? index : -1).filter(index => index >= 0);
+              const permutations = (values: string[]): string[][] => values.length < 2 ? [values] : values.flatMap((name, index) => permutations(values.filter((_, at) => at !== index)).map(rest => [name, ...rest]));
+              void evaluate(permutations(indices.map(index => row.job.squad[index]!)).map(names => {
+                const squad = [...row.job.squad]; indices.forEach((index, at) => { squad[index] = names[at]!; }); return squad;
+              }));
+            });
+            compare.append(el('p', 'field-note', '使用這筆結果的帳號、王條件與逐輪爆裂設定。B3 比較只改站位；已指定的爆裂角色不變。換人時移除離隊角色的指定，改用該階段自動候選。'), position, replace, order, stop, output);
+            detail.append(compare);
+            detail.addEventListener('toggle', () => {
+              if (!detail.open || detail.querySelector('.timeline-block')) return;
+              const names = row.job.squad.filter(Boolean);
+              const timeline = createTimelineBlock(row.detail!,
+                Object.fromEntries(names.map(name => [name, deps.imageOf(name) ?? ''])),
+                Object.fromEntries(names.map(name => [name, deps.labelOf(name)])));
+              if (timeline) detail.append(timeline);
+            });
+            card.append(detail);
+          }
         }
       }
+      if ([...selected.values()].some(checkbox => checkbox.checked)) updatePlan();
       reportBox.append(card);
     }
   }

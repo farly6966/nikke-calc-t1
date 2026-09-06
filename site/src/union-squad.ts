@@ -52,6 +52,9 @@ interface Aim {
 
 type FilterKey = 'code' | 'class' | 'burst';
 
+/** 格子 ↔ 格子拖曳用的資料格式；角色名本身則仍由選角盤處理。 */
+const DRAG_SLOT = 'application/x-union-squad-slot';
+
 const FILTERS: Array<[FilterKey, string, (char: CharacterMeta) => string]> = [
   ['code', '屬性', (char) => char.elementCode],
   ['class', '職業', (char) => char.className],
@@ -224,6 +227,13 @@ export class UnionSquadPicker {
   ): void {
     host.replaceChildren();
     const filled = Array.from({ length: SQUAD_SIZE }, (_, i) => squad[i] ?? '');
+    const swap = (from: number, to: number): void => {
+      if (from === to) return;
+      const next = [...filled];
+      [next[from], next[to]] = [next[to]!, next[from]!];
+      this.close();
+      commit(next);
+    };
     for (let index = 0; index < SQUAD_SIZE; index += 1) {
       const name = filled[index]!;
       const char = name ? this.deps.catalog.find((entry) => entry.name === name) : undefined;
@@ -243,6 +253,7 @@ export class UnionSquadPicker {
         img.src = src;
         img.alt = '';
         img.loading = 'lazy';
+        img.draggable = false;
         portrait.append(img);
       }
       if (char) {
@@ -264,6 +275,34 @@ export class UnionSquadPicker {
       cell.append(choose);
 
       if (name) {
+        // 桌面：直接把已填的格子拖到另一格即可交換位置。
+        // 手機沒有可靠的 HTML drag-and-drop，所以同時提供左右移動鍵。
+        choose.draggable = true;
+        choose.title = '拖曳到另一格以交換位置';
+        choose.addEventListener('dragstart', (event) => {
+          const drag = event as DragEvent;
+          drag.dataTransfer?.setData(DRAG_SLOT, JSON.stringify({ key, index }));
+          if (drag.dataTransfer) drag.dataTransfer.effectAllowed = 'move';
+          cell.classList.add('is-dragging');
+        });
+        choose.addEventListener('dragend', () => cell.classList.remove('is-dragging'));
+
+        const move = (delta: -1 | 1, label: string, glyph: string): void => {
+          const to = index + delta;
+          if (to < 0 || to >= SQUAD_SIZE) return;
+          const button = el('button', `union-slot-move union-slot-move-${delta < 0 ? 'left' : 'right'}`, glyph);
+          (button as HTMLButtonElement).type = 'button';
+          button.title = `${label}第 ${index + 1} 格`;
+          button.ariaLabel = `${label}第 ${index + 1} 格`;
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            swap(index, to);
+          });
+          cell.append(button);
+        };
+        move(-1, '向左移動', '‹');
+        move(1, '向右移動', '›');
+
         const clear = el('button', 'union-slot-clear', '✕');
         (clear as HTMLButtonElement).type = 'button';
         clear.title = `清空第 ${index + 1} 格`;
@@ -276,6 +315,28 @@ export class UnionSquadPicker {
         });
         cell.append(clear);
       }
+
+      cell.addEventListener('dragover', (event) => {
+        if (!(event as DragEvent).dataTransfer?.types.includes(DRAG_SLOT)) return;
+        event.preventDefault();
+        (event as DragEvent).dataTransfer!.dropEffect = 'move';
+        cell.classList.add('is-drop');
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('is-drop'));
+      cell.addEventListener('drop', (event) => {
+        const drag = event as DragEvent;
+        if (!drag.dataTransfer?.types.includes(DRAG_SLOT)) return;
+        event.preventDefault();
+        cell.classList.remove('is-drop');
+        try {
+          const from = JSON.parse(drag.dataTransfer.getData(DRAG_SLOT)) as { key?: string; index?: number };
+          // 目前只交換同一隊的五格；跨隊移動屬於出刀模型功能，不在這次改動混進來。
+          if (from.key === key && typeof from.index === 'number' && Number.isInteger(from.index)
+            && from.index >= 0 && from.index < SQUAD_SIZE && filled[from.index]) swap(from.index, index);
+        } catch {
+          // 外部拖放或瀏覽器清掉資料時不改編成。
+        }
+      });
       host.append(cell);
     }
 

@@ -106,6 +106,8 @@ export interface SimulationRequest {
   rngMode?: RngMode;
   /** 손으로 정한 버스트 순서. 안 주면 계산기가 평소 순서로 고른다. */
   burstSequence?: BurstSequence;
+  /** Union squad bans override both manual rounds and their automatic fallback. */
+  strictNoBurst?: boolean;
   /**
    * 「정밀 분석」 표(0.1초 칸)를 함께 받을지. 대미지는 원래부터 히트마다 정수로
    * 정확히 세므로 **수치가 정밀해지는 게 아니라** 보이는 칸이 잘아진다.
@@ -170,6 +172,7 @@ export interface BattleSettings {
 }
 
 export interface DeckState {
+  strictNoBurst?: boolean;
   id: number;
   /**
    * 덱에 붙인 이름. 「0장 · 1장 · 2장」처럼 무엇을 바꿔 본 판인지 적어 두는 자리다 —

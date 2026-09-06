@@ -4747,6 +4747,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const deck = decks[index];
         return deck ? encodeShareCode([deck], false) : '';
       },
+      currentDeckSequence: (index) => decks[index]?.burstSequence,
       catalogNames: () => [...catalogByName.keys()],
       concurrency: () => (parallelOn ? parallelCount : 1),
       me: () => {

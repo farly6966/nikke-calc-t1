@@ -77,6 +77,61 @@ describe('슬롯', () => {
     expect(ui.squad[0]).toBe('');
     expect(ui.squad[1]).toBe('리타');
   });
+
+  it('左右移動鍵讓觸控裝置也能交換格子', () => {
+    const ui = mount();
+    ui.slots()[0]!.click();
+    ui.cards().find((card) => card.textContent?.includes('크라운'))!.click();
+    ui.slots()[1]!.click();
+    ui.cards().find((card) => card.textContent?.includes('리타'))!.click();
+
+    ui.host.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
+    expect(ui.squad.slice(0, 2)).toEqual(['리타', '크라운']);
+  });
+
+  it('拖曳已填格子可交換位置', () => {
+    const ui = mount();
+    ui.slots()[0]!.click();
+    ui.cards().find((card) => card.textContent?.includes('크라운'))!.click();
+    ui.slots()[1]!.click();
+    ui.cards().find((card) => card.textContent?.includes('리타'))!.click();
+
+    const source = ui.slots()[0]!;
+    const target = ui.slots()[1]!;
+    const data = new Map<string, string>();
+    const transfer = {
+      types: ['application/x-union-squad-slot'], effectAllowed: '', dropEffect: '',
+      setData: (type: string, value: string) => data.set(type, value),
+      getData: (type: string) => data.get(type) ?? '',
+    };
+    // jsdom 的 DragEvent/DataTransfer 尚未完整實作，直接附上最小介面驗證事件處理。
+    source.dispatchEvent(Object.assign(
+      new Event('dragstart', { bubbles: true }), { dataTransfer: transfer },
+    ));
+    target.dispatchEvent(Object.assign(new Event('drop', { bubbles: true, cancelable: true }), { dataTransfer: transfer }));
+    expect(ui.squad.slice(0, 2)).toEqual(['리타', '크라운']);
+  });
+
+  it('移入空格保留空格位置，並關閉舊的選角目標', () => {
+    const ui = mount();
+    ui.slots()[0]!.click();
+    ui.cards()[0]!.click();
+    const selected = ui.squad[0];
+    ui.slots()[0]!.click();
+    ui.host.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
+    expect(ui.squad).toEqual(['', selected, '', '', '']);
+    expect(ui.panel()).toBeNull();
+  });
+
+  it('不接受其他隊伍或無效位置的拖曳資料', () => {
+    const ui = mount();
+    for (const payload of ['invalid', 'null', '{"key":"other","index":0}', '{"key":"b0-d0","index":99}']) {
+      ui.slots()[1]!.dispatchEvent(Object.assign(new Event('drop', { bubbles: true, cancelable: true }), {
+        dataTransfer: { types: ['application/x-union-squad-slot'], getData: () => payload },
+      }));
+    }
+    expect(ui.squad).toEqual([]);
+  });
 });
 
 describe('판', () => {

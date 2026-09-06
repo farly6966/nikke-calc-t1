@@ -1681,6 +1681,7 @@ class BurstController:
         # 버스트를 아예 안 쓰는 캐릭터들. 「가급적 안 씀」(맨 뒤로 미는 패턴)과 달리
         # **후보에서 통째로 빠진다** — 앞사람이 전부 쿨이어도 나가지 않는다.
         self._no_burst_names: set[str] = set(config.get("no_burst_chars") or ())
+        self._strict_no_burst: bool = config.get("strict_no_burst") is True
 
         # 캐릭터별 버스트 사용 패턴 — {이름: "every:3" | [1, 3, 5, ...]}.
         # **후보에서 빼는 게 아니라 그 단계의 맨 뒤로 미는 것**이다. 그래서 대신 쓸 사람이
@@ -1974,6 +1975,10 @@ class BurstController:
                 ]
                 if due:
                     candidates = due
+        # Opt-in squad bans also apply to explicit rounds and automatic fallback.
+        if self._strict_no_burst:
+            candidates = [name for name in candidates
+                          if name != self._no_burst_char and name not in self._no_burst_names]
         # 쿨 대기 플래그는 매번 새로 판정한다 (아래 대기 분기에서만 다시 세운다)
         self._cd_wait_candidates = None
 

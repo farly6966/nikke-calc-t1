@@ -410,6 +410,8 @@ def run_request(raw: str) -> str:
         config_in["burst_pattern"] = burst_pattern
     if no_burst:
         config_in["no_burst_chars"] = no_burst
+    if payload.get("strictNoBurst") is True:
+        config_in["strict_no_burst"] = True
     # 손으로 정한 버스트 순서 → config["burst_sequence"]. 적어 둔 사이클까지만 따르고,
     # 전투가 더 길면 그 뒤는 평소 순서로 돌아간다.
     sequence = normalize_burst_sequence(payload.get("burstSequence"), names)
