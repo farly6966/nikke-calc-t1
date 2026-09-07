@@ -41,7 +41,6 @@ import { csvBlob, csvFileName, csvText, damageCsv } from './export-csv';
 import {
   applyShareToDecks, decodeBattleCode, decodeShareCode, encodeBattleCode, encodeShareCode,
 } from './share-code';
-import { LATEST_NOTICE_ID, NOTICES, noticeFragment, noticeToShow } from './notices';
 import { mountSharePanel, squadPreview, type SharePanel } from './share-panel';
 import { startPresence } from './presence';
 import { mountUnionRaid, type UnionHandle } from './union-raid';
@@ -515,7 +514,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
           <h1><span>NIKKE</span> 스쿼드 계산기</h1>
           <p class="hero-lede">캐릭터별 오버로드와 큐브, 전투 조건을 반영해 프레임 단위 예상 대미지를 계산합니다.</p>
-          <div class="trust-row" aria-label="서비스 특징"><span>${t('{n}명 지원', { n: catalog.length })}</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><span class="lang-field" title="Language · 言語 · 언어 · 語言"><svg class="lang-globe" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.2" /><path d="M1.8 8h12.4" /><path d="M8 1.8c1.9 2.1 2.9 4.1 2.9 6.2s-1 4.1-2.9 6.2c-1.9-2.1-2.9-4.1-2.9-6.2s1-4.1 2.9-6.2z" /></svg><select class="lang-pick" data-lang-pick aria-label="Language · 言語 · 언어 · 語言">${LANGS.map((entry) => `<option value="${entry.code}">${entry.label}</option>`).join('')}</select></span><button type="button" class="notice-open" data-notice-open title="지금까지 무엇이 바뀌었는지 봅니다">업데이트 내역</button><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="이 계산기의 원본 저장소">원본 알고리즘 개발자에게 무한한 감사를</a></div>
+          <div class="trust-row" aria-label="서비스 특징"><span>${t('{n}명 지원', { n: catalog.length })}</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><span class="lang-field" title="Language · 言語 · 언어 · 語言"><svg class="lang-globe" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.2" /><path d="M1.8 8h12.4" /><path d="M8 1.8c1.9 2.1 2.9 4.1 2.9 6.2s-1 4.1-2.9 6.2c-1.9-2.1-2.9-4.1-2.9-6.2s1-4.1 2.9-6.2z" /></svg><select class="lang-pick" data-lang-pick aria-label="Language · 言語 · 언어 · 語言">${LANGS.map((entry) => `<option value="${entry.code}">${entry.label}</option>`).join('')}</select></span><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="이 계산기의 원본 저장소">원본 알고리즘 개발자에게 무한한 감사를</a></div>
         </div>
         <div class="hero-orbit" aria-hidden="true"><span>01</span><strong>LOCAL<br />SIM</strong></div>
       </header>
@@ -937,15 +936,6 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </div>
       </div>
 
-      <!-- 업데이트 공지. 새 내용이 있을 때 처음 들어오면 한 번 뜨고, 닫으면 그 판을
-           본 것으로 적어 다시 뜨지 않는다. 「업데이트 내역」으로 언제든 다시 연다. -->
-      <div class="custom-modal" data-notice-modal hidden>
-        <div class="custom-card reset-card" role="dialog" aria-label="오버로드 입력 방식 변경">
-          <div class="custom-head"><h2>업데이트 내역</h2><button type="button" class="custom-close" data-notice-close aria-label="닫기">✕</button></div>
-          <div class="notice-body" data-notice-body></div>
-          <div class="deck-copy-actions">
-            <button type="button" class="deck-copy-apply" data-notice-dismiss>확인 · 다시 보지 않기</button>
-          </div>
         </div>
       </div>
 
@@ -1572,66 +1562,6 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   buffOrderModal.addEventListener('click', (event) => {
     if (event.target === buffOrderModal) buffOrderModal.hidden = true;
   });
-
-  // ── 업데이트 공지 ───────────────────────────────────────────────────────
-  // 본 적 있는 공지 id를 적어 둔다. 새 공지가 올라오면 id가 달라져 다시 뜬다.
-  const NOTICE_KEY = 'nikke-notice-seen';
-  const noticeModal = element<HTMLElement>(root, '[data-notice-modal]');
-  const noticeBody = element<HTMLElement>(root, '[data-notice-body]');
-
-  const renderNotices = () => {
-    noticeBody.replaceChildren();
-    for (const notice of NOTICES) {
-      const block = document.createElement('section');
-      block.className = 'notice-entry';
-      block.dataset.notice = notice.id;
-      const head = document.createElement('div');
-      head.className = 'notice-head';
-      head.append(createText('b', notice.date), createText('span', notice.title));
-      block.append(head);
-      const list = document.createElement('ul');
-      for (const item of notice.items) {
-        const row = document.createElement('li');
-        const tag = createText('em', item.tag, 'notice-tag');
-        tag.dataset.noticeTag = item.tag;
-        const body = document.createElement('span');
-        body.append(noticeFragment(item.text));
-        row.append(tag, body);
-        list.append(row);
-      }
-      block.append(list);
-      noticeBody.append(block);
-    }
-  };
-
-  const openNotice = () => {
-    renderNotices();
-    noticeModal.hidden = false;
-  };
-  /** 닫으면 최신 공지를 본 것으로 적는다 — 새 공지가 나오기 전까지 다시 뜨지 않는다. */
-  const closeNotice = () => {
-    noticeModal.hidden = true;
-    try {
-      resolveStorage()?.setItem(NOTICE_KEY, LATEST_NOTICE_ID);
-    } catch {
-      /* 저장 실패는 무시 — 다음에 한 번 더 뜰 뿐이다 */
-    }
-  };
-  element<HTMLButtonElement>(root, '[data-notice-open]').addEventListener('click', openNotice);
-  element<HTMLButtonElement>(root, '[data-notice-close]').addEventListener('click', closeNotice);
-  element<HTMLButtonElement>(root, '[data-notice-dismiss]').addEventListener('click', closeNotice);
-  noticeModal.addEventListener('click', (event) => {
-    if (event.target === noticeModal) closeNotice();
-  });
-  {
-    let seen: string | null = null;
-    try {
-      seen = resolveStorage()?.getItem(NOTICE_KEY) ?? null;
-    } catch {
-      /* 못 읽으면 처음 온 것으로 본다 */
-    }
-    if (noticeToShow(seen)) openNotice();
-  }
 
   // ── 캐릭터 설정 창 ──────────────────────────────────────────────────────
   // 어떤 캐릭터의 어느 뭉치를 보고 있는지 기억한다. 값을 바꾸면 카드가 다시 그려지고
@@ -4037,7 +3967,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       cell.append(
         portrait,
         createText('strong', char.preview ? `${resolveDisplayName(char.name)} (임시)` : resolveDisplayName(char.name)),
-        createText('span', [char.elementCode, char.weaponType, char.className].filter(Boolean).join(' · ')),
+        createText('span', [t(char.elementCode), char.weaponType, t(char.className)].filter(Boolean).join(' · ')),
       );
       cell.addEventListener('click', () => pickCharacter(char.name));
       // 끌어다 칸에 놓을 수도 있다. 이미 이 덱에 있는 니케는 누를 수 없으니 끌 수도 없다.
@@ -4468,7 +4398,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     enikkSummary.replaceChildren();
     enikkSummary.append(createText('strong', `시즌 ${data.season.raid} · ${data.season.boss}`));
     enikkSummary.append(createText('span',
-      `약점 ${weakness} · 플레이어 ${data.players.length}명 · 덱 ${data.decks.toLocaleString('ko-KR')}개`));
+      t('약점 {weakness} · 플레이어 {players}명 · 덱 {decks}개', {
+        weakness, players: data.players.length, decks: data.decks.toLocaleString('en-US'),
+      })));
     if (data.unknownNames.length > 0) {
       enikkSummary.append(createText('span',
         `계산기가 모르는 니케 ${data.unknownNames.length}종이 낀 덱은 가져올 수 없습니다 — ${data.unknownNames.slice(0, 5).join(', ')}`,
@@ -4739,7 +4671,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   for (let n = 1; n <= poolMax; n += 1) {
     const option = document.createElement('option');
     option.value = String(n);
-    option.textContent = `${n}개`;
+    option.textContent = t('{n}개', { n });
     parallelSize.append(option);
   }
   // 권장값은 칸을 넓히지 않게 설명 쪽에만 적는다 — 토글 줄이 길어지면 줄이 접힌다.
@@ -4907,7 +4839,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const meta = customToMeta(customChars[name]!);
       const row = document.createElement('div');
       row.className = 'custom-list-row';
-      row.append(createText('span', `${name} · B${meta.burstStage} · ${meta.elementCode} · ${meta.weaponType}`, 'custom-list-name'));
+      row.append(createText('span', `${resolveDisplayName(name)} · B${meta.burstStage} · ${t(meta.elementCode)} · ${meta.weaponType}`, 'custom-list-name'));
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'custom-remove';

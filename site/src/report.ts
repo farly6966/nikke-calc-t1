@@ -8,6 +8,7 @@
 //   1덱  → 세로 카드: 총딜을 머리에 세우고 캐릭터별 기여도와 평타/스킬 분해
 //   5덱  → 합계 헤드라인 + 덱 5열: 전체 합계가 주인공이고 25명 개별딜을 모두 싣는다
 
+import { t } from './i18n';
 import { formatDamage, formatDps } from './model';
 import type { BatchResult, CharacterMeta, DeckResultEntry } from './types';
 
@@ -199,7 +200,7 @@ const conditionChips = (meta: ReportMeta, entry: DeckResultEntry): string[] => {
   const chips = [
     `${entry.result.duration}초 전투`,
     `방어력 ${meta.enemyDef.toLocaleString('en-US')}`,
-    meta.enemyCode ? `${meta.enemyCode} 코드` : '코드 없음',
+    meta.enemyCode ? t('{code} 코드', { code: t(meta.enemyCode) }) : t('코드 없음'),
     meta.corePx > 0 ? `코어 ${meta.corePx}px` : '코어 없음',
   ];
   if (meta.hasParts) chips.push('파괴 가능 파츠');

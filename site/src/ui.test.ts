@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { StorageLike } from './cache';
-import { LATEST_NOTICE_ID } from './notices';
 import { mountCalculator, type CalculatorClientLike } from './ui';
 import { decodeBattleCode, encodeBattleCode, encodeShareCode } from './share-code';
 import { encodeUnionDraft } from './union-raid';
@@ -1138,34 +1137,8 @@ describe('calculator UI', () => {
     expect(root.querySelector<HTMLInputElement>('#synchro-level')!.value).toBe('700');
   });
 
-  it('shows the update notice once, and not again after it is closed', () => {
-    // 처음 온 사람에게는 뜬다.
-    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
-    const modal = () => root.querySelector<HTMLElement>('[data-notice-modal]')!;
-    expect(modal().hidden).toBe(false);
-    expect(root.querySelectorAll('[data-notice]').length).toBeGreaterThan(0);
-
-    root.querySelector<HTMLButtonElement>('[data-notice-dismiss]')!.click();
-    expect(modal().hidden).toBe(true);
-    expect(localStorage.getItem('nikke-notice-seen')).toBe(LATEST_NOTICE_ID);
-
-    // 다시 들어와도 뜨지 않는다.
-    root.remove();
-    root = document.createElement('main');
-    document.body.append(root);
-    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
-    expect(root.querySelector<HTMLElement>('[data-notice-modal]')!.hidden).toBe(true);
-    // 그래도 언제든 다시 열어 볼 수 있다.
-    root.querySelector<HTMLButtonElement>('[data-notice-open]')!.click();
-    expect(root.querySelector<HTMLElement>('[data-notice-modal]')!.hidden).toBe(false);
-  });
-
-  it('shows the notice again when a newer one is published', () => {
-    // 옛 공지까지만 본 사람에게는 새 공지가 다시 뜬다.
-    localStorage.setItem('nikke-notice-seen', '2000-01-01');
-    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
-    expect(root.querySelector<HTMLElement>('[data-notice-modal]')!.hidden).toBe(false);
-  });
+  // 업데이트 공지 판은 이 fork에 없다 — 상류가 커밋마다 맨 앞에 한 줄씩 더해 가장 자주
+  // 부딪히는 파일인 데다, 이 fork에 없는 기능 이야기까지 알리게 되어 통째로 뺐다.
 
   it('자세히 보기를 켜면 대미지를 1의 자리까지 적는다', async () => {
     // 「1.24억」은 견주기에 좋지만 두 덱이 같은 글자로 보이는 일이 있다.
@@ -1185,7 +1158,6 @@ describe('calculator UI', () => {
       }
     }
     mountCalculator(root, { catalog, settings, version: 'v1', client: new BigClient(), storage: localStorage });
-    root.querySelector<HTMLButtonElement>('[data-notice-dismiss]')!.click();
     root.querySelector<HTMLFormElement>('form')!.requestSubmit();
     await flush();
     await flush();
@@ -1212,7 +1184,6 @@ describe('calculator UI', () => {
 
   it('keeps the control fold open and live inside the card', async () => {
     mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
-    root.querySelector<HTMLButtonElement>('[data-notice-dismiss]')!.click();
     const card = root.querySelector<HTMLElement>('[data-slot-card="0"]')!;
     card.querySelector<HTMLInputElement>('[data-custom-toggle]')!.click();
     card.querySelector<HTMLButtonElement>('[data-control-open]')!.click();
@@ -1239,7 +1210,6 @@ describe('calculator UI', () => {
   it('does not yank the page back to the squad when results arrive', async () => {
     const client = new FakeClient();
     mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
-    root.querySelector<HTMLButtonElement>('[data-notice-dismiss]')!.click();
     // jsdom에는 scrollIntoView가 없다 — 누가 불렀는지 보려고 심는다.
     const pulled: string[] = [];
     const proto = Element.prototype as unknown as { scrollIntoView?: () => void };

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { formatDamage } from './model';
 import { statText } from './stat-names';
 import { spanTargets } from './types';
@@ -394,7 +395,7 @@ class TimelineChart {
       band(w.from, w.to, 'rgba(255,119,135,0.16)', '족자');
     }
     for (const w of this.series.elementWindows) {
-      band(w.from, w.to, 'rgba(96,165,250,0.16)', `속저 ${w.code}`);
+      band(w.from, w.to, 'rgba(96,165,250,0.16)', t('속저 {code}', { code: t(w.code) }));
     }
     ctx.textAlign = 'left';
 

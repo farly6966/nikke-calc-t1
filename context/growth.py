@@ -73,12 +73,16 @@ def resolve_character_growth(name: str, stage: int) -> dict[str, int]:
 
 
 def growth_stage_label(stage: int) -> str:
-    """Return the compact label shown by the browser selector (zh-Hant)."""
+    """Return the compact Korean label shown by the browser selector.
+
+    화면에 옮기는 일은 언어층이 한다(`site/src/i18n.ts`) — 여기서 미리 옮기면
+    한국어·영어·일본어로 보는 사람에게 중국어가 나간다.
+    """
     if stage == 0:
-        return "無突破"
+        return "명함"
     if stage <= 3:
-        return f"{stage}突破"
-    return f"核心強化 {stage - 3}"
+        return f"{stage}돌"
+    return f"코강 {stage - 3}"
 
 
 def growth_options(name: str, meta: dict[str, Any]) -> list[dict[str, Any]]:

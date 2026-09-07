@@ -201,9 +201,9 @@ export function validateRequest(request: SimulationRequest): string[] {
     const levels: Array<[number, string]> = [
       [request.console.common_level, '공통'],
       ...Object.entries(request.console.class_level)
-        .map(([bucket, level]) => [level, `클래스(${bucket})`] as [number, string]),
+        .map(([bucket, level]) => [level, t('클래스({bucket})', { bucket: t(bucket) })] as [number, string]),
       ...Object.entries(request.console.company_level)
-        .map(([bucket, level]) => [level, `기업(${bucket})`] as [number, string]),
+        .map(([bucket, level]) => [level, t('기업({bucket})', { bucket: t(bucket) })] as [number, string]),
     ];
     for (const [level, label] of levels) {
       if (!integerInRange(level, 0, 1_000)) {

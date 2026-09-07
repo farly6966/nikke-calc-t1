@@ -88,16 +88,18 @@ function summaryText(name: string, catalog: SettingsCatalog, value?: CharacterOv
   const cube = value?.cube ?? defaults.cube;
   const growthStage = value?.growthStage ?? defaults.growthStage;
   const controlSummary = value?.control === undefined
-    ? '컨트롤 추천 자동'
-    : `컨트롤 직접 ${Object.keys(value.control).length}개`;
+    ? t('컨트롤 추천 자동')
+    : t('컨트롤 직접 {n}개', { n: Object.keys(value.control).length });
   const growth = defaults.growthOptions.find((option) => option.value === growthStage)
-    ?? { value: growthStage, label: `단계 ${growthStage}`, affinity: 0 };
+    ?? { value: growthStage, label: t('단계 {n}', { n: growthStage }), affinity: 0 };
   const skillSummary = defaults.skillLevelsLocked
-    ? '수치 미공개 · Lv10 고정'
-    : `스킬 ${skillLevels['1']} / ${skillLevels['2']} / ${skillLevels['3']}`;
-  return `${value ? '개별값' : '기본값'} · ${growth.label} · 호감도 ${growth.affinity} · ${skillSummary} · `
-    + `우코 ${numberText(overload.element_bonus ?? 0)} · `
-    + `공증 ${numberText(overload.atk_pct ?? 0)} · 장탄 ${numberText(overload.max_ammo_pct ?? 0)} · `
+    ? t('수치 미공개 · Lv10 고정')
+    : t('스킬 {a} / {b} / {c}', {
+      a: skillLevels['1']!, b: skillLevels['2']!, c: skillLevels['3']!,
+    });
+  return `${t(value ? '개별값' : '기본값')} · ${t(growth.label)} · ${t('호감도 {n}', { n: growth.affinity })} · ${skillSummary} · `
+    + `${t('우코 {n}', { n: numberText(overload.element_bonus ?? 0) })} · `
+    + `${t('공증 {n}', { n: numberText(overload.atk_pct ?? 0) })} · ${t('장탄 {n}', { n: numberText(overload.max_ammo_pct ?? 0) })} · `
     + `${cube.name === NO_CUBE ? t('큐브 없음') : `${tName(cube.name)} Lv${cube.level}`} · ${controlSummary}`;
 }
 
