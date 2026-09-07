@@ -145,7 +145,19 @@ const translatable = (text: string): string | null => {
   if (!trimmed) return null;
   // 사전이 먼저고, 없으면 이름표를 본다 — 이름표는 번호가 붙거나 둘이 이어 붙은
   // 모양까지 풀어 주므로 `tName`을 그대로 쓴다.
-  const hit = DICTS[current][trimmed] ?? tName(trimmed);
+  //
+  // 한 번 더 보는 자리가 있다: **줄바꿈과 들여쓰기만 다른 경우**다. 화면 절반은 한
+  // 덩어리 HTML 문자열이라 태그 사이의 글이 소스의 줄바꿈과 들여쓰기를 그대로 안고
+  // 텍스트 노드가 된다. 그런데 사전 열쇠는 사람이 한 줄로 적어 둔 것이라, 뜻이 같은
+  // 문장인데도 열쇠가 안 맞아 조용히 한국어로 남는다(보스 메이커 사용설명서 28줄이
+  // 통째로 그랬다 — 번역은 이미 있었는데 닿지를 못했다).
+  //
+  // 그래서 **정확히 맞는 것을 먼저 보고**, 없을 때만 공백을 한 칸으로 접어 다시 찾는다.
+  // 접은 열쇠로 찾았을 때 돌려주는 것은 사전에 적힌 한 줄이다 — 원문의 줄바꿈은 어차피
+  // 글자 사이를 벌리는 용도라 사라져도 화면이 같다.
+  const hit = DICTS[current][trimmed]
+    ?? DICTS[current][trimmed.replace(/\s+/g, ' ')]
+    ?? tName(trimmed);
   return hit && hit !== trimmed ? hit : null;
 };
 

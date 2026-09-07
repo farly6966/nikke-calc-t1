@@ -115,6 +115,27 @@ describe('그려진 화면 훑기', () => {
     expect(host.querySelector('p')!.textContent).toBe('아직 안 옮긴 문장입니다');
   });
 
+  it('줄바꿈과 들여쓰기만 다른 문장도 사전을 지난다', () => {
+    // 화면 절반은 한 덩어리 HTML 문자열이라, 태그 사이의 글이 소스의 줄바꿈과
+    // 들여쓰기를 그대로 안고 텍스트 노드가 된다. 사전 열쇠는 사람이 한 줄로 적어
+    // 둔 것이라 그대로는 안 맞는다 — 보스 메이커 사용설명서가 통째로 그랬다.
+    setLang('en');
+    const host = document.createElement('div');
+    host.innerHTML = `<p>전투
+        조건</p>`;
+    localizeTree(host);
+    expect(host.querySelector('p')!.textContent).toBe('Battle setup');
+  });
+
+  it('접어 찾는 것은 정확히 맞는 것을 못 찾았을 때뿐이다', () => {
+    // 접기가 먼저 서면 «공백까지 그대로인 열쇠»를 밀어낼 수 있다. 순서를 못 박는다.
+    setLang('en');
+    const host = document.createElement('div');
+    host.innerHTML = '<p>전투 조건</p>';
+    localizeTree(host);
+    expect(host.querySelector('p')!.textContent).toBe('Battle setup');
+  });
+
   it('여러 번 훑어도 한 번 바꾼 것을 또 바꾸지 않는다', () => {
     setLang('en');
     const host = document.createElement('div');
