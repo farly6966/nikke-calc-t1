@@ -1482,7 +1482,12 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     clearTimeout(prefetchTimer);
     prefetchTimer = setTimeout(async () => {
       // 정식 계산이 도는 중이면 워커를 뺏지 않는다 — 끝나면 어차피 채워진다.
-      if (prefetching || submit.disabled) return;
+      //
+      // 「정식 계산」은 이 화면의 실행만이 아니다. 유니온 판의 돌리기·검색도 같은
+      // 워커를 쓰는데 `submit`은 그대로 눌러지는 상태라, 검색이 700ms를 넘기면 그
+      // 사이에 이 예약이 깨어나 요청을 하나 끼워 넣었다. 사람 눈에는 잘 안 띄지만
+      // «10판 검색했는데 요청이 11개»가 되어, 판을 세는 쪽에서 어긋난다.
+      if (prefetching || submit.disabled || unionHandle?.busy()) return;
       const deck = activeDeck();
       if (!needsPrefetch(deck)) return;
       prefetching = true;

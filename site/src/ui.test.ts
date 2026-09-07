@@ -603,10 +603,15 @@ describe('calculator UI', () => {
     root.querySelector<HTMLInputElement>('[aria-label="每個王搜尋盤數"]')!.value = '10';
     root.querySelector<HTMLButtonElement>('.union-auto-search button')!.click();
     await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('本輪搜尋完成'), { timeout: 8000 });
-    expect(client.requests).toHaveLength(10);
-    expect(client.requests[0]!.strictNoBurst).toBe(true);
-    expect(client.requests[0]!.characters?.['나가']?.burst).toEqual({ mode: 'skip' });
-    for (const request of client.requests) {
+    // 검색이 보낸 것만 센다. 계산기 쪽 «버프 대상 미리 계산»은 이 판과 상관없이
+    // 700ms 뒤 한 번 깨어나는데, 검색이 막 끝난 직후에 깨어나면 이 줄 앞에 요청이
+    // 하나 더 붙는다 — 기계가 느린 날에만 깨지던 시험의 정체가 그것이었다.
+    // 유니온 요청은 보스 조건(작열)을 달고 나가고, 계산기 것은 기본값(빈 코드)이다.
+    const searched = client.requests.filter(request => request.enemyCode === '작열');
+    expect(searched).toHaveLength(10);
+    expect(searched[0]!.strictNoBurst).toBe(true);
+    expect(searched[0]!.characters?.['나가']?.burst).toEqual({ mode: 'skip' });
+    for (const request of searched) {
       expect(request.squad).toHaveLength(5);
       expect(request.squad.every(name => names.includes(name))).toBe(true);
       expect(Object.values(request.characters ?? {}).every(c => c.growthStage === 2)).toBe(true);
@@ -615,12 +620,48 @@ describe('calculator UI', () => {
     expect([...root.querySelectorAll<HTMLInputElement>('[aria-label^="納入三刀："]')].filter(c => c.checked)).toHaveLength(1);
   });
 
+  it('미리 계산은 유니온 검색이 도는 동안 워커를 뺏지 않는다', async () => {
+    // 버프 대상 «미리 계산»은 편성이 바뀌고 700ms 뒤에 깨어나 요청을 하나 보낸다.
+    // 그 문지기가 보던 것은 이 화면의 `submit` 하나뿐이라, 유니온 검색이 700ms를
+    // 넘기면 검색 도중에 끼어들어 «10판 검색했는데 요청이 11개»가 됐다.
+    //
+    // 한 판을 일부러 느리게 해서 그 700ms를 반드시 넘긴다 — 빠른 기계에서는 검색이
+    // 먼저 끝나 버려 이 버그가 안 보인다(그래서 여태 «가끔 깨지는 시험»이었다).
+    seedUnionDraft();
+    localStorage.setItem('nikke-roster-v1', JSON.stringify(
+      Object.fromEntries(names.map(name => [name, { growthStage: 2 }]))));
+    const client = new FakeClient();
+    const record = client.simulate.bind(client);
+    vi.spyOn(client, 'simulate').mockImplementation(async request => {
+      await new Promise(resolve => setTimeout(resolve, 120));
+      return record(request);
+    });
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLInputElement>('[aria-label="每個王搜尋盤數"]')!.value = '10';
+    root.querySelector<HTMLButtonElement>('.union-auto-search button')!.click();
+    await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('本輪搜尋完成'), { timeout: 20_000 });
+
+    expect(client.requests).toHaveLength(10);
+    // 끼어든 요청은 이 판의 보스 조건(작열)이 아니라 계산기 기본값으로 온다 —
+    // 개수만 세면 「어느 것이 남의 것인지」가 안 보이므로 그것까지 못 박는다.
+    expect(client.requests.every(request => request.enemyCode === '작열')).toBe(true);
+  }, 30_000);
+
   it('stops automatic generation after the active simulation and retains the completed candidate', async () => {
     seedUnionDraft();
     localStorage.setItem('nikke-roster-v1', JSON.stringify(Object.fromEntries(names.map(name => [name, {}]))));
     const client = new FakeClient();
     let finish!: (result: SimulationResult) => void;
-    vi.spyOn(client, 'simulate').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    // 이 판이 보낸 것만 세려고 요청을 받아 둔다. 계산기 쪽 «버프 대상 미리 계산»은
+    // 편성이 그려지고 700ms 뒤에 한 번 깨어나는데, 유니온 검색을 멈춘 뒤라면 그것을
+    // 막을 까닭이 없다(막는 것은 «도는 동안»뿐이다). 그때 요청이 하나 더 늘어나므로
+    // 전체 호출 수로 세면 기계가 느린 날에만 깨지는 시험이 된다 — 실제로 그랬다.
+    const sent: SimulationRequest[] = [];
+    vi.spyOn(client, 'simulate').mockImplementation(request => {
+      sent.push(request);
+      return new Promise(resolve => { finish = resolve; });
+    });
     mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
     root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
     const buttons = root.querySelectorAll<HTMLButtonElement>('.union-auto-search button');
@@ -628,7 +669,8 @@ describe('calculator UI', () => {
     expect(finish).toBeTypeOf('function');
     buttons[1]!.click(); finish(calculated);
     await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('已停止'));
-    expect(client.simulate).toHaveBeenCalledTimes(1);
+    // 유니온 판의 요청은 보스 조건(작열)을 달고 나간다 — 계산기 기본값(빈 코드)과 갈린다.
+    expect(sent.filter(request => request.enemyCode === '작열')).toHaveLength(1);
     expect(root.querySelector('[data-union-report]')!.textContent).toContain('123,456');
     expect(buttons[0]!.disabled).toBe(false);
   });

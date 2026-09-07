@@ -901,6 +901,15 @@ export interface UnionHandle {
    * 그 뒤에 바꾼 값이 반영되지 않는다.
    */
   refreshMe(): void;
+
+  /**
+   * 이 판이 지금 워커를 쓰고 있나 — 돌리기·검색·덱 견주기 가운데 하나라도 도는 중.
+   *
+   * 계산기 쪽의 «미리 계산»(버프 대상 프리페치)이 이것을 보고 비켜선다. 요청 하나가
+   * 도는 **사이사이**까지 포함해야 해서 «지금 요청이 떠 있나»가 아니라 **판이 도는가**를
+   * 낸다 — 검색은 한 판마다 요청을 끊어 보내므로, 그 틈에 끼어들면 마찬가지다.
+   */
+  busy(): boolean;
 }
 
 export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle {
@@ -2427,6 +2436,9 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   setMode(false);
 
   return {
+    busy() {
+      return running || comparing;
+    },
     refreshMe() {
       if (!personal) return;
       // 여기서 손으로 고쳐 둔 싱크로가 있으면 그것을 존중한다 — 계산기 값으로
