@@ -1551,3 +1551,510 @@ details.union-source[open] > summary { margin-bottom: 8px; }
 .union-auto-search > label { display: block; margin: 0.7rem 0; }
 .union-auto-search > label > select { display: block; width: min(100%, 28rem); }
 .union-auto-search > select { max-width: 100%; }
+
+/* ══ 보스 메이커 ═══════════════════════════════════════════════════════════
+   보스를 그려 놓고 그 위에서 전투를 읽는 화면. 무대(SVG) · 조건 판 · 타임라인 띠가
+   한 화면에 서야 해서 전체를 덮는다.
+
+   결이 다른 화면이라 깊이를 한 겹 더 준다 — 판은 배경에서 띄우고(안쪽 하이라이트 +
+   넓게 퍼지는 그림자), 경계선은 1px 회색이 아니라 빛이 스치는 머리카락 선으로 둔다.
+   움직임은 전부 커스텀 이징이다(«linear·ease-in-out 금지»). */
+body.bm-open { overflow: hidden; }
+
+.boss-maker { position: fixed; inset: 0; z-index: 60; display: flex; padding: 18px;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(21,42,66,.72), rgba(3,8,14,.94) 70%);
+  backdrop-filter: blur(18px) saturate(120%); }
+.bm-frame { display: flex; flex-direction: column; flex: 1; min-height: 0;
+  border: 1px solid rgba(146,176,201,.14); border-radius: 18px;
+  background: linear-gradient(180deg, rgba(14,27,42,.96), rgba(7,15,25,.98));
+  box-shadow: 0 40px 120px -30px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: hidden; }
+
+.bm-top { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid rgba(146,176,201,.12);
+  background: linear-gradient(180deg, rgba(69,214,208,.06), transparent); }
+.bm-title { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+/* 좁아지면 제목 칸이 0까지 눌려 글자가 세로로 쌓인다 — 이름표는 줄이지 않는다. */
+.bm-title b { flex: none; white-space: nowrap; font-size: 15px; letter-spacing: -.01em; }
+.bm-name { flex: 1; min-width: 90px; max-width: 190px; padding: 7px 11px; min-height: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(4,12,21,.7);
+  color: var(--ink); font: 700 12px inherit; }
+.bm-top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.bm-btn { white-space: nowrap; }
+
+.bm-btn { padding: 8px 14px; border: 1px solid rgba(69,214,208,.4); border-radius: 9px;
+  background: rgba(69,214,208,.12); color: var(--cyan); font: 800 12px inherit; cursor: pointer;
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), background .18s cubic-bezier(.2,.8,.2,1); }
+.bm-btn:hover { background: rgba(69,214,208,.22); transform: translateY(-1px); }
+.bm-btn:active { transform: translateY(0); }
+.bm-btn.accent { border-color: rgba(255,191,60,.5); background: rgba(255,191,60,.14); color: var(--amber); }
+.bm-btn.accent:hover { background: rgba(255,191,60,.24); }
+.bm-btn.ghost { border-color: var(--line); background: transparent; color: var(--muted); }
+.bm-btn.danger { width: 100%; margin-top: 10px; border-color: rgba(255,119,135,.4);
+  background: rgba(255,119,135,.1); color: #ffd7de; }
+.bm-close { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(4,12,21,.6); color: var(--muted); font-size: 13px; cursor: pointer; }
+.bm-close:hover { color: var(--ink); border-color: rgba(69,214,208,.45); }
+
+.bm-narrow { margin: 0; padding: 11px 18px; border-bottom: 1px solid rgba(255,191,60,.2);
+  background: rgba(255,191,60,.08); color: #ffe1a8; font-size: 12px; line-height: 1.65;
+  word-break: keep-all; }
+.bm-narrow b { color: var(--amber); }
+
+.bm-body { display: grid; grid-template-columns: 168px minmax(0,1fr) 344px; gap: 14px;
+  padding: 14px 18px; flex: 1; min-height: 260px; }
+
+/* 도구 열 */
+.bm-tools { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.bm-tool-group { display: flex; flex-direction: column; gap: 6px; }
+.bm-tool-label { color: var(--muted); font: 800 10px inherit; letter-spacing: .08em; }
+.bm-tool { display: flex; align-items: center; gap: 8px; padding: 8px 11px;
+  border: 1px solid var(--line); border-radius: 9px; background: rgba(4,12,21,.55);
+  color: var(--ink); font: 700 12px inherit; cursor: pointer;
+  transition: border-color .18s cubic-bezier(.2,.8,.2,1), background .18s cubic-bezier(.2,.8,.2,1); }
+.bm-tool:hover { border-color: rgba(69,214,208,.45); background: rgba(69,214,208,.08); }
+.bm-tool.is-on { border-color: var(--cyan); background: rgba(69,214,208,.18); color: var(--cyan); }
+.bm-tool.ghost { color: var(--muted); font-weight: 600; }
+.bm-tool.file { justify-content: center; }
+.bm-ico { width: 12px; height: 12px; background: currentColor; opacity: .8; }
+.bm-ico.circle { border-radius: 50%; }
+.bm-ico.rect { border-radius: 2px; }
+.bm-ico.tri { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.bm-slider { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 10px; }
+.bm-slider input { width: 100%; }
+.bm-hint { margin: 0; color: var(--cyan); font-size: 11px; line-height: 1.6; }
+
+/* 무대 */
+/* SVG는 viewBox에서 제 높이를 끌어온다 — `min-height: 0`으로 풀어 주지 않으면 그 높이가
+   최소값이 되어 격자 칸을 뚫고 타임라인 위로 넘친다. */
+.bm-stage-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0;
+  overflow: hidden; }
+/* 버프 기둥과 딜 판은 무대 **위에 겹친다** — 옆에 두면 그리는 자리가 그만큼 좁아진다. */
+.bm-stage-box { position: relative; flex: 1; min-height: 0; display: flex; }
+/* 무대 머리줄. 켜고 끄는 것이 늘어 좁은 판에서는 두 줄로 접힌다 — 접히더라도
+   글자가 세로로 쌓이지는 않게 각 칸이 제 폭을 지킨다. */
+.bm-stage-head { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap;
+  min-height: 20px; }
+.bm-stage-head > * { flex: none; white-space: nowrap; }
+.bm-stage-note { color: #ffe1a8; font-size: 11px; }
+.bm-stage-note b { color: var(--amber); }
+.bm-stage-meta { margin-left: auto; color: var(--muted); font: 700 11px ui-monospace, monospace; }
+.bm-stage { display: block; flex: 1 1 0; min-height: 0; width: 100%; height: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(146,176,201,.14);
+  background:
+    linear-gradient(rgba(146,176,201,.05) 1px, transparent 1px) 0 0 / 100% 40px,
+    linear-gradient(90deg, rgba(146,176,201,.05) 1px, transparent 1px) 0 0 / 40px 100%,
+    radial-gradient(80% 70% at 50% 40%, rgba(24,48,72,.7), rgba(5,11,19,.95));
+  cursor: crosshair; touch-action: none; }
+/* 족자 구간 — 보스가 사라진다. 아주 지우지 않고 자리만 남겨 둔다. */
+.bm-figure.is-gone { opacity: .12; }
+.bm-shape { stroke: rgba(146,176,201,.4); stroke-width: 1.5; }
+.bm-shape.is-on { stroke: var(--cyan); stroke-width: 2.5; }
+.bm-part { fill: rgba(255,179,71,.28); stroke: rgba(255,191,60,.75); stroke-width: 1.5; }
+.bm-part.is-on { stroke: var(--amber); stroke-width: 2.5; }
+.bm-part-label { fill: var(--amber); font: 700 11px system-ui; }
+.bm-core { fill: rgba(255,119,135,.22); stroke: var(--danger); stroke-width: 2; }
+.bm-core.is-on { stroke-width: 3; }
+.bm-center line { stroke: var(--cyan); stroke-width: 2; }
+.bm-center.is-on line { stroke-width: 3; }
+.bm-shield { opacity: .18; }
+/* 색은 니케마다 요소에서 받는다 — 원이 한 점에 포개지므로 색으로만 갈린다. */
+.bm-spread { fill: none; stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .9; }
+.bm-blast { fill: none; stroke-width: 1; stroke-dasharray: 2 6; opacity: .45; }
+.bm-handle { fill: var(--cyan); cursor: nwse-resize; }
+
+.bm-scrub { display: flex; align-items: center; gap: 10px; }
+.bm-scrub input { flex: 1; min-height: 0; }
+.bm-scrub output { min-width: 54px; color: var(--amber);
+  font: 800 12px ui-monospace, monospace; }
+
+/* 오른쪽 판 */
+.bm-side { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 2px; }
+.bm-card { padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(4,12,21,.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+.bm-card-title { margin: 0 0 10px; font-size: 12px; letter-spacing: .04em; color: var(--cyan); }
+/* 조건 칸은 판이 좁아 이름과 입력칸이 한 줄에 못 선다 — 칸 안에서 위아래로 쌓는다. */
+.bm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.bm-grid .bm-row { position: relative; flex-direction: column; align-items: stretch;
+  gap: 3px; margin: 0; }
+.bm-grid .bm-row > span { flex: none; padding-right: 22px; }
+.bm-grid .bm-field { width: 100%; }
+/* 단위는 이름 줄 오른쪽 끝에 붙인다 — 아래로 내리면 칸마다 높이가 들쭉날쭉해진다. */
+.bm-grid .bm-unit { position: absolute; top: 0; right: 0; }
+.bm-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 11px;
+  color: var(--muted); }
+.bm-row > span { flex: 1; min-width: 0; word-break: keep-all; }
+.bm-row.bm-toggle { margin-top: 10px; color: var(--ink); }
+.bm-row.bm-toggle input { width: 15px; height: 15px; min-height: 0; flex: none;
+  accent-color: var(--cyan); }
+.bm-row.bm-toggle > span { flex: 1; }
+.bm-field { width: 92px; padding: 5px 8px; min-height: 0; border: 1px solid var(--line);
+  border-radius: 7px; background: rgba(4,12,21,.8); color: var(--ink); font: 700 11px inherit; }
+.bm-unit { color: var(--muted); font-size: 10px; font-style: normal; }
+.bm-note { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.65;
+  word-break: keep-all; }
+.bm-note-head { margin: 12px 0 6px; color: var(--ink); font: 800 11px inherit; }
+.bm-dist { display: flex; flex-direction: column; gap: 3px; }
+.bm-dist-row { color: var(--muted); font: 700 11px ui-monospace, monospace; }
+.bm-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.bm-chip { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(4,12,21,.6); color: var(--muted); font: 800 10px inherit; cursor: pointer;
+  transition: border-color .18s cubic-bezier(.2,.8,.2,1); }
+.bm-chip:hover { border-color: rgba(69,214,208,.45); color: var(--ink); }
+.bm-chip.is-on { border-color: var(--cyan); background: rgba(69,214,208,.16); color: var(--cyan); }
+.bm-chip.add { margin-top: 6px; }
+.bm-phase-head { display: flex; gap: 6px; }
+.bm-cover { color: var(--muted); font-size: 10px; font-style: normal; }
+.bm-cover.is-on { color: var(--amber); }
+
+/* 타임라인 */
+/* 타임라인은 «남는 만큼»이 아니라 정해진 몫을 갖는다 — 니케가 다섯이면 줄이 여덟이라,
+   높이를 안 정하면 무대를 밀어내고 프레임 밖으로 넘친다. */
+.bm-timeline { display: flex; flex-direction: column; min-height: 0;
+  max-height: 32vh; padding: 12px 18px 14px; border-top: 1px solid rgba(146,176,201,.12);
+  background: linear-gradient(180deg, transparent, rgba(69,214,208,.04)); }
+.bm-timeline-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.bm-timeline-note { color: var(--muted); font-size: 11px; }
+.bm-tracks { display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0;
+  overflow-y: auto; padding-right: 4px; }
+.bm-track { display: flex; align-items: center; gap: 10px; }
+.bm-track-name { width: 108px; flex: none; padding-left: 26px; color: var(--muted);
+  font: 700 11px inherit; background-repeat: no-repeat; background-size: 20px 20px;
+  background-position: left center; border-radius: 4px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.bm-lane { position: relative; flex: 1; height: 22px; border-radius: 6px;
+  background: rgba(4,12,21,.7); border: 1px solid rgba(146,176,201,.1); overflow: hidden; }
+.bm-shot { width: 100%; height: 100%; display: block; }
+.bm-break { position: absolute; top: 3px; width: 2px; height: 16px; background: var(--amber);
+  box-shadow: 0 0 6px rgba(255,191,60,.8); }
+.bm-bar { position: absolute; top: 2px; height: 18px; border-radius: 5px;
+  background: color-mix(in srgb, var(--bar) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar) 70%, transparent);
+  cursor: grab; display: flex; align-items: center; }
+.bm-bar:active { cursor: grabbing; }
+.bm-bar-label { padding: 0 8px; color: var(--ink); font: 700 10px inherit; white-space: nowrap;
+  pointer-events: none; }
+.bm-bar-grip { position: absolute; top: 0; width: 7px; height: 100%; cursor: ew-resize; }
+.bm-bar-grip.left { left: 0; }
+.bm-bar-grip.right { right: 0; }
+.bm-blast-rows { display: flex; flex-direction: column; }
+
+@media (max-width: 1023px) {
+  /* 구성은 PC에서만 — 좁은 화면에서는 안내만 남기고 무대를 접는다. 남는 것은
+     «만들어 둔 보스를 조건에 반영하는 것»과 조건 판이라, 그 둘은 그대로 쓴다. */
+  .boss-maker { padding: 0; }
+  .bm-frame { border-radius: 0; border: none; }
+  .bm-body { grid-template-columns: 1fr; min-height: 0; padding: 12px; }
+  .bm-tools, .bm-stage-wrap { display: none; }
+  .bm-timeline { max-height: 40vh; padding: 10px 12px 12px; }
+  .bm-track-name { width: 84px; }
+  .bm-top { padding: 12px; }
+  .bm-btn { padding: 7px 11px; font-size: 11px; }
+  /* 단추가 여섯이라 한 줄에 못 선다 — 제목과 단추를 각각 한 줄씩 준다.
+     좁은 화면에서도 «코드를 받아 전투 조건에 반영»은 그대로 쓸 일이라 하나도 안 접는다. */
+  .bm-title { flex: 1 1 100%; }
+  .bm-top-actions { flex: 1 1 100%; flex-wrap: wrap; }
+  .bm-picker, .bm-name { max-width: none; }
+}
+
+/* 저장본 고르기와 공유 줄. 창을 또 띄우지 않고 머리줄에 붙인다. */
+.bm-picker { flex: none; width: auto; min-height: 0; max-width: 170px; padding: 7px 9px;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(4,12,21,.7);
+  color: var(--ink); font: 700 11px inherit; }
+.bm-btn.danger-text { color: #ffb3bd; border-color: rgba(255,119,135,.3); }
+.bm-btn.danger-text:hover { background: rgba(255,119,135,.14); border-color: rgba(255,119,135,.55); }
+.bm-share { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
+  padding: 14px 18px; border-bottom: 1px solid rgba(146,176,201,.12);
+  background: rgba(69,214,208,.05); }
+.bm-share-col { display: flex; flex-direction: column; gap: 6px; }
+.bm-share-label { color: var(--muted); font: 800 10px inherit; letter-spacing: .06em; }
+.bm-share-box { width: 100%; min-height: 0; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 8px; background: rgba(4,12,21,.8); color: var(--ink);
+  font: 600 11px ui-monospace, monospace; resize: vertical; word-break: break-all; }
+.bm-share-box:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.bm-share-note, .bm-share .share-msg { grid-column: 1 / -1; margin: 0; }
+
+@media (max-width: 1023px) {
+  /* 공유 줄은 파일 뒤쪽에서 정의되므로 좁은 화면 규칙도 여기 둔다 — 앞 미디어 블록에
+     적으면 뒤에 오는 기본 규칙에 덮인다. */
+  .bm-share { grid-template-columns: 1fr; padding: 12px; }
+}
+
+/* 시간 줄 — 족자·속저와 같은 자로 그린다. 위아래가 같은 시각을 가리켜야 눈이 이어진다. */
+.bm-track-name.time { display: flex; align-items: center; gap: 5px; padding-left: 0; }
+.bm-play, .bm-rate { flex: none; padding: 0; border: 1px solid rgba(69,214,208,.4);
+  border-radius: 6px; background: rgba(69,214,208,.12); color: var(--cyan);
+  font: 800 10px inherit; cursor: pointer;
+  transition: background .18s cubic-bezier(.2,.8,.2,1); }
+.bm-play { width: 26px; height: 20px; font-size: 9px; }
+.bm-rate { width: 26px; height: 20px; }
+.bm-play:hover:not(:disabled), .bm-rate:hover { background: rgba(69,214,208,.24); }
+.bm-play:disabled { opacity: .35; cursor: default; }
+.bm-clock { flex: 1; color: var(--amber); font: 800 10px ui-monospace, monospace; text-align: right; }
+.bm-lane.time { background: rgba(4,12,21,.5); cursor: pointer; }
+.bm-tick { position: absolute; top: 60%; bottom: 0; width: 1px;
+  background: rgba(146,176,201,.25); }
+.bm-tick.major { top: 30%; background: rgba(146,176,201,.45); }
+.bm-tick.major[data-label]::after { content: attr(data-label); position: absolute;
+  left: 3px; top: -2px; color: var(--muted); font: 700 9px ui-monospace, monospace; }
+/* 재생 헤드 — 잡기 쉽도록 실제 폭보다 넓은 손잡이를 둔다. */
+.bm-playhead { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px;
+  background: var(--amber); box-shadow: 0 0 8px rgba(255,191,60,.7); cursor: ew-resize; }
+.bm-playhead::before { content: ''; position: absolute; inset: 0 -6px; }
+.bm-playhead::after { content: ''; position: absolute; left: -4px; top: -4px;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--amber); }
+.bm-playhead:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+/* 니케 줄 오른쪽 끝의 딜. 이 보스로 잰 값이다. */
+.bm-track-dmg { width: 62px; flex: none; text-align: right; color: var(--muted);
+  font: 800 10px ui-monospace, monospace; }
+.bm-track-dmg.is-top { color: var(--amber); }
+.bm-stage-toggle { display: flex; align-items: center; gap: 5px; color: var(--muted);
+  font: 700 11px inherit; cursor: pointer; }
+.bm-stage-toggle input { width: 13px; height: 13px; min-height: 0; accent-color: var(--cyan); }
+.bm-aim-lead { stroke-width: 1; stroke-dasharray: 2 3; opacity: .8; }
+.bm-aim-label { font: 700 11px ui-monospace, monospace; paint-order: stroke;
+  stroke: rgba(3,8,14,.85); stroke-width: 3px; }
+
+/* 탄착점 — 탄이 박힌 자리. 색은 니케마다 요소에서 받는다. */
+.bm-impact { stroke: rgba(3,8,14,.55); stroke-width: .5; }
+
+/* 지금 걸려 있는 버프 — [시전자] 이름 [받는 사람]. 무대 **왼쪽 기둥**에 위아래로 쌓는다.
+   가로로 늘어놓으면 스무 개가 넘어 한 줄에 안 들어오고, 끝까지 밀어 봐야 읽히지 않는다. */
+.bm-buffs { position: absolute; left: 8px; top: 8px; bottom: 8px; width: 172px; z-index: 2;
+  display: flex; flex-direction: column; gap: 3px; overflow-y: auto; padding-right: 4px;
+  /* 기둥 자체는 눌리지 않는다 — 알약 사이 빈틈으로 그 아래 도형을 그대로 집을 수 있다.
+     휠은 알약 위에서 굴려도 이 기둥까지 올라와 스크롤된다. */
+  pointer-events: none; }
+.bm-buff { display: flex; align-items: center; gap: 4px; flex: none; pointer-events: auto;
+  padding: 3px 7px 3px 3px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(4,12,21,.82); backdrop-filter: blur(4px); }
+.bm-buff-face { width: 18px; height: 18px; flex: none; border-radius: 50%;
+  background-size: 150%; background-position: 50% 22%; background-color: rgba(146,176,201,.2);
+  font: 800 9px inherit; display: grid; place-items: center; color: var(--muted); }
+.bm-buff-name { flex: 1; min-width: 0; color: var(--ink); font: 700 10px inherit;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bm-buff-stack { color: var(--amber); font-style: normal; font-size: 9px; margin-left: 2px; }
+.bm-buff-targets { display: inline-flex; gap: 2px; }
+.bm-buff-targets .bm-buff-face { width: 16px; height: 16px; }
+.bm-buff-none { color: var(--muted); font-size: 10px; align-self: center; }
+
+/* 니케 걸러 보기 — 초상화를 눌러 끈다. */
+.bm-squad-filter { display: flex; align-items: center; gap: 5px; }
+.bm-face { width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--who); background-size: 150%; background-position: 50% 22%;
+  background-color: rgba(146,176,201,.18); color: var(--muted); font: 800 9px inherit;
+  transition: opacity .18s cubic-bezier(.2,.8,.2,1), filter .18s cubic-bezier(.2,.8,.2,1); }
+.bm-face.is-off { opacity: .3; filter: grayscale(1); border-color: var(--line); }
+.bm-face-all { padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px;
+  background: transparent; color: var(--muted); font: 800 10px inherit; cursor: pointer; }
+.bm-face-all:hover { color: var(--ink); border-color: rgba(69,214,208,.45); }
+
+/* 기울기 고리 */
+.bm-handle.spin { cursor: grab; }
+.bm-handle-arm { stroke: var(--cyan); stroke-width: 1; stroke-dasharray: 2 3; }
+/* 속저 띠 안의 속성 고르기 */
+.bm-bar-code { width: auto; min-height: 0; padding: 0 2px; margin-left: 3px;
+  border: none; border-radius: 4px; background: rgba(3,8,14,.5); color: var(--ink);
+  font: 800 9px inherit; cursor: pointer; }
+/* 적정거리 칩은 켜면 그 무기군 색으로 물든다 */
+.bm-chip.range.is-on { border-color: var(--range); background: color-mix(in srgb, var(--range) 20%, transparent);
+  color: var(--range); }
+
+/* 지금까지 넣은 딜 — 무대 오른쪽 위. 타임라인 끝의 숫자가 «판 전체»라면 이쪽은 «여기까지»다. */
+.bm-hud { position: absolute; right: 8px; top: 8px; z-index: 2; width: 132px;
+  display: flex; flex-direction: column; gap: 3px; padding: 8px 9px;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(4,12,21,.82);
+  backdrop-filter: blur(4px); pointer-events: none; }
+.bm-hud-total { display: flex; flex-direction: column; gap: 1px; padding-bottom: 6px;
+  margin-bottom: 3px; border-bottom: 1px solid var(--line); }
+.bm-hud-total b { color: var(--amber); font: 800 15px ui-monospace, monospace; }
+.bm-hud-total span { color: var(--muted); font-size: 9px; }
+.bm-hud-row { display: flex; align-items: center; gap: 6px; }
+.bm-hud-dmg { flex: 1; text-align: right; color: var(--muted);
+  font: 700 10px ui-monospace, monospace; }
+.bm-hud-row.is-top .bm-hud-dmg { color: var(--amber); }
+
+/* 버스트 연출 — 무대 아래 가운데에서 스치듯 떠오른다. 밝기·자리는 커서와의 시간차로
+   정해지므로(`renderFlash`) 여기서는 모양만 잡는다. 그림을 가리지 않게 작게 둔다. */
+.bm-burst-flash { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none; }
+.bm-flash-chip { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px;
+  border: 1px solid rgba(255,191,60,.45); border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,191,60,.22), rgba(4,12,21,.86) 60%);
+  box-shadow: 0 6px 22px -8px rgba(255,157,31,.7); white-space: nowrap; }
+.bm-flash-stage { padding: 1px 6px; border-radius: 999px; background: rgba(255,191,60,.25);
+  color: var(--amber); font: 800 9px inherit; }
+.bm-flash-name { color: #ffe1a8; font: 800 12px inherit; letter-spacing: -.01em; }
+
+/* 조준 키프레임 — 무대의 지나온 길과 타임라인의 점. */
+.bm-aim-path { fill: none; stroke: rgba(255,191,60,.5); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.bm-aim-key { fill: rgba(255,191,60,.35); stroke: var(--amber); stroke-width: 1.5; }
+.bm-aim-key.is-on { fill: var(--amber); }
+.bm-track-name.aim { display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding-left: 0; }
+.bm-mini { width: 18px; height: 18px; flex: none; padding: 0; border: 1px solid var(--line);
+  border-radius: 5px; background: rgba(4,12,21,.6); color: var(--muted);
+  font: 800 11px inherit; cursor: pointer; }
+.bm-mini:hover { border-color: rgba(255,191,60,.5); color: var(--amber); }
+.bm-mini.is-on { border-color: var(--amber); background: rgba(255,191,60,.18); color: var(--amber); }
+.bm-aim-mark { position: absolute; top: 4px; width: 9px; height: 9px; margin-left: -4px;
+  border-radius: 50%; background: rgba(255,191,60,.55); border: 1px solid var(--amber);
+  cursor: ew-resize; }
+.bm-aim-mark.is-on { background: var(--amber); box-shadow: 0 0 8px rgba(255,191,60,.8); }
+.bm-stage-btn { padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(4,12,21,.6); color: var(--muted); font: 800 10px inherit; cursor: pointer; }
+.bm-stage-btn:hover { border-color: rgba(255,191,60,.5); color: var(--amber); }
+
+/* 캐릭터별 상태 — 무대 오른쪽 아래. */
+.bm-states { position: absolute; right: 8px; bottom: 8px; z-index: 2; width: 176px;
+  display: flex; flex-direction: column; gap: 3px; padding: 7px 8px;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(4,12,21,.82);
+  backdrop-filter: blur(4px); pointer-events: none; }
+.bm-state-row { display: flex; align-items: center; gap: 5px; }
+.bm-state-ammo { flex: 1; text-align: right; font: 700 10px ui-monospace, monospace; }
+.bm-state-ammo b { color: var(--ink); }
+.bm-state-ammo b.is-empty { color: var(--danger); }
+.bm-state-ammo em { color: var(--muted); font-style: normal; font-size: 9px; }
+/* 「재장전」이 네 글자라 좁으면 세로로 쪼개진다 — 폭을 주고 줄바꿈을 막는다. */
+.bm-state-mark { width: 42px; flex: none; text-align: center; padding: 2px 0; border-radius: 4px;
+  font: 800 9px inherit; white-space: nowrap; }
+.bm-state-mark.is-reload { background: rgba(255,119,135,.2); color: #ffb3bd; }
+.bm-state-mark.is-burst { background: rgba(255,191,60,.22); color: var(--amber); }
+.bm-state-mark.is-fire { background: rgba(69,214,208,.18); color: var(--cyan); }
+.bm-state-mark.is-idle { background: rgba(146,176,201,.12); color: var(--muted); }
+
+/* 전투 조건 ↔ 보스 메이커 탭. 보스 메이커는 조건판을 «대신 여는» 화면이라 단추가
+   아니라 탭으로 둔다 — 무엇을 보고 있는지가 제목 자리에서 바로 읽힌다. */
+/* 제목 줄의 첫 칸은 «제목 덩어리»라 `flex: 1 1 260px`로 늘어나게 돼 있다(§section-heading).
+   탭은 늘어날 것이 아니므로 그 규칙을 덮는다 — 안 덮으면 좁은 화면에서 세로로 260px까지
+   벌어지고 글자가 한 자씩 쌓인다. */
+/* 상대 규칙이 `div:first-child`(의사클래스가 있어 특정도가 한 칸 높다)라 같은 모양으로
+   맞춰야 이긴다 — 클래스 둘만으로는 안 덮인다. */
+.section-heading > .settings-tabs:first-child { flex: none; }
+.settings-tabs { display: flex; gap: 4px; align-items: center; }
+.settings-tab { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+  white-space: nowrap;
+  border: 1px solid transparent; border-radius: 9px 9px 0 0; background: transparent;
+  color: var(--muted); font: 800 13px inherit; cursor: pointer;
+  transition: color .18s cubic-bezier(.2,.8,.2,1), background .18s cubic-bezier(.2,.8,.2,1); }
+.settings-tab:hover { color: var(--ink); background: rgba(146,176,201,.08); }
+.settings-tab.is-on { color: var(--ink); background: rgba(69,214,208,.1);
+  border-color: rgba(69,214,208,.32); border-bottom-color: transparent;
+  box-shadow: inset 0 -2px 0 var(--cyan); }
+.settings-tab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* 보스 메이커 안의 서버 공유 판 — 조합·전투 조건과 같은 판을 쓴다. */
+.bm-share-tabs { grid-column: 1 / -1; }
+.bm-share-pane { grid-column: 1 / -1; }
+.bm-share-code { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px 16px; }
+.bm-share-msg { grid-column: 1 / -1; }
+
+/* 깨진 파츠 — 회색으로 물러난다. 「이 시각엔 이미 부서져 있다」가 한눈에 보여야 한다. */
+.bm-part.is-broken { fill: rgba(146,176,201,.14); stroke: rgba(146,176,201,.45);
+  stroke-dasharray: 4 4; }
+.bm-part-label.is-broken { fill: var(--muted); }
+.bm-bar.is-part { top: 3px; height: 16px; }
+.bm-when { display: flex; flex-wrap: wrap; gap: 5px; }
+.bm-hud-row.is-score { padding-top: 3px; margin-top: 2px; border-top: 1px dashed var(--line); }
+/* 판이 132px뿐이라 「파괴 점수」가 「파괴 점 / 수」로 접혔다 — 이름은 안 접는다. */
+.bm-hud-tag { flex: 1; color: var(--muted); font: 700 9px inherit; white-space: nowrap; }
+.bm-hud-row.is-score .bm-hud-dmg { color: #ffb347; }
+
+/* 사용설명서 — 창을 또 띄우지 않고 이 화면 안에서 덮는다. */
+.bm-help-open { width: 26px; height: 26px; flex: none; border-radius: 50%;
+  border: 1px solid rgba(69,214,208,.45); background: rgba(69,214,208,.12);
+  color: var(--cyan); font: 800 13px "Times New Roman", serif; font-style: italic;
+  cursor: pointer; transition: background .18s cubic-bezier(.2,.8,.2,1); }
+.bm-help-open:hover { background: rgba(69,214,208,.26); }
+.bm-help { position: absolute; inset: 0; z-index: 10; display: flex; padding: 24px;
+  align-items: center; justify-content: center; background: rgba(3,8,14,.72);
+  backdrop-filter: blur(6px); }
+.bm-help-card { display: flex; flex-direction: column; width: min(760px, 100%);
+  max-height: 100%; border: 1px solid rgba(146,176,201,.16); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(16,30,46,.98), rgba(8,17,28,.99));
+  box-shadow: 0 30px 90px -24px rgba(0,0,0,.85); overflow: hidden; }
+.bm-help-head { display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.bm-help-head b { font-size: 14px; }
+.bm-help-body { padding: 6px 18px 18px; overflow-y: auto; }
+.bm-help-body section { padding: 12px 0; border-bottom: 1px solid rgba(146,176,201,.1); }
+.bm-help-body section:last-child { border-bottom: none; }
+.bm-help-body h4 { margin: 0 0 6px; color: var(--cyan); font-size: 12px; letter-spacing: .02em; }
+.bm-help-body p { margin: 0 0 6px; color: var(--muted); font-size: 12px; line-height: 1.75;
+  word-break: keep-all; }
+.bm-help-body p:last-child { margin-bottom: 0; }
+.bm-help-body b { color: var(--ink); }
+
+/* 타임라인 묶음 머리 — 줄이 열댓 개가 되면 다 볼 일이 없다. 지금 보는 것만 편다. */
+.bm-group { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px;
+  padding: 3px 6px; border: none; border-radius: 6px; background: transparent;
+  color: var(--muted); font: 800 10px inherit; letter-spacing: .04em; cursor: pointer;
+  text-align: left; }
+.bm-group:hover { background: rgba(146,176,201,.08); color: var(--ink); }
+.bm-group-mark { width: 0; height: 0; flex: none; margin-left: 2px;
+  border-left: 5px solid currentColor; border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+.bm-group-mark.is-open { transform: rotate(90deg); }
+.bm-group-count { padding: 0 5px; border-radius: 999px; background: rgba(146,176,201,.16);
+  font-style: normal; font-size: 9px; }
+
+/* 보이는 구간 편집기 — 구간을 여럿 둔다. */
+.bm-windows { display: flex; flex-direction: column; gap: 4px; }
+.bm-window { display: flex; align-items: center; gap: 4px; }
+.bm-field.tiny { width: 56px; }
+
+/* 아직 만드는 중인 화면이라는 안내. 무대 바로 위 한 줄 — 그리는 자리를 뺏지 않는다. */
+.bm-callout { display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex-wrap: wrap; margin: 0; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,191,60,.28); background: rgba(255,191,60,.09);
+  color: #ffe1a8; font-size: 11px; line-height: 1.5; word-break: keep-all; }
+.bm-callout b { color: var(--amber); }
+.bm-callout-x { width: 20px; height: 20px; flex: none; padding: 0; border: none;
+  border-radius: 50%; background: transparent; color: #ffe1a8; font: 800 11px inherit;
+  cursor: pointer; opacity: .7; }
+.bm-callout-x:hover { opacity: 1; background: rgba(255,191,60,.18); }
+.bm-callout-go { padding: 3px 10px; border: 1px solid rgba(255,191,60,.5); border-radius: 999px;
+  background: rgba(255,191,60,.16); color: var(--amber); font: 800 10px inherit; cursor: pointer;
+  transition: background .18s cubic-bezier(.2,.8,.2,1); }
+.bm-callout-go:hover { background: rgba(255,191,60,.3); }
+
+/* 족자·속저를 무대 위에 글씨로 적는다. 족자에는 보스가 사라져 아무 정보가 없다. */
+.bm-phase-mark { font: 800 26px system-ui; letter-spacing: .06em; paint-order: stroke;
+  stroke: rgba(3,8,14,.8); stroke-width: 5px; }
+.bm-phase-sub { font: 700 12px system-ui; paint-order: stroke;
+  stroke: rgba(3,8,14,.8); stroke-width: 4px; }
+
+/* 두 번 눌러야 터지는 단추 — 겨눈 동안은 스스로 붉어진다(`confirm-twice.ts`). */
+.is-armed { border-color: rgba(255,120,140,.6) !important; color: #ffb3c0 !important;
+  background: rgba(255,60,90,.16) !important; }
+/* 고른 도형의 테두리 — 손잡이 여덟이 어디에 붙는지가 이 선으로 읽힌다. */
+.bm-handle-frame { fill: none; stroke: rgba(69,214,208,.55); stroke-width: 1;
+  stroke-dasharray: 4 3; pointer-events: none; }
+/* 무대의 격자와 눈금 — 크기를 눈으로 맞출 기준이다. */
+.bm-grid-line { stroke: rgba(146,176,201,.10); stroke-width: 1; }
+.bm-grid-line.is-major { stroke: rgba(146,176,201,.22); }
+.bm-grid-mark { fill: rgba(146,176,201,.55); font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.bm-zoom { display: inline-flex; align-items: center; gap: 4px; }
+.bm-zoom b { min-width: 38px; text-align: center; color: var(--muted);
+  font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* 레이어 목록 — 겹친 것을 짚어 고르고 차례를 바꾼다. */
+.bm-layers-group { min-height: 0; }
+.bm-layers { display: grid; gap: 3px; max-height: 190px; overflow: auto; }
+.bm-layers-empty { margin: 0; color: var(--muted); font: 400 10px inherit; }
+.bm-layer { display: flex; align-items: center; gap: 2px; border-radius: 7px;
+  border: 1px solid transparent; }
+.bm-layer.is-on { border-color: rgba(69,214,208,.4); background: rgba(69,214,208,.08); }
+.bm-layer-pick { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
+  padding: 4px 6px; border: none; background: transparent; color: var(--ink);
+  font: 700 10.5px inherit; cursor: pointer; text-align: left; }
+.bm-layer-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-layer-dot { width: 9px; height: 9px; border-radius: 3px; flex: none;
+  border: 1px solid rgba(0,0,0,.35); }
+.bm-layer-move { width: 18px; height: 20px; padding: 0; border: none; background: transparent;
+  color: var(--muted); font: 700 8px inherit; cursor: pointer; }
+.bm-layer-move:hover:not(:disabled) { color: var(--ink); }
+.bm-layer-move:disabled { opacity: .25; cursor: default; }

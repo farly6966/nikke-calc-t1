@@ -777,6 +777,48 @@ describe('calculator UI', () => {
       .toContain('글로벌 서버에서 1명을 불러왔습니다.');
   });
 
+  it('보스 메이커에서 잡은 전투 조건이 새로고침에도 남는다', () => {
+    // 폼은 사람이 만질 때(change) 저장된다 — 프로그램이 써넣은 값에는 그 이벤트가
+    // 없어서, 보스 메이커에서 잡은 족자·속저가 새로고침에 날아갔다.
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-settings-tab="maker"]')!.click();
+
+    const [immune, element] = [...root.querySelectorAll<HTMLButtonElement>('.bm-phase-head .bm-chip')];
+    immune!.click();
+    element!.click();
+
+    const saved = JSON.parse(localStorage.getItem('nikke-state-v1')!) as
+      { battle: { immuneWindows: unknown[]; elementWindows: unknown[] } };
+    expect(saved.battle.immuneWindows).toHaveLength(1);
+    expect(saved.battle.elementWindows).toHaveLength(1);
+  });
+
+  it('보스 메이커는 전투 조건 옆의 탭으로 열고 닫는다', () => {
+    // 조건판을 «대신 여는» 화면이라 단추가 아니라 탭이다 — 무엇을 보고 있는지가
+    // 제목 자리에서 읽혀야 한다.
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    const tab = (which: string) => root.querySelector<HTMLButtonElement>(`[data-settings-tab="${which}"]`)!;
+    const maker = () => root.querySelector<HTMLElement>('[data-boss-maker]')!;
+
+    expect(tab('battle').classList.contains('is-on')).toBe(true);
+    expect(tab('maker').textContent).toContain('BETA');
+    // 제목 h2를 탭으로 갈아 끼웠으므로 판의 이름표도 여기로 따라와야 한다.
+    expect(tab('battle').id).toBe('settings-heading');
+    expect(root.querySelector('.settings-panel')?.getAttribute('aria-labelledby'))
+      .toBe('settings-heading');
+    expect(maker().hidden).toBe(true);
+
+    tab('maker').click();
+    expect(maker().hidden).toBe(false);
+    expect(tab('maker').getAttribute('aria-selected')).toBe('true');
+    expect(tab('battle').getAttribute('aria-selected')).toBe('false');
+
+    // 창 안에서 닫아도 탭이 전투 조건으로 돌아온다.
+    root.querySelector<HTMLButtonElement>('[data-bm-close]')!.click();
+    expect(maker().hidden).toBe(true);
+    expect(tab('battle').classList.contains('is-on')).toBe(true);
+  });
+
   it('sets breakthrough from the portrait star stepper and keeps the dropdown in sync', () => {
     mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
     const stepper = root.querySelector<HTMLElement>('[data-slot-card="0"] [data-growth-stepper]')!;

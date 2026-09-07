@@ -44,6 +44,7 @@ import {
 import { mountSharePanel, squadPreview, type SharePanel } from './share-panel';
 import { startPresence } from './presence';
 import { mountUnionRaid, type UnionHandle } from './union-raid';
+import { mountBossMaker, type BossMakerHandle } from './boss-maker-view';
 import { EXTERNAL_LINKS, hostOf } from './external-links';
 import { createElementIcon } from './i18n-terms';
 import { lang, LANG_KEY, LANGS, t, tName, watchLocalize } from './i18n';
@@ -782,7 +783,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
         <section class="panel settings-panel" aria-labelledby="settings-heading">
           <div class="section-heading compact target-heading">
-            <div><h2 id="settings-heading">전투 조건</h2></div>
+            <!-- 보스 메이커는 전투 조건을 «대신 여는» 화면이라 단추가 아니라 탭으로 둔다.
+                 무엇을 보고 있는지가 제목 자리에서 바로 읽힌다. -->
+            <div class="settings-tabs" role="tablist" aria-label="전투 조건 보기">
+              <!-- 이 판의 이름이기도 하다(section의 aria-labelledby가 이 id를 가리킨다) —
+                   제목 h2를 탭으로 갈아 끼웠으므로 id를 여기로 옮긴다. -->
+              <button type="button" class="settings-tab is-on" id="settings-heading" data-settings-tab="battle" role="tab" aria-selected="true">전투 조건</button>
+              <button type="button" class="settings-tab" data-settings-tab="maker" role="tab" aria-selected="false" title="보스의 모양·코어·파츠를 직접 그려 두고, 그 위에서 덱의 사격을 읽습니다. 구성은 PC에서만 됩니다">보스 메이커<b class="tab-beta">BETA</b></button>
+            </div>
             <div class="target-actions">
               <button type="button" class="reset-enemy" data-battle-share-open title="전투 조건을 코드로 만들어 공유하거나, 받은 코드를 붙여넣어 적용합니다">전투 조건 공유</button>
               <button type="button" class="reset-enemy" data-reset-enemy>적 수치 초기화</button>
@@ -904,6 +912,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         <div data-timeline-body></div>
       </section>
       <footer><p>비공식 팬 제작 도구 · 실제 전투 환경과 차이가 있을 수 있습니다.</p><a href="https://github.com/Moris-kr/nikke-calc" target="_blank" rel="noreferrer">SOURCE / GITHUB ↗</a></footer>
+
+      <!-- 보스 메이커. 전체를 덮는 창이라 폼 바깥에 둔다 — 안에 두면 여기서 누른
+           단추가 폼을 제출한다. -->
+      <div data-boss-maker hidden tabindex="-1"></div>
 
       <div class="custom-modal" data-history-modal hidden>
         <div class="custom-card roster-card" role="dialog" aria-label="계산 기록">
@@ -4703,7 +4715,55 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   // ── 보스 메이커 ─────────────────────────────────────────────────────────
   // 적을 숫자 몇 개가 아니라 **그림**으로 두고, 그 위에서 덱의 사격을 읽는 화면.
   // 그린 것에서 엔진이 아는 값(코어 직경·파츠 유무·파츠 파괴 주기)만 뽑아 넘긴다.
-  // 프록시가 있어야 유니온원 스펙을 받아 올 수 있다 — 없으면 탭 자체를 안 그렸다.
+  const bossMaker: BossMakerHandle = mountBossMaker(
+    element<HTMLElement>(root, '[data-boss-maker]'),
+    {
+      settings,
+      catalog: [...catalogByName.values()],
+      simulate: (request) => client.simulate(request),
+      currentSquad: () => activeDeck().squad.filter(Boolean),
+      // 상류는 여기서 `overridesForEngine()`으로 화면 전용 키(`overloadLines`)를 턴다.
+      // 이 포크에는 부위별 오버로드 줄 기능이 없어 그 키 자체가 없으므로 그대로 넘긴다
+      // (`requestForDeck`도 `deck.characters`를 손대지 않고 싣는다).
+      currentCharacters: () => activeDeck().characters,
+      currentBattle: readBattle,
+      // 값을 폼에 써넣는 것만으로는 남지 않는다 — 폼은 사람이 만질 때(change) 저장되는데
+      // 프로그램이 넣은 값에는 그 이벤트가 없다. 보스 메이커에서 잡은 족자·속저가
+      // 새로고침에 날아가던 이유라, 쓰는 자리에서 저장까지 함께 한다.
+      applyBattle: (battle) => {
+        writeBattle(battle);
+        saveState();
+      },
+      imageOf: (name) => {
+        const image = catalogByName.get(name)?.image;
+        return image ? `${import.meta.env.BASE_URL}${image}` : undefined;
+      },
+      storage: resolveStorage,
+      shareServer,
+      onClose: () => markSettingsTab('battle'),
+    },
+  );
+  // 탭처럼 오간다 — 보스 메이커를 열면 그 탭이 켜지고, 닫으면 전투 조건으로 돌아온다.
+  const settingsTabs = [...root.querySelectorAll<HTMLButtonElement>('[data-settings-tab]')];
+  const markSettingsTab = (which: string) => {
+    for (const tab of settingsTabs) {
+      const on = tab.dataset.settingsTab === which;
+      tab.classList.toggle('is-on', on);
+      tab.setAttribute('aria-selected', String(on));
+    }
+  };
+  for (const tab of settingsTabs) {
+    tab.addEventListener('click', () => {
+      const which = tab.dataset.settingsTab ?? 'battle';
+      markSettingsTab(which);
+      if (which === 'maker') bossMaker.open();
+      else bossMaker.close();
+    });
+  }
+
+  // ── 유니온 레이드 (BETA) ────────────────────────────────────────────────
+  // 프록시는 «유니온원 스펙 받아 오기»에만 필요하다. 없으면 그 두 단계(명단·공개여부)만
+  // 접고 «개인용»은 그대로 쓴다.
   const unionPanel = root.querySelector<HTMLElement>('[data-view="union"]');
   if (unionPanel) {
     unionHandle = mountUnionRaid({ panel: unionPanel }, {

@@ -5,7 +5,8 @@ import type { BattleShare } from './share-code';
 // 사람이 붙인 이름뿐이고, 그 코드가 무슨 뜻인지 — 몇 초짜리 전투인지, 누가 편성됐는지 —
 // 는 여기서만 안다. 목록에 함께 적히는 «설명»도 그래서 서버가 아니라 이쪽에서 만든다.
 
-export type ShareKind = 'boss' | 'squad' | 'union';
+/** `maker`는 보스 메이커로 그린 보스(NK5-)다. `boss`는 전투 조건(NK3-)이다. */
+export type ShareKind = 'boss' | 'squad' | 'union' | 'maker';
 export type VoteValue = 1 | -1 | 0;
 
 export interface ShareItem {
