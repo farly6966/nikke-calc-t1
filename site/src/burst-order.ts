@@ -79,7 +79,7 @@ export interface CandidateSource {
  * 이 단계를 채울 수 있는 니케.
  *
  * **편성 순서를 지킨다** — 단축키가 자리를 바꾸면 손이 외운 위치가 무너진다.
- * 단계가 `A`인 니케(레드 후드)는 어느 단계에나 선다.
+ * 단계가 `A`인 니케는 어느 단계에나 선다.
  */
 export function candidatesFor(stage: BurstStage, source: CandidateSource): string[] {
   const seen = new Set<string>();
@@ -162,14 +162,14 @@ export function progressOf(
 
 /** 목록에 적는 한 줄. 「1버 리타 → 2버 크라운 → 3버 앨리스」 */
 export function cycleLine(cycle: BurstCycle | undefined): string {
-  if (!cycle) return '自動';
+  if (!cycle) return '자동';
   const parts = BURST_STAGES
     .map((stage) => {
       const name = (cycle[stage] ?? [])[0];
-      return name ? `${stage}爆 ${name}` : null;
+      return name ? `${stage}버 ${name}` : null;
     })
     .filter((part): part is string => part !== null);
-  return parts.length > 0 ? parts.join(' → ') : '自動';
+  return parts.length > 0 ? parts.join(' → ') : '자동';
 }
 
 /** 덱에 잡아 둔 순서를 요청에 실을 모양으로. 편성이 바뀌었으면 그에 맞춰 걸러 낸다. */

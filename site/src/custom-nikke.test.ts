@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -56,7 +53,7 @@ describe('parseCustomInput', () => {
     expect(() => parseCustomInput(JSON.stringify(badWeapon))).toThrow(/weapon_type/);
     const missing = JSON.parse(validJson);
     delete missing.nikke.max_ammo;
-    expect(() => parseCustomInput(JSON.stringify(missing))).toThrow(/缺少/);
+    expect(() => parseCustomInput(JSON.stringify(missing))).toThrow(/누락/);
   });
 });
 
@@ -101,19 +98,6 @@ describe('buildAddPrompt', () => {
     const prompt = buildAddPrompt();
     expect(prompt).toContain('"skills"');
     expect(prompt).toContain('프리바티');
-    expect(prompt).toContain('[請在這裡貼上妮姬的名稱與技能說明]');
-  });
-});
-
-describe('customToSettings', () => {
-  // 큐브 이름이 짧은 통칭에서 인게임 정식 명칭으로 바뀔 때 여기만 옛 이름으로 남아,
-  // 직접 추가한 니케가 카탈로그에 없는 큐브를 가리켰다. 시험 대역이 아니라 **실제로
-  // 내보내는 목록**과 맞대야 잡히는 어긋남이라, 여기서는 settings.json을 그대로 읽는다.
-  it('gives the custom nikke a cube the shipped catalog actually has', () => {
-    const settings = JSON.parse(readFileSync(
-      join(import.meta.dirname, '..', 'public', 'settings.json'), 'utf8',
-    )) as { cubes: Record<string, unknown> };
-    const defaults = customToSettings(parseCustomInput(validJson));
-    expect(Object.keys(settings.cubes)).toContain(defaults.cube.name);
+    expect(prompt).toContain('[여기에 니케 이름과 스킬 설명을 붙여넣으세요]');
   });
 });

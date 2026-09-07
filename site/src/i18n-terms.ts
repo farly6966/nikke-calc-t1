@@ -1,127 +1,13 @@
 /**
- * 분류명 표시용 한국어→중국어(번체) 사전.
+ * 속성 아이콘.
  *
- * 계산 엔진과 데이터(`catalog.json`, `parsed_nikke.json` 등)는 한국어 값을 그대로
- * 키·코드로 쓴다. 여기서 바꾸는 건 **화면에 보이는 라벨뿐**이다 — 필터 값이나
- * 직렬화 코드는 절대 건드리지 않는다.
+ * 예전에는 이 파일이 분류명·큐브 이름을 중국어로 옮기는 사전이기도 했다. 그 일은
+ * 이제 언어층이 한다(`i18n.ts`) — 분류명은 상류 사전에 열세 개가 다 있고, 큐브·캐릭터
+ * 이름은 게임사 CDN 표(`data/locale_text.json`)가 정본이다. 부르는 자리에서 미리
+ * 옮기지 않고 한국어를 그대로 두면 **영어·일본어도 함께** 되므로 그쪽으로 옮겼다.
  *
- * 모르는 값은 그대로 돌려준다. 새 속성·기업이 생겨도 빈칸이 되는 대신 한국어로
- * 남으므로 화면이 깨지지 않는다.
- *
- * Display-only Korean→Traditional-Chinese dictionary for category labels.
- * The engine and data keep the Korean values as their canonical keys; only the
- * on-screen label is swapped. Unknown values fall through unchanged.
+ * 남은 것은 사전이 아니라 그림이라 여기 있다.
  */
-
-/** 속성(원소) 코드 */
-export const ELEMENT_ZH: Record<string, string> = {
-  작열: '燃燒',
-  수냉: '水冷',
-  풍압: '風壓',
-  전격: '電擊',
-  철갑: '鐵甲',
-};
-
-/** 클래스 */
-export const CLASS_ZH: Record<string, string> = {
-  화력형: '火力型',
-  방어형: '防禦型',
-  지원형: '支援型',
-};
-
-/** 기업(제조사) */
-export const CORP_ZH: Record<string, string> = {
-  엘리시온: '極樂淨土',
-  미실리스: '米西利斯',
-  테트라: '泰特拉',
-  필그림: '朝聖者',
-  어브노말: '反常',
-};
-
-/**
- * 하모니 큐브 이름.
- *
- * 출처는 커뮤니티(NGA)에 정리된 **중국 서버 표기**를 번체로 옮긴 것이고,
- * 이름이 아니라 **효과 수치로 짝을 맞췄다** — `settings.json`의 큐브별 effect 값이
- * 그 표와 한 줄씩 맞는 것을 확인하고 붙였다. 그래서 이름이 헷갈릴 일은 없다.
- *
- * 사전에 없는 큐브는 카탈로그의 한국어 이름이 그대로 나온다 — 새 큐브가 들어와도
- * 화면이 깨지지 않는다. 지금은 `렐릭 커버 큐브`가 그렇다(쓰는 사람이 없어 보류).
- */
-export const CUBE_ZH: Record<string, string> = {
-  '렐릭 어설트 큐브': '遺跡突擊魔方',
-  '택티컬 어설트 큐브': '戰術突擊魔方',
-  '렐릭 베어 큐브': '遺跡巨熊魔方',
-  '택티컬 베어 큐브': '戰術巨熊魔方',
-  '렐릭 부스트 큐브': '遺跡促進魔方',
-  '택티컬 부스트 큐브': '戰術促進魔方',
-  '렐릭 퀀텀 큐브': '遺跡量子魔方',
-  '렐릭 비고르 큐브': '體力神器魔方',
-  '렐릭 인듀어 큐브': '遺跡強韌魔方',
-  '렐릭 힐링 큐브': '遺跡治療魔方',
-  '렐릭 템퍼링 큐브': '遺跡回火魔方',
-  '렐릭 어시스터 큐브': '遺跡輔助魔方',
-  '렐릭 디스트로이 큐브': '遺跡毀滅魔方',
-  '렐릭 피어싱 큐브': '遺跡穿透魔方',
-  '렐릭 크래시 큐브': '遺跡粉碎魔方',
-  '렐릭 디바이드 큐브': '分攤魔方',
-};
-
-/** 큐브 이름 → 화면 라벨. 사전에 없으면 원래 이름 그대로. */
-export function cubeZh(name: string): string {
-  return CUBE_ZH[name] ?? name;
-}
-
-/**
- * 큐브 효과 설명문. `{0}`은 그대로 남겨 둔다 — 화면이 그 자리에 수치를 끼운다.
- *
- * 원문은 게임 데이터(`data/base_stat_tables/cube.json`)에서 오므로 스크랩을 다시
- * 돌려도 덮이지 않게 **여기서 갈아 끼운다**. 모르는 문장은 원문 그대로 나온다.
- */
-const CUBE_TEMPLATE_ZH: Record<string, string> = {
-  '전투 시작 시 명중률 {0}% ▲': '戰鬥開始時 命中率 {0}% ▲',
-  '전투 시작 시 차지 대미지 {0}% ▲': '戰鬥開始時 蓄力傷害 {0}% ▲',
-  '전투 시작 시 재장전 속도 {0}% ▲': '戰鬥開始時 裝填速度 {0}% ▲',
-  '10발 사격 시 탄환 충전 {0}발 ▲': '每射擊 10 發 補充 {0} 發子彈 ▲',
-  '전투 시작 시 차지 속도 {0}% ▲': '戰鬥開始時 蓄力速度 {0}% ▲',
-  '전투 시작 시 최대 장탄 수 {0}% ▲': '戰鬥開始時 最大裝彈數 {0}% ▲',
-  '전투 시작 시 버스트 게이지 충전 속도 {0}% ▲': '戰鬥開始時 爆裂量表充能速度 {0}% ▲',
-  '전투 시작 시 최대 체력 {0}% ▲': '戰鬥開始時 最大生命 {0}% ▲',
-  '전투 시작 시 방어력 {0}% ▲': '戰鬥開始時 防禦力 {0}% ▲',
-  '전투 시작 시 주는 체력 회복량 {0}% ▲': '戰鬥開始時 給予的生命回復量 {0}% ▲',
-  '전투 시작 시 받는 대미지 {0}% ▼': '戰鬥開始時 受到的傷害 {0}% ▼',
-  '착용자의 체력이 20% 이하일 때 최대 체력 {0}% ▲ 20초 유지':
-    '裝備者生命 20% 以下時 最大生命 {0}% ▲ 持續 20秒',
-  '전투 시작 시 파츠 대미지 {0}% ▲': '戰鬥開始時 零件傷害 {0}% ▲',
-  '전투 시작 시 관통 대미지 {0}% ▲': '戰鬥開始時 穿透傷害 {0}% ▲',
-  '전투 시작 시 방어력 무시 대미지 {0}% ▲': '戰鬥開始時 防禦力無視傷害 {0}% ▲',
-  '전투 시작 시 시전자의 최대 체력 비례 엄폐물 최대 체력 {0}% ▲':
-    '戰鬥開始時 依施放者最大生命比例的掩體最大生命 {0}% ▲',
-  '전투 시작 시 분배 대미지 {0}% ▲': '戰鬥開始時 分攤傷害 {0}% ▲',
-};
-
-/** 큐브 효과문 → 화면 문장. 사전에 없으면 원문 그대로. */
-export function cubeTemplateZh(template: string): string {
-  return CUBE_TEMPLATE_ZH[template] ?? template;
-}
-
-/** 필터 그룹 제목 (FilterKey 기준) */
-export const FILTER_TITLE_ZH: Record<string, string> = {
-  rarity: '稀有度',
-  class: '職業',
-  code: '屬性',
-  weapon: '武器',
-  corp: '企業',
-  burst: '爆裂',
-};
-
-/** 모든 분류 사전을 한데 모아 한 번에 조회한다. */
-const ALL_TERMS: Record<string, string> = { ...ELEMENT_ZH, ...CLASS_ZH, ...CORP_ZH };
-
-/** 한국어 분류 값 → 중국어 라벨. 사전에 없으면 원래 값을 그대로 돌려준다. */
-export function termZh(value: string): string {
-  return ALL_TERMS[value] ?? value;
-}
 
 // 속성(코드) 아이콘 — 그림은 `image/icon/icon-code-*.png`가 정본이다.
 // 목록에 없는 코드(직접 추가한 니케)는 조용히 아이콘을 생략한다.
@@ -138,8 +24,9 @@ export function createElementIcon(elementCode: string, className: string): HTMLE
   if (!slug) return null;
   const icon = document.createElement('span');
   icon.className = `${className} element-icon is-${slug}`;
-  // 그림만으로는 속성을 못 읽는 사람이 있어 이름을 붙인다 — 화면 말로 붙여야 한다.
-  icon.title = termZh(elementCode);
-  icon.ariaLabel = termZh(elementCode);
+  // 그림만으로는 속성을 못 읽는 사람이 있어 이름을 붙인다. 한국어로 붙여 두면
+  // 화면을 훑는 쪽이 그 사람 말로 바꾼다(`title`·`aria-label` 둘 다 본다).
+  icon.title = elementCode;
+  icon.ariaLabel = elementCode;
   return icon;
 }

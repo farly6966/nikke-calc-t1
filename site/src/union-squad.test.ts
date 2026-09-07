@@ -5,7 +5,7 @@ import { UnionSquadPicker } from './union-squad';
 import type { CharacterMeta } from './types';
 
 const char = (name: string, over: Partial<CharacterMeta> = {}): CharacterMeta => ({
-  name, displayName: name, burstStage: '3', elementCode: '작열', weaponType: 'AR',
+  name, burstStage: '3', elementCode: '작열', weaponType: 'AR',
   className: '화력형', manufacturer: '엘리시온', preview: false, image: null,
   nameCode: null, resourceId: null, aliases: [], ...over,
 });
@@ -205,7 +205,7 @@ describe('찾기와 좁히기', () => {
     const ui = mount();
     ui.slots()[0]!.click();
     const chips = [...ui.panel()!.querySelectorAll<HTMLButtonElement>('.union-chip')];
-    const water = chips.find((chip) => chip.textContent === '水冷')!;
+    const water = chips.find((chip) => chip.textContent === '수냉')!;
     water.click();
     expect(ui.cards().map((card) => card.textContent)).toHaveLength(2);   // 리타·앨리스
     water.click();

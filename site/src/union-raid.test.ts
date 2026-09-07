@@ -59,8 +59,8 @@ describe('유니온 명단 읽기', () => {
   it('로그인이 풀린 응답은 그 사실을 말해 준다', () => {
     expect(() => parseMemberList('{"code":1303001,"msg":"user no bind role"}'))
       .toThrow(/user no bind role/);
-    expect(() => parseMemberList('   ')).toThrow(/是空的/);
-    expect(() => parseMemberList('아무 말이나')).toThrow(/無法辨識/);
+    expect(() => parseMemberList('   ')).toThrow(/비어 있습니다/);
+    expect(() => parseMemberList('아무 말이나')).toThrow(/알아보지 못했습니다/);
   });
 });
 
@@ -146,9 +146,9 @@ describe('직접 긁기', () => {
   });
 
   it('잘려 온 자료와 빈 자료는 그 사실을 말해 준다', async () => {
-    await expect(parseDirectScan('NKU1-이건망가진것')).rejects.toThrow(/無法解開/);
-    await expect(parseDirectScan('  ')).rejects.toThrow(/是空的/);
-    await expect(parseDirectScan('{"members":[]}')).rejects.toThrow(/找不到聯盟成員/);
+    await expect(parseDirectScan('NKU1-이건망가진것')).rejects.toThrow(/푸는 데 실패/);
+    await expect(parseDirectScan('  ')).rejects.toThrow(/비어 있습니다/);
+    await expect(parseDirectScan('{"members":[]}')).rejects.toThrow(/유니온원을 찾지 못했습니다/);
   });
 
   it('스니펫이 프록시를 거치지 않고 직접 부른다', () => {
@@ -178,7 +178,7 @@ describe('보스·덱 칸', () => {
 
   it('빈 칸은 오류가 아니고, 망가진 코드는 이유를 남긴다', () => {
     expect(readBossCode({ name: '', code: '  ', enabled: true, decks: [] }).error).toBeUndefined();
-    expect(readBossCode({ name: '', code: 'NK3-쓰레기', enabled: true, decks: [] }).error).toMatch(/無法解析/);
+    expect(readBossCode({ name: '', code: 'NK3-쓰레기', enabled: true, decks: [] }).error).toMatch(/해석하지 못/);
   });
 
   it('조합 코드에서 니케 다섯을 뽑는다', () => {
@@ -230,7 +230,7 @@ describe('돌릴 것 늘어놓기', () => {
 
   it('이름 없는 보스 칸에는 번호를 붙인다', () => {
     const jobs = buildJobs([member()], [bossWith({ name: '   ' })]);
-    expect(jobs[0]!.bossName).toBe('王 1');
+    expect(jobs[0]!.bossName).toBe('보스 1');
   });
 });
 
@@ -314,9 +314,9 @@ describe('시간 안내', () => {
   it('스캔 시간은 인원에 비례하고, 사람이 읽는 말로 적는다', () => {
     expect(estimateScanSeconds(0)).toBe(0);
     expect(estimateScanSeconds(32)).toBe(57);          // 둘씩 동시 + 간격 · 실측과 같은 자릿수
-    expect(humanSeconds(45)).toBe('45秒');
-    expect(humanSeconds(80)).toBe('1分20秒');
-    expect(humanSeconds(120)).toBe('2分');
+    expect(humanSeconds(45)).toBe('45초');
+    expect(humanSeconds(80)).toBe('1분 20초');
+    expect(humanSeconds(120)).toBe('2분');
   });
 
   it('남은 시간은 이미 돌린 것으로 어림한다', () => {
@@ -382,7 +382,7 @@ describe('유니온 판 코드 (NK4)', () => {
     expect(Object.keys(share)).toEqual(['bosses']);
   });
 
-  it('三隊盤面保留第二隊與尾端空隊', () => {
+  it('덱 칸은 언제나 셋으로 채워 온다 — 코드에 하나만 들었어도', () => {
     // 덱 셋이던 시절의 판 코드가 유니온방에 돌아다닌다. 거절하지 않고 받아 준다.
     const many = unionCodeOf([{
       name: '수냉 니힐', code: encodeBattleCode(battle), enabled: true,
@@ -401,7 +401,7 @@ describe('유니온 판 코드 (NK4)', () => {
   });
 });
 
-describe('배정표', () => {
+describe('결과 내보내기', () => {
   const job = (name: string, sync: number, bossIndex: number, bossName: string, deckIndex: number) => ({
     member: member({ name, openid: name, synchro: sync }),
     bossIndex, bossName, deckIndex, squad: ['리타'], battle,
@@ -422,7 +422,7 @@ describe('배정표', () => {
     expect(first.cells.get(0)!.deckIndex).toBe(1);
   });
 
-  it('맡은 보스만 칸이 생긴다 — 안 맡긴 보스는 빈칸이 아니라 아예 없다', () => {
+  it('한 줄이 «지휘관 × 보스 × 덱» 한 칸이다', () => {
     // 배정표의 «빈칸»과 같은 뜻이다. 0을 적으면 «쳤는데 0딜»로 읽힌다.
     const grid = buildGrid(results, []);
     const first = grid.rows.find((row) => row.member.name === '가')!;
@@ -430,14 +430,14 @@ describe('배정표', () => {
     expect(grid.bosses.map((boss) => boss.name)).toEqual(['수냉', '철갑']);
   });
 
-  it('미보유는 빈칸이 아니라 이유를 적는다', () => {
+  it('못 돌린 칸도 줄을 남기고 이유를 적는다 — 빈 줄은 «왜»를 못 말한다', () => {
     const grid = buildGrid(results, []);
     const second = grid.rows.find((row) => row.member.name === '나')!;
     expect(second.cells.get(2)!.damage).toBeUndefined();
     expect(second.cells.get(2)!.note).toContain('라피');
   });
 
-  it('한 덱이라도 돌면 «못 친다»가 아니다', () => {
+  it('돌린 것이 없으면 머리글만 남는다', () => {
     const mixed: JobResult[] = [
       { job: job('다', 500, 0, '수냉', 0), missing: ['라피'] },
       { job: job('다', 500, 0, '수냉', 1), damage: 7 },
@@ -447,7 +447,7 @@ describe('배정표', () => {
     expect(cell.note).toBeUndefined();
   });
 
-  it('총 기여가 높은 사람부터 세운다', () => {
+  it('속성을 안 정한 보스는 «무속성»으로 적는다', () => {
     // 가 = 30 + 5 = 35, 나 = 40. 공회가 보고 싶은 것은 «총 기여»라 그 순서로 세운다.
     const grid = buildGrid(results, []);
     expect(grid.rows.map((row) => row.member.name)).toEqual(['나', '가']);

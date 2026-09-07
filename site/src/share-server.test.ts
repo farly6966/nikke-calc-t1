@@ -58,16 +58,16 @@ describe('share server client', () => {
       .rejects.toThrow('오늘 올릴 수 있는 개수를 넘었습니다.');
   });
 
-  it('falls back to a readable message when the body is not JSON', async () => {
+  it('보낸다 — 코멘트 · 항목 · 비밀번호를 한 몸으로', async () => {
     const fetcher = (async () => new Response('nope', { status: 502 })) as unknown as typeof fetch;
     await expect(new ShareServer('https://share.example.com', fetcher).list('boss'))
-      .rejects.toThrow('伺服器沒有回應(502)。');
+      .rejects.toThrow('서버가 응답하지 않았습니다 (502).');
   });
 });
 
 describe('auto summaries', () => {
   it('reads the battle back as one line', () => {
-    expect(summarizeBattle(battle)).toBe('180秒 · 無屬性 · 無核心 · 隨機');
+    expect(summarizeBattle(battle)).toBe('180초 · 무속성 · 코어 없음 · 난수');
     expect(summarizeBattle({
       ...battle,
       duration: 90,
@@ -79,7 +79,7 @@ describe('auto summaries', () => {
       immuneWindows: [{ from: 10, to: 20 }],
       elementWindows: [{ from: 30, to: 40, code: '작열' }],
       rngMode: 'expected',
-    })).toBe('90秒 · 敵 水冷 · 核心 60px · 部位 · 適正 AR·SMG · 免疫 1 · 屬濾 1 · 期望值');
+    })).toBe('90초 · 적 수냉 · 코어 60px · 파츠 · 적정 AR·SMG · 족자 1 · 속저 1 · 기대값');
   });
 
   it('names the squad, and counts decks in five-deck mode', () => {
@@ -89,7 +89,7 @@ describe('auto summaries', () => {
       { squad: ['', '', '', '', ''] },
     ];
     expect(summarizeSquad(decks, false)).toBe('리타/크라운');
-    expect(summarizeSquad(decks, true)).toBe('2 隊 · 4 名');
+    expect(summarizeSquad(decks, true)).toBe('2덱 · 4명');
     // 5덱 모드라도 실제로 한 덱만 찼으면 이름이 더 쓸모 있다.
     expect(summarizeSquad([decks[0]!], true)).toBe('리타/크라운');
 

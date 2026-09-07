@@ -212,7 +212,7 @@ describe('calculator UI', () => {
       .dispatchEvent(dragEvent('drop', { 'application/x-nikke-name': taken }));
 
     expect(savedSquad()[4]).toBe('프리바티');   // 그대로다
-    expect(root.querySelector('[data-errors]')!.textContent).toContain('已經在第 2 格');
+    expect(root.querySelector('[data-errors]')!.textContent).toContain('이미 2번 칸에 있습니다');
   });
 
   it('칸끼리 끌면 자리가 맞바뀐다', () => {
@@ -234,8 +234,8 @@ describe('calculator UI', () => {
     // 프리셋과 공유는 같은 창이다 — 단추도 하나로 합쳤다.
     const open = root.querySelector<HTMLButtonElement>('[data-share-open]')!;
     expect(open).not.toBeNull();
-    expect(open.textContent).toContain('預設');
-    expect(open.textContent).toContain('組合分享');
+    expect(open.textContent).toContain('프리셋');
+    expect(open.textContent).toContain('조합 공유');
     expect(root.querySelector('[data-preset-open]')).toBeNull();
     open.click();
 
@@ -244,7 +244,7 @@ describe('calculator UI', () => {
     // 창 하나가 저장(프리셋)과 주고받기(코드·링크)를 같이 맡는다.
     expect(root.querySelector('[data-preset-name]')).not.toBeNull();
     expect(root.querySelector('[data-share-out]')).not.toBeNull();
-    expect(modal.textContent).toContain('個人規格與戰鬥條件不會被包含');
+    expect(modal.textContent).toContain('개인 스펙과 전투 조건은 담기지 않습니다');
 
     const name = root.querySelector<HTMLInputElement>('[data-preset-name]')!;
     name.value = '솔레 1군';
@@ -271,8 +271,8 @@ describe('calculator UI', () => {
 
     // 첫 걸음은 1번째 풀버스트의 1버다.
     const now = root.querySelector<HTMLElement>('[data-burst-now]')!;
-    expect(now.textContent).toContain('第 1 次滿爆裂');
-    expect(now.textContent).toContain('1 爆');
+    expect(now.textContent).toContain('1번째 풀버스트');
+    expect(now.textContent).toContain('1버');
 
     // 1버는 리타 하나뿐이라 A와 「자동」(0)만 붙는다.
     const keysOf = () => [...root.querySelectorAll<HTMLElement>('[data-burst-picks] .burst-pick-key')]
@@ -284,7 +284,7 @@ describe('calculator UI', () => {
     expect(firstName).toBe('리타');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
     // 한 칸 골랐으니 다음 걸음(2버)으로 넘어간다.
-    expect(now.textContent).toContain('2 爆');
+    expect(now.textContent).toContain('2버');
     // 2버는 둘이라 A·S가 편성 순서대로 붙는다.
     expect(keysOf()).toEqual(['A', 'S', '0']);
     expect([...root.querySelectorAll<HTMLElement>('[data-burst-picks] .burst-pick-name')]
@@ -313,7 +313,7 @@ describe('calculator UI', () => {
     // 아무것도 안 골라도 칸은 셋이다 — 몇 칸이 남았는지가 보여야 한다.
     expect(slots()).toHaveLength(3);
     expect(slots().map((slot) => slot.querySelector('.burst-slot-stage')?.textContent))
-      .toEqual(['1 爆', '2 爆', '3 爆']);
+      .toEqual(['1버', '2버', '3버']);
     expect(slots().every((slot) => !slot.classList.contains('is-filled'))).toBe(true);
     expect(firstRow().querySelectorAll('img')).toHaveLength(0);
 
@@ -335,8 +335,8 @@ describe('calculator UI', () => {
     // 3번째 사이클의 3버 칸.
     rows[2]!.querySelectorAll<HTMLButtonElement>('.burst-slot')[2]!.click();
 
-    expect(now.textContent).toContain('第 3 次滿爆裂');
-    expect(now.textContent).toContain('3 爆');
+    expect(now.textContent).toContain('3번째 풀버스트');
+    expect(now.textContent).toContain('3버');
     // 지금 서 있는 칸에 표시가 붙는다.
     const here = root.querySelectorAll('[data-burst-list] .burst-slot.is-here');
     expect(here).toHaveLength(1);
@@ -366,15 +366,15 @@ describe('calculator UI', () => {
     const now = root.querySelector<HTMLElement>('[data-burst-now]')!;
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-    expect(now.textContent).toContain('2 爆');
+    expect(now.textContent).toContain('2버');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-    expect(now.textContent).toContain('1 爆');
-    expect(now.textContent).not.toContain('→ 自動');
+    expect(now.textContent).toContain('1버');
+    expect(now.textContent).not.toContain('→ 자동');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '0', bubbles: true }));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-    expect(now.textContent).toContain('→ 自動');
+    expect(now.textContent).toContain('→ 자동');
   });
 
   it('순서를 지우면 덱에서 사라지고 배지도 내려간다', () => {
@@ -411,7 +411,7 @@ describe('calculator UI', () => {
     });
 
     const tab = root.querySelector<HTMLButtonElement>('[data-view-tab="links"]')!;
-    expect(tab.textContent).toBe('外部連結');
+    expect(tab.textContent).toBe('외부고리');
     tab.click();
 
     const panel = root.querySelector<HTMLElement>('[data-view="links"]')!;
@@ -422,7 +422,7 @@ describe('calculator UI', () => {
     const cards = [...root.querySelectorAll<HTMLAnchorElement>('.link-card')];
     expect(cards).toHaveLength(4);
     expect(cards.map((card) => card.querySelector('.link-name')?.textContent))
-      .toEqual(["Let's Doro", 'Dildoro', 'Solo Raid History', 'Doro Party']);
+      .toEqual(['렛츠도로', '딜도로', '솔레 금서고', '도로파티']);
     for (const card of cards) {
       expect(card.target).toBe('_blank');
       // 남의 페이지에 우리 창을 넘기지 않는다.
@@ -431,7 +431,7 @@ describe('calculator UI', () => {
       expect(card.href.startsWith('https://')).toBe(true);
     }
     // 우리가 운영하는 곳이 아니라는 사실이 화면에 적혀 있어야 한다.
-    expect(panel.textContent).toContain('不是我們營運的');
+    expect(panel.textContent).toContain('우리가 운영하지 않습니다');
   });
 
   it('적 수치를 초기화하면 조건 한 줄도 함께 바뀐다', () => {
@@ -447,8 +447,8 @@ describe('calculator UI', () => {
     def.value = '99999'; def.dispatchEvent(new Event('change', { bubbles: true }));
     code.value = '작열'; code.dispatchEvent(new Event('change', { bubbles: true }));
     parts.checked = true; parts.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(summary.textContent).toContain('燃燒');
-    expect(summary.textContent).toContain('部位');
+    expect(summary.textContent).toContain('작열');
+    expect(summary.textContent).toContain('파츠');
 
     root.querySelector<HTMLButtonElement>('[data-reset-enemy]')!.click();
 
@@ -457,9 +457,9 @@ describe('calculator UI', () => {
     expect(parts.checked).toBe(false);
     // 전투 조건이 창으로 들어간 뒤로 이 한 줄이 화면에 남는 유일한 표시다 —
     // 값만 되돌리고 줄을 그대로 두면 «초기화가 안 된다»로 보인다.
-    expect(summary.textContent).not.toContain('燃燒');
-    expect(summary.textContent).not.toContain('部位');
-    expect(summary.textContent).toContain('無屬性');
+    expect(summary.textContent).not.toContain('작열');
+    expect(summary.textContent).not.toContain('파츠');
+    expect(summary.textContent).toContain('무속성');
   });
 
   it('받은 전투 조건 코드를 적용해도 조건 한 줄이 따라온다', () => {
@@ -468,7 +468,7 @@ describe('calculator UI', () => {
     });
 
     const summary = root.querySelector<HTMLElement>('[data-battle-summary]')!;
-    expect(summary.textContent).toContain('無屬性');
+    expect(summary.textContent).toContain('무속성');
 
     root.querySelector<HTMLButtonElement>('[data-battle-share-open]')!.click();
     const input = root.querySelector<HTMLTextAreaElement>('[data-battle-share-in]')!;
@@ -479,8 +479,8 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-battle-share-apply]')!.click();
 
     expect(root.querySelector<HTMLInputElement>('#duration')!.value).toBe('90');
-    expect(summary.textContent).toContain('電擊');
-    expect(summary.textContent).toContain('90秒');
+    expect(summary.textContent).toContain('전격');
+    expect(summary.textContent).toContain('90초');
   });
 
   it('조합 공유는 「이 덱만」으로 열리고, 받은 덱 하나가 다른 덱을 지우지 않는다', () => {
@@ -500,15 +500,15 @@ describe('calculator UI', () => {
     const scope = root.querySelector<HTMLElement>('[data-share-scope]')!;
     expect(scope).not.toBeNull();
     // 기본은 「이 덱만」이다 — 덱 하나를 옮기는 일이 판 전체를 옮기는 일보다 잦다.
-    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('只有這隊');
+    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('이 덱만');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
-      .toContain('只進入隊伍 1');
+      .toContain('덱 1에만 들어갑니다');
 
     // 「5덱 전부」로 바꾸면 안내도 따라 바뀐다.
     root.querySelector<HTMLButtonElement>('[data-share-scope-pick="all"]')!.click();
-    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('全部 5 隊');
+    expect(scope.querySelector('.share-scope-pick.is-on')?.textContent).toBe('5덱 전부');
     expect(root.querySelector('[data-share-scope-note]')?.textContent)
-      .toContain('整個盤面會改變');
+      .toContain('판 전체가 바뀝니다');
   });
 
   it('프리셋은 어느 범위로 저장했는지 함께 알린다', () => {
@@ -519,18 +519,18 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-share-open]')!.click();
     root.querySelector<HTMLInputElement>('[data-preset-name]')!.value = '한 덱짜리';
     root.querySelector<HTMLButtonElement>('[data-preset-save]')!.click();
-    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('僅隊伍 1');
+    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('덱 1만');
 
     root.querySelector<HTMLButtonElement>('[data-share-scope-pick="all"]')!.click();
     root.querySelector<HTMLInputElement>('[data-preset-name]')!.value = '판 전체';
     root.querySelector<HTMLButtonElement>('[data-preset-save]')!.click();
-    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('全部 5 隊');
+    expect(root.querySelector('[data-share-msg]')?.textContent).toContain('5덱 전부');
 
     const stored = JSON.parse(localStorage.getItem('nikke-presets-v1')!) as Array<{ name: string }>;
     expect(stored.map((item) => item.name).sort()).toEqual(['판 전체', '한 덱짜리']);
   });
 
-  it('유니온 탭에는 판 전체를 한 코드로 주고받는 줄이 있다', () => {
+  it('같은 이름으로 저장하면 한 번 묻는다 — 말없이 덮어쓰지 않는다', () => {
     mountCalculator(root, {
       catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage,
       blablaProxy: 'https://proxy.example',
@@ -727,12 +727,12 @@ describe('calculator UI', () => {
     expect(server).not.toBeNull();
     expect(server!.value).toBe('');
     expect([...server!.options].map((option) => [option.value, option.textContent])).toEqual([
-      ['', '自動(持有妮姬最多的伺服器)'],
-      ['83', '韓國'],
-      ['81', '日本'],
-      ['84', '全球'],
-      ['82', '北美'],
-      ['85', '東南亞'],
+      ['', '자동 (보유 니케가 가장 많은 서버)'],
+      ['83', '한국'],
+      ['81', '일본'],
+      ['84', '글로벌'],
+      ['82', '북미'],
+      ['85', '동남아'],
     ]);
   });
 
@@ -775,7 +775,7 @@ describe('calculator UI', () => {
 
     expect(sentBody).toEqual({ profileUrl: url.value, area: 84 });
     expect(root.querySelector<HTMLElement>('[data-blabla-status]')!.textContent)
-      .toContain('已從 全球 伺服器載入 1 名');
+      .toContain('글로벌 서버에서 1명을 불러왔습니다.');
   });
 
   it('sets breakthrough from the portrait star stepper and keeps the dropdown in sync', () => {
@@ -1040,7 +1040,7 @@ describe('calculator UI', () => {
 
     expect(root.querySelector<HTMLButtonElement>('[data-sort="power"]')!.dataset.sortDir).toBe('desc');
     // 오는 동안은 이름순으로 서 있고, 요약이 기다리는 중임을 알린다.
-    expect(summary()).toContain('戰鬥力 計算中');
+    expect(summary()).toContain('전투력 계산중');
     expect(rosterNames(root)).toEqual([...rosterNames(root)].sort((a, b) => a.localeCompare(b, 'ko')));
 
     await flush();
@@ -1048,7 +1048,7 @@ describe('calculator UI', () => {
     answer({ 나가: 30, 리타: 10, 앨리스: 50 });
     await flush();
 
-    expect(summary()).toContain('戰鬥力 ▼');
+    expect(summary()).toContain('전투력 ▼');
     const byPower = rosterNames(root);
     expect(byPower.indexOf('앨리스')).toBeLessThan(byPower.indexOf('나가'));
     expect(byPower.indexOf('나가')).toBeLessThan(byPower.indexOf('리타'));
@@ -1106,12 +1106,12 @@ describe('calculator UI', () => {
     expect(rosterNames(root).length).toBe(catalog.length);
   });
 
-  it('drops the favorite-item filter', () => {
+  it('애장품 필터로 목록을 가른다', () => {
     mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
     expect(root.querySelector('[data-filter-chip^="favorite"]')).toBeNull();
     const titles = [...root.querySelectorAll('[data-filter-groups] .filter-title')]
       .map((title) => title.textContent);
-    expect(titles).toEqual(['稀有度', '職業', '屬性', '武器', '企業']);
+    expect(titles).toEqual(['등급', '클래스', '코드', '무기', '기업']);
   });
 
   it('sends the synchro level from the battle panel, and keeps it out of shared codes', async () => {
@@ -1196,7 +1196,7 @@ describe('calculator UI', () => {
     const box = root.querySelector<HTMLInputElement>('[data-detail-damage]')!;
     expect(box.checked).toBe(false);
     const short = rowTotal();
-    expect(short).toMatch(/億$/);                  // 켜기 전에는 줄여 쓴다
+    expect(short).toMatch(/억$/);                  // 켜기 전에는 줄여 쓴다
     box.click();
     const exact = rowTotal();
     expect(exact).not.toBe(short);
@@ -1270,7 +1270,7 @@ describe('calculator UI', () => {
     expect(root.querySelectorAll('[data-slot-choose] strong')[0]!.textContent).toBe('리타');
     root.querySelector<HTMLButtonElement>('[data-deck-clear]')!.click();
     expect([...root.querySelectorAll('[data-slot-choose] strong')].map((e) => e.textContent))
-      .toEqual(['空格', '空格', '空格', '空格', '空格']);
+      .toEqual(['빈 칸', '빈 칸', '빈 칸', '빈 칸', '빈 칸']);
   });
 
   it('brings the deck you were viewing to deck 1 when five-deck mode is turned off', () => {
@@ -1532,7 +1532,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-deck-copy-apply]')!.click();
 
     expect(root.querySelector<HTMLElement>('[data-errors]')!.textContent)
-      .toContain('請至少選擇一個要複製的目標隊伍');
+      .toContain('복사할 대상 덱을 하나 이상 선택하세요');
     expect(root.querySelector<HTMLElement>('[data-deck-copy-panel]')!.hidden).toBe(false);
   });
 
@@ -1551,14 +1551,14 @@ describe('calculator UI', () => {
 
     // 25명이면 3쪽, 첫 쪽은 열 명.
     expect(root.querySelectorAll('.enikk-player')).toHaveLength(10);
-    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('第 1 頁,共 3 頁');
+    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('3쪽 중 1쪽');
 
     // 마지막 쪽은 다섯 명만 남는다.
     const last = [...root.querySelectorAll<HTMLButtonElement>('.enikk-page')]
       .find((b) => b.textContent === '3')!;
     last.click();
     expect(root.querySelectorAll('.enikk-player')).toHaveLength(5);
-    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('第 3 頁,共 3 頁');
+    expect(root.querySelector('.enikk-page-info')!.textContent).toBe('3쪽 중 3쪽');
   });
 
   it('ignores an enikk cache left by an older shape instead of crashing', () => {
@@ -1580,7 +1580,7 @@ describe('calculator UI', () => {
 
     expect(trust.textContent).not.toContain('AI 없음');
     expect(trust.textContent).not.toContain('서버 전송 없음');
-    expect(trust.textContent).toContain(`支援 ${catalog.length} 名`);
+    expect(trust.textContent).toContain(`${catalog.length}명 지원`);
     // 판이 늘 펼쳐져 있으니 열 버튼이 없다.
     expect(root.querySelector('[data-roster-open]')).toBeNull();
   });
@@ -1589,7 +1589,7 @@ describe('calculator UI', () => {
     mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
     const credit = root.querySelector<HTMLAnchorElement>('.trust-row .credit-link')!;
 
-    expect(credit.textContent).toBe('向原始演算法開發者致上無限感謝');
+    expect(credit.textContent).toBe('원본 알고리즘 개발자에게 무한한 감사를');
     expect(credit.href).toBe('https://github.com/Jgaram/nikke-calc');
     // 새 탭으로 열되 opener를 넘기지 않는다.
     expect(credit.target).toBe('_blank');
@@ -1601,11 +1601,11 @@ describe('calculator UI', () => {
 
     expect(root.querySelector('[data-roster-modal]')).toBeNull();
     expect(root.querySelectorAll('[data-roster-cell]')).toHaveLength(catalog.length);
-    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`${catalog.length} 名`);
+    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`${catalog.length}명`);
 
     searchRoster(root, '라피');
     expect(rosterNames(root)).toEqual(['라피 : 레드 후드']);
-    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`1 / ${catalog.length} 名`);
+    expect(root.querySelector('[data-roster-count]')!.textContent).toBe(`1 / ${catalog.length}명`);
 
     searchRoster(root, '없는이름');
     expect(root.querySelectorAll('[data-roster-cell]')).toHaveLength(0);
@@ -1702,7 +1702,7 @@ describe('calculator UI', () => {
     ]);
     // 공통은 맨 앞이다.
     const groups = [...root.querySelectorAll('.console-group h4')].map((h) => h.textContent);
-    expect(groups).toEqual(['共通', '企業', '職業']);
+    expect(groups).toEqual(['공통', '기업', '클래스']);
   });
 
   it('sends per-affiliation console levels and restores them on reload', async () => {
@@ -1750,7 +1750,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLFormElement>('form')!.requestSubmit();
     await flush();
 
-    expect(root.querySelector('[data-errors]')?.textContent).toContain('戰鬥時間必須是 10~180秒。');
+    expect(root.querySelector('[data-errors]')?.textContent).toContain('전투 시간은 10~180초여야 합니다.');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -1764,7 +1764,7 @@ describe('calculator UI', () => {
 
     expect(root.querySelector('[data-result-total]')?.textContent).toContain('123,456');
     expect(root.querySelectorAll('[data-character-result]')).toHaveLength(5);
-    expect(root.querySelector('[data-status]')?.textContent).toContain('個隊伍計算完成');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('계산 완료');
     expect(client.lastRequest?.duration).toBe(10);
   });
 
@@ -1797,8 +1797,8 @@ describe('calculator UI', () => {
     // 분해 정보를 준 캐릭터에만 붙는다.
     expect(splits).toHaveLength(1);
     // 접힌 줄에는 비율, 펼치면 실제 대미지가 보인다 — 카드가 좁아 둘을 나눠 담는다.
-    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('普攻 75%');
-    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('技能 25%');
+    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('평타 75%');
+    expect(splits[0]!.querySelector<HTMLElement>('summary')!.textContent).toContain('스킬 25%');
     const legend = splits[0]!.querySelector<HTMLElement>('.split-legend')!.textContent!;
     expect(legend).toContain('45,000');
     expect(legend).toContain('15,000');
@@ -1831,8 +1831,8 @@ describe('calculator UI', () => {
     await flush();
 
     const summary = root.querySelector<HTMLElement>('[data-dmg-split] summary')!;
-    expect(summary.textContent).toContain('核心 15%');
-    expect(summary.querySelector<HTMLElement>('.legend-core')!.title).toContain('彈著群');
+    expect(summary.textContent).toContain('코어 15%');
+    expect(summary.querySelector<HTMLElement>('.legend-core')!.title).toContain('탄착군');
   });
 
   it('안 쏜 사람에게는 코어 줄을 붙이지 않는다', async () => {
@@ -1859,7 +1859,7 @@ describe('calculator UI', () => {
     await flush();
 
     const summary = root.querySelector<HTMLElement>('[data-dmg-split] summary')!;
-    expect(summary.textContent).not.toContain('核心');
+    expect(summary.textContent).not.toContain('코어');
   });
 
   it('omits the damage split when the result has no breakdown (older cached results)', async () => {
@@ -1894,7 +1894,7 @@ describe('calculator UI', () => {
     // (그리기 실패 경로는 report.test.ts에서 직접 검증한다.)
     expect(root.querySelector<HTMLElement>('[data-report-modal]')!.hidden).toBe(false);
     expect(root.querySelector<HTMLElement>('[data-report-preview]')!.textContent)
-      .toContain('正在繪製報告');
+      .toContain('보고서를 그리는 중');
 
     root.querySelector<HTMLButtonElement>('[data-report-close]')!.click();
     expect(root.querySelector<HTMLElement>('[data-report-modal]')!.hidden).toBe(true);
@@ -1917,7 +1917,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(secondClient.simulateCalls).toBe(0);
-    expect(root.querySelector('[data-status]')?.textContent).toContain('已載入儲存的結果');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('저장된 결과');
   });
 
   it('renders a successful result when persistent storage rejects writes', async () => {
@@ -1934,7 +1934,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-result-total]')?.textContent).toContain('123,456');
-    expect(root.querySelector('[data-status]')?.textContent).toContain('個隊伍計算完成');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('계산 완료');
   });
 
   it('removes the preview badge when a preview slot is cleared', () => {
@@ -2022,7 +2022,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain('隊 1 · 리타:突破階段必須是 0~10 的整數。');
+      .toContain('덱 1 · 리타: 돌파 단계는 0~10 정수여야 합니다.');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -2040,7 +2040,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain('隊 1 · 리타:技能等級必須是 1~10 的整數。');
+      .toContain('덱 1 · 리타: 스킬 레벨은 1~10 정수여야 합니다.');
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -2085,7 +2085,7 @@ describe('calculator UI', () => {
     await flush();
 
     expect(root.querySelector('[data-errors]')?.textContent)
-      .toContain(`隊 1 · ${previewName}:數值未公開的角色只能使用技能 Lv10。`);
+      .toContain(`덱 1 · ${previewName}: 수치 미공개 캐릭터는 스킬 Lv10만 사용할 수 있습니다.`);
     expect(client.simulateCalls).toBe(0);
   });
 
@@ -2139,6 +2139,6 @@ describe('calculator UI', () => {
     deckTabs[1]!.click();
     expect(root.querySelector<HTMLElement>('[data-deck-result]')!.dataset.deckResult).toBe('2');
     expect(root.querySelector('[data-batch-total]')?.textContent).toContain('246,912');
-    expect(root.querySelector('[data-status]')?.textContent).toContain('2 個隊伍計算完成');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('2개 덱 계산 완료');
   });
 });

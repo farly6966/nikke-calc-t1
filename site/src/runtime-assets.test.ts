@@ -3,8 +3,15 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { CUBE_ZH, cubeTemplateZh } from './i18n-terms';
+import { setLang, setLocaleNames, t, tName, type LocaleNames } from './i18n';
 import type { CharacterMeta, RuntimeManifest } from './types';
+
+// 이름표는 게임사 CDN에서 받아 커밋해 둔 것이 정본이다(`scraper/cdn_locale.py`).
+const localeNames = JSON.parse(
+  readFileSync(join(import.meta.dirname, '..', '..', 'data', 'locale_text.json'), 'utf8'),
+) as LocaleNames;
+setLang('zh-TW');
+setLocaleNames(localeNames);
 
 const publicDir = join(import.meta.dirname, '..', 'public');
 
@@ -176,7 +183,7 @@ describe('generated browser runtime', () => {
 
     const seen = new Map<string, string[]>();
     for (const character of catalog) {
-      const shown = character.displayName ?? character.name;
+      const shown = tName(character.name);
       seen.set(shown, [...(seen.get(shown) ?? []), character.name]);
     }
     expect([...seen.entries()]
@@ -184,7 +191,7 @@ describe('generated browser runtime', () => {
       .map(([shown, names]) => `${shown}: ${names.join(' / ')}`)).toEqual([]);
   });
 
-  // 큐브 사전은 **이름을 키로** 잡으므로, 데이터 갱신으로 이름이 한 글자만 바뀌어도
+  // 큐브 이름표와 효과문 사전은 **이름을 키로** 잡으므로, 데이터 갱신으로 이름이 한 글자만 바뀌어도
   // 조용히 한국어가 화면에 돌아온다(빈칸이 안 되니 CI가 초록불로 지나간다).
   // 여기서 사전과 실제 데이터를 맞대어 그 순간을 잡는다.
   it('translates every cube name and effect line the data actually ships', () => {
@@ -192,20 +199,21 @@ describe('generated browser runtime', () => {
       readFileSync(join(publicDir, 'settings.json'), 'utf8'),
     ) as { cubes: Record<string, { template: string }> };
 
-    // 아직 이름을 못 정한 큐브. 비우면 한국어가 그대로 나오므로 **여기 적힌 것만** 허용한다.
-    const pending = ['렐릭 커버 큐브'];
+    // 아직 이름표에 없는 큐브. 비우면 한국어가 그대로 나오므로 **여기 적힌 것만** 허용한다.
+    const pending: string[] = [];
 
     const untranslated = Object.keys(settings.cubes)
-      .filter((name) => !(name in CUBE_ZH) && !pending.includes(name));
+      .filter((name) => tName(name) === name && !pending.includes(name));
     expect(untranslated).toEqual([]);
 
-    // 사전에만 있고 데이터에는 없는 이름 = 오타. 조용히 아무것도 안 바꾼다.
-    const stray = Object.keys(CUBE_ZH).filter((name) => !(name in settings.cubes));
+    // 이름표에만 있고 데이터에는 없는 이름 = 표가 낡았다. 조용히 아무것도 안 바꾼다.
+    const stray = Object.keys(localeNames.cubes ?? {})
+      .filter((name) => !(name in settings.cubes));
     expect(stray).toEqual([]);
 
     const rawTemplates = Object.values(settings.cubes)
       .map((cube) => cube.template)
-      .filter((template) => cubeTemplateZh(template) === template);
+      .filter((template) => t(template) === template);
     expect(rawTemplates).toEqual([]);
   });
 });

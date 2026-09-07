@@ -27,7 +27,7 @@ describe('업데이트 공지', () => {
     for (const notice of NOTICES) {
       expect(notice.items.length).toBeGreaterThan(0);
       for (const item of notice.items) {
-        expect(['新功能', '改善', '修正']).toContain(item.tag);
+        expect(['새 기능', '개선', '고침']).toContain(item.tag);
         expect(item.text.length).toBeGreaterThan(10);
       }
     }
@@ -62,8 +62,8 @@ describe('업데이트 공지', () => {
     }
   });
 
-  // 갈래 이름을 한국어에서 중국어로 옮길 때 CSS 선택자가 따라오지 않아, 색이 조용히
-  // 빠진 채로 지나갔다(2026-09). 글자를 다시 바꿔도 같은 일이 없게 여기서 맞대어 본다.
+  // 화면 글자는 사전이 옮기지만 `data-notice-tag`는 옮기지 않는다(글자를 담은 속성이
+  // 아니다) — 선택자는 데이터 그대로 한국어여야 한다. 어긋나면 색이 조용히 빠진다.
   it('갈래마다 색을 주는 CSS 선택자가 있다', () => {
     const css = readFileSync(join(import.meta.dirname, 'styles.css'), 'utf8');
     const styled = new Set(
@@ -72,6 +72,6 @@ describe('업데이트 공지', () => {
     expect([...new Set(NOTICES.flatMap((notice) => notice.items.map((item) => item.tag)))]
       .filter((tag) => !styled.has(tag))).toEqual([]);
     // 사전에만 있고 화면에는 없는 선택자 = 오타이거나 옛 이름이다.
-    expect([...styled].filter((tag) => !['新功能', '改善', '修正'].includes(tag))).toEqual([]);
+    expect([...styled].filter((tag) => !['새 기능', '개선', '고침'].includes(tag))).toEqual([]);
   });
 });

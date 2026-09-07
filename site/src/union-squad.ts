@@ -22,7 +22,7 @@
  */
 
 import { filterByQuery, buildIndex } from './nikke-search';
-import { createElementIcon, termZh } from './i18n-terms';
+import { createElementIcon } from './i18n-terms';
 import type { CharacterMeta } from './types';
 
 export const SQUAD_SIZE = 5;
@@ -129,7 +129,7 @@ export class UnionSquadPicker {
       const row = el('div', 'union-picker-filter');
       row.append(el('span', 'union-picker-filter-label', label));
       for (const value of values) {
-        const chip = el('button', 'union-chip', key === 'burst' ? `B${value}` : termZh(value));
+        const chip = el('button', 'union-chip', key === 'burst' ? `B${value}` : value);
         (chip as HTMLButtonElement).type = 'button';
         chip.addEventListener('click', () => {
           const set = this.picked[key];
@@ -202,7 +202,7 @@ export class UnionSquadPicker {
 
       cell.append(portrait);
       cell.append(el('strong', undefined, this.deps.labelOf(char.name)));
-      cell.append(el('span', undefined, `${termZh(char.className)} · ${char.weaponType}`));
+      cell.append(el('span', undefined, `${char.className} · ${char.weaponType}`));
       cell.addEventListener('click', () => {
         const next = [...aim.squad];
         // 다른 칸에 이미 있으면 자리를 맞바꾼다 — 지우고 다시 넣게 하면 두 번 일한다.
@@ -264,7 +264,7 @@ export class UnionSquadPicker {
       choose.append(portrait);
       choose.append(el('strong', undefined, name ? this.deps.labelOf(name) : '空格'));
       choose.append(el('span', undefined,
-        char ? `${termZh(char.className)} · ${char.weaponType}` : '點此放入'));
+        char ? `${char.className} · ${char.weaponType}` : '點此放入'));
 
       choose.addEventListener('click', () => {
         // 같은 칸을 다시 누르면 접는다 — 켜고 끄는 자리가 한 곳이면 헷갈리지 않는다.

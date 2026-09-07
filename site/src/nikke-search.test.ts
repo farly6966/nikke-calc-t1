@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { setLang, setLocaleNames } from './i18n';
 import { buildIndex, filterByQuery, initials, NO_MATCH, rankOf, squash } from './nikke-search';
 import type { CharacterMeta } from './types';
 
@@ -127,10 +128,24 @@ describe('별칭 검색', () => {
 
 // 화면에 보이는 이름(영어·중국어)으로도 찾을 수 있어야 한다. 이것이 없으면
 // 영어 이름만 보이는 화면에서 `rapi`를 쳤을 때 결과가 0이 된다.
+//
+// 이름은 이제 카탈로그가 아니라 이름표(`data/locale_text.json`)에서 온다 —
+// 여기서는 그 표를 흉내 낸 작은 것을 꽂는다. 말을 바꾸는 것은 **모듈 전역**이라
+// 끝나고 반드시 한국어로 되돌린다(안 되돌리면 다음 파일이 이 설정을 물려받는다).
 describe('화면 이름 검색', () => {
-  const 라피 = meta('라피', { displayName: 'Rapi' });
-  const 레드후드 = meta('라피 : 레드 후드', { displayName: 'Rapi: Red Hood', elementCode: '작열' });
-  const 크라운 = meta('크라운', { displayName: 'Crown', elementCode: '수냉', className: '지원형' });
+  beforeAll(() => {
+    setLang('zh-TW');
+    setLocaleNames({ characters: {
+      '라피': { 'zh-TW': 'Rapi' },
+      '라피 : 레드 후드': { 'zh-TW': 'Rapi: Red Hood' },
+      '크라운': { 'zh-TW': 'Crown' },
+    } });
+  });
+  afterAll(() => { setLang('ko'); setLocaleNames({}); });
+
+  const 라피 = meta('라피');
+  const 레드후드 = meta('라피 : 레드 후드', { elementCode: '작열' });
+  const 크라운 = meta('크라운', { elementCode: '수냉', className: '지원형' });
   const SHOWN = [레드후드, 크라운, 라피];
   const shown = (query: string): string[] =>
     filterByQuery(SHOWN, query, buildIndex).map((c) => c.name);
@@ -153,8 +168,8 @@ describe('화면 이름 검색', () => {
     expect(shown('red hood')).toEqual(['라피 : 레드 후드']);
   });
 
-  it('화면 이름이 없으면 종전 그대로다', () => {
-    expect(rankOf('rapi', buildIndex(meta('라피')))).toBe(NO_MATCH);
+  it('이름표에 없는 캐릭터는 종전 그대로다', () => {
+    expect(rankOf('alice', buildIndex(meta('앨리스')))).toBe(NO_MATCH);
   });
 
   it('중국어 분류 라벨로도 걸리고, 이름보다 뒤로 밀린다', () => {

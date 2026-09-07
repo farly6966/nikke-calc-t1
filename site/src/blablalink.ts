@@ -7,15 +7,15 @@ import type {
 } from './types';
 
 export const BLABLA_SERVERS = [
-  { area: 83, label: '韓國' },
-  { area: 81, label: '日本' },
-  { area: 84, label: '全球' },
-  { area: 82, label: '北美' },
-  { area: 85, label: '東南亞' },
+  { area: 83, label: '한국' },
+  { area: 81, label: '일본' },
+  { area: 84, label: '글로벌' },
+  { area: 82, label: '북미' },
+  { area: 85, label: '동남아' },
 ] as const;
 
 export function blablaServerLabel(area: number): string {
-  return BLABLA_SERVERS.find((server) => server.area === area)?.label ?? `伺服器 ${area}`;
+  return BLABLA_SERVERS.find((server) => server.area === area)?.label ?? `서버 ${area}`;
 }
 
 // 블라블라링크 프로필 응답 → 캐릭터별 override.
@@ -253,13 +253,13 @@ export function areaToOverrides(
   }
 
   if (unknownCollection > 0) {
-    notes.push(`無法辨識收藏品的妮姬 ${unknownCollection} 種 — 只有那些妮姬以預設收藏品計算。`);
+    notes.push(`소장품을 알아보지 못한 니케 ${unknownCollection}종 — 그 니케만 기본 소장품으로 계산합니다.`);
   }
   if (noCube > 0) {
-    notes.push(`沒裝魔方的妮姬 ${noCube} 種 — 只有那些妮姬以預設魔方計算。`);
+    notes.push(`큐브를 끼지 않은 니케 ${noCube}종 — 그 니케만 기본 큐브로 계산합니다.`);
   }
   if (unmatched.length > 0) {
-    notes.push(`計算機尚未支援的妮姬 ${unmatched.length} 種已略過。`);
+    notes.push(`계산기가 아직 다루지 않는 니케 ${unmatched.length}종은 건너뛰었습니다.`);
   }
 
   return { overrides, matched, unmatched, notes };

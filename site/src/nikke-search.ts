@@ -1,4 +1,4 @@
-import { termZh } from './i18n-terms';
+import { t, tName } from './i18n';
 import type { CharacterMeta } from './types';
 
 // 니케 이름 검색. 고르는 판이 늘 펼쳐져 있으므로 «친 이름이 맨 앞에 오는가»가
@@ -26,7 +26,7 @@ export function initials(text: string): string {
 }
 
 /**
- * 공백과 구분자를 지운다. 「라피레드」로 «라피 : 레드 후드»를 잡기 위한 것으로,
+ * 자판이 붙여 버린 겹자음을 두 글자로 되돌린다.
  * 지금은 콜론과 공백까지 정확히 맞춰야 걸린다.
  */
 export const squash = (text: string): string =>
@@ -45,13 +45,15 @@ export interface SearchIndex {
   aliasKeys: string[];
   /** 별칭의 초성 */
   aliasChos: string[];
-  /** 속성·무기·클래스·기업 — 이름이 아닌 곁가지. 한국어와 중국어 라벨을 함께 담는다 */
+  /** 속성·무기·클래스·기업 — 이름이 아닌 곁가지 */
   tags: string;
 }
 
 export function buildIndex(char: CharacterMeta): SearchIndex {
   const aliases = char.aliases ?? [];
-  const names = [char.name, char.displayName ?? ''];
+  // 화면에 적힌 이름으로도 걸려야 한다 — «Rapi»라고 보이는데 `rapi`가 안 걸리면
+  // 검색이 아니다. 한국어로 보는 사람에게는 `tName`이 원래 이름을 돌려준다.
+  const names = [char.name, tName(char.name)];
   return {
     name: char.name,
     keys: [...new Set(names.map(squash).filter(Boolean))],
@@ -60,8 +62,9 @@ export function buildIndex(char: CharacterMeta): SearchIndex {
     aliasChos: aliases.map((alias) => squash(initials(alias))).filter(Boolean),
     tags: squash([
       char.elementCode, char.weaponType, char.className, char.manufacturer,
-      // 화면이 중국어이므로 «電擊»·«火力型»·«極樂淨土»로도 걸려야 한다.
-      termZh(char.elementCode), termZh(char.className), termZh(char.manufacturer),
+      // 화면 말로도 걸려야 한다 — «電擊»·«火力型»·«極樂淨土»로 친 사람이 빈손이 되면
+      // 거른 보람이 없다. 한국어로 보는 사람에게는 같은 값이 한 번 더 들어갈 뿐이다.
+      t(char.elementCode), t(char.className), t(char.manufacturer),
       `b${char.burstStage}`,
     ].join(' ')),
   };

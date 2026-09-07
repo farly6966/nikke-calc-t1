@@ -76,11 +76,6 @@ hash.update(bridgeTarget);
 hash.update(bridgeContent);
 
 const nikke = readJson(join(repoRoot, 'data', 'parsed_nikke.json'));
-// 표시용 이름 사전(한국어 이름 → 다른 언어 이름). 없으면 원래 이름을 그대로 쓴다.
-const nameOverlay = (() => {
-  try { return readJson(join(repoRoot, 'data', 'i18n', 'names.en.json')); }
-  catch { return {}; }
-})();
 const skills = readJson(join(repoRoot, 'data', 'parsed_skills.json'));
 // 블라블라링크 응답은 캐릭터를 name_code로 부른다. 사전은 CDN에서 받아 커밋해 둔
 // `data/name_codes.json`이 정본이고(`scraper/blabla_ids_fetch.py`), 여기서 뒤집어
@@ -147,7 +142,6 @@ const catalog = names.map((name, index) => {
   }
   return {
     name,
-    displayName: nameOverlay[name] ?? name,
     burstStage: String(meta.burst_stage ?? ''),
     elementCode: String(meta.element_code ?? ''),
     weaponType: String(meta.weapon_type ?? ''),
@@ -176,6 +170,12 @@ const manifest = {
 
 writeFileSync(join(runtimeDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 writeFileSync(join(publicDir, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`);
+// 영어·일본어·중국어 번체 이름표(`scraper/cdn_locale.py`가 받아 둔 것). 한국어로
+// 보는 사람은 받지 않으므로 번들이 아니라 파일로 둔다.
+writeFileSync(
+  join(publicDir, 'locale-text.json'),
+  readFileSync(join(repoRoot, 'data', 'locale_text.json'), 'utf8'),
+);
 writeFileSync(join(publicDir, 'settings.json'), settings);
 
 
