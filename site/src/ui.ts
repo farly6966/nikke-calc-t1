@@ -514,7 +514,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           <p class="eyebrow">BROWSER SIM <span>·</span> 60 FPS TIMELINE</p>
           <h1><span>NIKKE</span> 스쿼드 계산기</h1>
           <p class="hero-lede">캐릭터별 오버로드와 큐브, 전투 조건을 반영해 프레임 단위 예상 대미지를 계산합니다.</p>
-          <div class="trust-row" aria-label="서비스 특징"><span>${t('{n}명 지원', { n: catalog.length })}</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><span class="lang-field" title="Language · 言語 · 언어 · 語言"><svg class="lang-globe" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.2" /><path d="M1.8 8h12.4" /><path d="M8 1.8c1.9 2.1 2.9 4.1 2.9 6.2s-1 4.1-2.9 6.2c-1.9-2.1-2.9-4.1-2.9-6.2s1-4.1 2.9-6.2z" /></svg><select class="lang-pick" data-lang-pick aria-label="Language · 言語 · 언어 · 語言">${LANGS.map((entry) => `<option value="${entry.code}">${entry.label}</option>`).join('')}</select></span><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="이 계산기의 원본 저장소">원본 알고리즘 개발자에게 무한한 감사를</a></div>
+          <div class="trust-row" aria-label="서비스 특징"><span>${t('{n}명 지원', { n: catalog.length })}</span><span class="online-now" data-online hidden title="최근 1~2분 사이에 이 계산기를 연 사람 수입니다. 탭을 숨기면 세지 않습니다"><b class="online-dot" aria-hidden="true"></b><span data-online-text></span></span><span class="lang-field" title="Language · 言語 · 언어 · 語言"><svg class="lang-globe" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.2" /><path d="M1.8 8h12.4" /><path d="M8 1.8c1.9 2.1 2.9 4.1 2.9 6.2s-1 4.1-2.9 6.2c-1.9-2.1-2.9-4.1-2.9-6.2s1-4.1 2.9-6.2z" /></svg><select class="lang-pick" data-lang-pick aria-label="Language · 言語 · 언어 · 語言">${LANGS.map((entry) => `<option value="${entry.code}">${entry.label}</option>`).join('')}</select></span><a class="credit-link" href="https://github.com/Jgaram/nikke-calc" target="_blank" rel="noreferrer noopener" title="${t('이 계산기의 원본 저장소')}">원본 알고리즘 개발자에게 무한한 감사를</a></div>
         </div>
         <div class="hero-orbit" aria-hidden="true"><span>01</span><strong>LOCAL<br />SIM</strong></div>
       </header>
@@ -1304,8 +1304,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         rename.className = 'deck-rename';
         rename.dataset.deckRename = String(deck.id);
         rename.textContent = '✎';
-        rename.title = `${deckLabelFull(deck)}의 이름 붙이기`;
-        rename.ariaLabel = `${deckLabelFull(deck)}의 이름 붙이기`;
+        const renameLabel = t('{deck} 이름 붙이기', { deck: deckLabelFull(deck) });
+        rename.title = renameLabel;
+        rename.ariaLabel = renameLabel;
         rename.addEventListener('click', () => renameDeck(deck, button));
         deckTabs.append(rename);
       }
@@ -1363,8 +1364,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       move.className = 'deck-move';
       move.dataset.deckMove = String(delta);
       move.textContent = label;
-      move.title = `현재 덱을 ${title} 옮기기`;
-      move.ariaLabel = `덱 ${activeDeckId}을 ${title} 옮기기`;
+      move.title = t('현재 덱을 {dir} 옮기기', { dir: t(title) });
+      move.ariaLabel = t('덱 {n}을 {dir} 옮기기', { n: activeDeckId, dir: t(title) });
       const index = decks.findIndex((deck) => deck.id === activeDeckId);
       move.disabled = index + delta < 0 || index + delta >= decks.length;
       move.addEventListener('click', () => swapDeck(delta));
@@ -1787,8 +1788,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         move.className = 'slot-move';
         move.dataset.slotMove = `${index}:${delta}`;
         move.textContent = label;
-        move.title = `${title} 이동`;
-        move.ariaLabel = `슬롯 ${index + 1} ${title} 이동`;
+        move.title = t('{dir} 이동', { dir: t(title) });
+        move.ariaLabel = t('슬롯 {n} {dir} 이동', { n: index + 1, dir: t(title) });
         const target = index + delta;
         move.disabled = target < 0 || target > 4;
         move.addEventListener('click', () => {
@@ -1844,8 +1845,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       clear.type = 'button';
       clear.className = 'slot-clear';
       clear.textContent = '✕';
-      clear.title = `${index + 1}번 칸 비우기`;
-      clear.ariaLabel = `${index + 1}번 칸 비우기`;
+      const clearLabel = t('{n}번 칸 비우기', { n: index + 1 });
+      clear.title = clearLabel;
+      clear.ariaLabel = clearLabel;
       clear.hidden = !name;
       clear.addEventListener('click', () => {
         if (name) delete deck.characters[name];
@@ -1946,9 +1948,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           minus.disabled = stage <= 0;
           plus.disabled = stage >= maxStage;
           const text = labelOf(stage);
-          minus.ariaLabel = t('{name} 돌파 한 단계 낮추기 (현재 {text})', { name: resolveDisplayName(cname), text });
-          plus.ariaLabel = t('{name} 돌파 한 단계 높이기 (현재 {text})', { name: resolveDisplayName(cname), text });
-          stepper.title = `돌파·코어 강화 · ${text}`;
+          const shownStage = t(text);
+          minus.ariaLabel = t('{name} 돌파 한 단계 낮추기 (현재 {text})', { name: resolveDisplayName(cname), text: shownStage });
+          plus.ariaLabel = t('{name} 돌파 한 단계 높이기 (현재 {text})', { name: resolveDisplayName(cname), text: shownStage });
+          stepper.title = t('돌파·코어 강화 · {text}', { text: shownStage });
         }
         const setStage = (next: number) => {
           const clamped = Math.max(0, Math.min(maxStage, next));
@@ -2700,7 +2703,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     }
     scopeNote.textContent = shareScope === 'all'
       ? '5덱을 한 코드에 담고, 받으면 판 전체가 바뀝니다.'
-      : `덱 ${activeDeckId}만 담고, 받으면 덱 ${activeDeckId}에만 들어갑니다.`;
+      : t('덱 {n}만 담고, 받으면 덱 {n}에만 들어갑니다.', { n: activeDeckId });
   };
 
   for (const button of scopeBox.querySelectorAll<HTMLButtonElement>('[data-share-scope-pick]')) {
@@ -3940,7 +3943,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (takenAt >= 0 && takenAt !== activeSlot) {
         cell.disabled = true;
         cell.classList.add('is-taken');
-        cell.title = `이미 덱 ${deck.id}의 ${takenAt + 1}번에 있습니다`;
+        cell.title = t('이미 덱 {deck}의 {slot}번에 있습니다', { deck: deck.id, slot: takenAt + 1 });
       }
       const portrait = document.createElement('div');
       portrait.className = 'roster-portrait';
@@ -4675,8 +4678,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     parallelSize.append(option);
   }
   // 권장값은 칸을 넓히지 않게 설명 쪽에만 적는다 — 토글 줄이 길어지면 줄이 접힌다.
-  parallelSize.title = `띄울 작업 스레드 수. 이 기기 권장 ${poolDefault}개. `
-    + '하나마다 계산 런타임이 떠서 메모리를 50~80MB씩 씁니다.';
+  parallelSize.title = t('띄울 작업 스레드 수. 이 기기 권장 {n}개. 하나마다 계산 런타임이 떠서 메모리를 50~80MB씩 씁니다.',
+    { n: poolDefault });
   const applyParallel = (save: boolean) => {
     parallelToggle.checked = parallelOn;
     parallelSize.value = String(parallelCount);
@@ -5076,7 +5079,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       activity = cachedCount === requests.length ? 'cached' : 'complete';
       status.textContent = cachedCount === requests.length
         ? '저장된 결과를 불러왔습니다.'
-        : `${requests.length}개 덱 계산 완료 · 같은 조건은 이 기기에 저장됩니다.`;
+        : t('{n}개 덱 계산 완료 · 같은 조건은 이 기기에 저장됩니다.', { n: requests.length });
     } catch (error) {
       if (completed.length > 0) renderBatchResult(aggregateDeckResults(completed));
       const failedEntry = requests[failedIndex >= 0 ? failedIndex : completed.length];
