@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CalculatorPool, CalculatorWorkerClient, defaultPoolSize, MAX_POOL, type WorkerLike,
+  CalculationCancelled, CalculatorPool, CalculatorWorkerClient, defaultPoolSize, MAX_POOL, type WorkerLike,
 } from './worker-client';
 import type { SimulationRequest, SimulationResult, WorkerResponse } from './types';
 
@@ -44,6 +44,15 @@ class FakeWorker implements WorkerLike {
 }
 
 describe('CalculatorWorkerClient', () => {
+  it('취소 뒤의 요청도 즉시 거절하고 진행 알림을 끊는다', async () => {
+    const worker = new FakeWorker();
+    const client = new CalculatorWorkerClient(() => worker);
+    client.cancel();
+    await expect(client.simulate(request)).rejects.toBeInstanceOf(CalculationCancelled);
+    await expect(client.prepare()).rejects.toBeInstanceOf(CalculationCancelled);
+    expect(worker.messages).toHaveLength(0);
+    expect(worker.onmessage).toBeNull();
+  });
   it('matches out-of-order results to their request ids', async () => {
     const worker = new FakeWorker();
     const client = new CalculatorWorkerClient(() => worker);
@@ -119,6 +128,58 @@ describe('CalculatorPool', () => {
     expect(defaultPoolSize({ hardwareConcurrency: 4 } as unknown as Navigator)).toBe(3);
     expect(defaultPoolSize({ hardwareConcurrency: 2 } as unknown as Navigator)).toBe(1);
     expect(defaultPoolSize({ hardwareConcurrency: 8, deviceMemory: 2 } as unknown as Navigator)).toBe(1);
+  });
+
+  it('실행·대기 요청을 모두 취소하고 새 워커에서 다시 계산한다', async () => {
+    const { pool, made } = spawn();
+    const pending = Promise.allSettled([pool.simulate(request), pool.simulate(request), pool.simulate(request)]);
+    await Promise.resolve();
+    pool.cancel();
+    for (const outcome of await pending) {
+      expect(outcome.status).toBe('rejected');
+      if (outcome.status === 'rejected') expect(outcome.reason).toBeInstanceOf(CalculationCancelled);
+    }
+    expect(made[0]!.terminated).toBe(true);
+    expect(pool.workerCount).toBe(1);
+    const preparing = pool.prepare();
+    ready(made[1]!);
+    await preparing;
+    const next = pool.simulate(request);
+    await Promise.resolve();
+    expect(answer(made[1]!)).toBe(true);
+    await expect(next).resolves.toEqual(result);
+    pool.dispose();
+  });
+
+  it('워커를 받은 직후 취소해도 약속이 남지 않는다', async () => {
+    const { pool } = spawn();
+    const pending = pool.simulate(request);
+    pool.cancel();
+    await expect(pending).rejects.toBeInstanceOf(CalculationCancelled);
+    pool.dispose();
+  });
+
+  it('준비 완료와 취소가 겹쳐도 옛 요청이 새 워커를 만들지 않는다', async () => {
+    const { pool, made } = spawn();
+    pool.setPoolSize(3);
+    const pending = Promise.allSettled([pool.simulate(request), pool.simulate(request)]);
+    ready(made[0]!);
+    pool.cancel();
+    expect((await pending).every((outcome) => outcome.status === 'rejected')).toBe(true);
+    expect(made).toHaveLength(2);
+    expect(pool.workerCount).toBe(1);
+    pool.dispose();
+  });
+
+  it('여러 요청이 초기화를 기다려도 워커 상한을 지킨다', async () => {
+    const { pool, made } = spawn();
+    pool.setPoolSize(2);
+    const pending = Promise.allSettled(Array.from({ length: 5 }, () => pool.simulate(request)));
+    ready(made[0]!);
+    await new Promise((done) => setTimeout(done, 0));
+    expect(made).toHaveLength(2);
+    pool.dispose();
+    expect((await pending).every((outcome) => outcome.status === 'rejected')).toBe(true);
   });
 
   it('여분 워커는 첫 워커가 준비된 뒤에 띄운다', async () => {

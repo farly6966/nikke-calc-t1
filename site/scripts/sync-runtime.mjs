@@ -131,6 +131,14 @@ const names = Object.keys(skills)
   .filter((name) => !name.startsWith('test_') && nikke[name])
   .sort(collator.compare);
 
+const altBurstStageOf = (name) => {
+  for (const effect of skills[name] ?? []) {
+    const match = /^burst_stage_override:([123])$/.exec(String(effect.stat ?? ''));
+    if (match && effect.trigger?.condition?.includes(`no_burst${match[1]}_ally`)) return match[1];
+  }
+  return null;
+};
+
 const catalog = names.map((name, index) => {
   const meta = nikke[name];
   const sourceImage = imageIndex.get(normalizeImageName(name));
@@ -143,6 +151,7 @@ const catalog = names.map((name, index) => {
   return {
     name,
     burstStage: String(meta.burst_stage ?? ''),
+    altBurstStage: altBurstStageOf(name),
     elementCode: String(meta.element_code ?? ''),
     weaponType: String(meta.weapon_type ?? ''),
     className: String(meta.class ?? ''),

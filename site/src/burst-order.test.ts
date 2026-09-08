@@ -19,6 +19,7 @@ const CATALOG = new Map([
   ['앨리스', meta('앨리스', '3')],
   ['모더니아', meta('모더니아', '3')],
   ['레드 후드', meta('레드 후드', 'A')],
+  ['라피 : 레드 후드', { ...meta('라피 : 레드 후드', '3'), altBurstStage: '1' }],
 ]);
 const metaOf = (name: string) => CATALOG.get(name);
 
@@ -65,6 +66,15 @@ describe('걸음 만들기', () => {
 });
 
 describe('단계별 후보', () => {
+  it('1버 아군이 없을 때만 라피의 대체 단계를 표시한다', () => {
+    const squad = ['크라운', '라피 : 레드 후드', '앨리스'];
+    expect(candidatesFor('1', { squad, metaOf })).toEqual(['라피 : 레드 후드']);
+    expect(candidatesFor('1', { squad: ['리타', ...squad], metaOf })).toEqual(['리타']);
+    expect(candidatesFor('1', { squad: ['리타', ...squad], metaOf, skipped: new Set(['리타']) })).toEqual([]);
+    expect(candidatesFor('1', { squad, metaOf, skipped: new Set(['라피 : 레드 후드']) })).toEqual([]);
+    expect(candidatesFor('3', { squad, metaOf })).toEqual(['라피 : 레드 후드', '앨리스']);
+  });
+
   const squad = ['리타', '크라운', '앨리스', '레드 후드', '돌치'];
 
   it('그 단계인 니케만, 편성 순서 그대로', () => {

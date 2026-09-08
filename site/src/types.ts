@@ -239,6 +239,8 @@ export interface DeckState {
 export interface CharacterMeta {
   name: string;
   burstStage: string;
+  /** 해당 단계의 아군이 없을 때 사용할 수 있는 버스트 단계. */
+  altBurstStage?: string | null;
   elementCode: string;
   weaponType: string;
   className: string;

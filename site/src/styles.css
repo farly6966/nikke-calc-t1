@@ -1185,6 +1185,12 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
   background: rgba(3,9,16,.6); color: var(--ink); font: 400 11px ui-monospace, monospace; }
 .union-decks { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(146,176,201,.08); }
 .union-error { flex: 1 1 100%; margin: 2px 0 0; color: var(--amber); font-size: 10.5px; }
+.calc-cancel { padding: 0 16px; min-height: 44px; border: 1px solid var(--line);
+  border-radius: 10px; background: rgba(146,176,201,.08); color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.calc-cancel:hover:not(:disabled) { background: rgba(146,176,201,.18); }
+.calc-cancel:disabled { opacity: .5; cursor: default; }
+
 .union-run { border-color: var(--amber) !important; color: var(--amber) !important; }
 
 /* 결과 — [이름][싱크로] 아래로 보스마다 덱 줄이 선다. */

@@ -1,4 +1,5 @@
 import { ResultCache, type StorageLike, type StorageSource } from './cache';
+import { CalculationCancelled, isCancelled } from './worker-client';
 import { renderCharacterSettings, type CharPanelKind } from './character-settings';
 import {
   BLABLA_SERVERS,
@@ -51,7 +52,7 @@ import { lang, LANG_KEY, LANGS, t, tName, watchLocalize } from './i18n';
 import { statName } from './stat-names';
 import {
   BURST_STAGES,
-  candidatesFor, cycleLine, cyclesFromTimeline, estimateCycles, HOTKEYS, MAX_CYCLES,
+  candidatesFor, cyclesFromTimeline, estimateCycles, HOTKEYS, MAX_CYCLES,
   picksFrom, progressOf, sequenceForDeck, sequenceFrom, stepKey, stepsFor, trimSequence,
   type BurstStage, type BurstStep,
 } from './burst-order';
@@ -109,6 +110,8 @@ const DEFAULT_SQUAD = ['리타', '크라운', '라피 : 레드 후드', '앨리�
 export interface CalculatorClientLike {
   prepare(): Promise<void>;
   simulate(request: SimulationRequest): Promise<SimulationResult>;
+  /** 실행 중인 계산과 대기 요청을 끊고 새 워커를 준비한다. */
+  cancel?(): void;
   /** 목록 정렬용 전투력. 없는 구현(테스트 대역)도 있어 선택으로 둔다. */
   combatPower?(request: CombatPowerRequest): Promise<Record<string, number>>;
   /** 병렬 계산. 풀이 아닌 구현(테스트 대역·워커 하나)도 있어 전부 선택으로 둔다. */
@@ -826,6 +829,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
               <span class="disclosure-hint" aria-hidden="true">열기 ›</span>
             </button>
             <button class="calculate-button run-inline" type="submit"><span>시뮬레이션 실행</span><b aria-hidden="true">→</b></button>
+            <button type="button" class="calc-cancel" data-calc-cancel hidden title="돌고 있는 계산을 끊습니다. 작업 스레드를 다시 세우므로 다음 계산은 준비부터 시작합니다">계산 취소</button>
           </div>
           <!-- 계산이 얼마나 빨리 끝나는지를 정하는 설정이라 실행 단추 바로 아래에 둔다. -->
           <div class="parallel-row">
@@ -1469,6 +1473,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   // 바뀌기도 한다). 그래서 계산 버튼을 누르기 전에 **배경으로 한 번 돌려** 미리
   // 채운다. 결과는 정식 계산과 같은 캐시를 쓰므로 이어서 «실행»을 눌러도 덤이 없다.
   let prefetchTimer: ReturnType<typeof setTimeout> | undefined;
+  let calculationEpoch = 0;
   let prefetching = false;
   // 배경 계산이 도는 덱. 그 사이 화면에는 `[계산중]`으로 나온다.
   let prefetchingDeckId: number | undefined;
@@ -1492,9 +1497,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       if (!needsPrefetch(deck)) return;
       prefetching = true;
       prefetchingDeckId = deck.id;
+      const epoch = calculationEpoch;
       renderSquad();
       try {
         await prepared;
+        if (epoch !== calculationEpoch) return;
         const custom = customPayload();
         const request = requestForDeck(deck, readBattle(),
           Object.keys(custom).length > 0 ? custom : undefined);
@@ -1522,7 +1529,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       } finally {
         prefetching = false;
         prefetchingDeckId = undefined;
-        renderSquad();
+        if (epoch === calculationEpoch) renderSquad();
       }
     }, 700);
   };
@@ -3312,7 +3319,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     burstCyclesOut.textContent = String(burstCycles);
 
     const { done, total } = progressOf(burstPicks, burstSteps);
-    burstProgress.textContent = `${done} / ${total}칸`;
+    burstProgress.textContent = t('{done} / {total}칸', { done, total });
 
     // ── 지금 걸음 ──
     burstNow.replaceChildren();
@@ -3323,8 +3330,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     } else {
       const head = el('div', 'burst-now-head');
       head.append(
-        el('span', 'burst-now-cycle', `${step.cycle}번째 풀버스트`),
-        el('span', `burst-now-stage stage-${step.stage}`, `${step.stage}버`),
+        el('span', 'burst-now-cycle', t('{n}번째 풀버스트', { n: step.cycle })),
+        el('span', `burst-now-stage stage-${step.stage}`, t('{stage}버', { stage: step.stage })),
       );
       const picked = burstPicks[stepKey(step)];
       head.append(el('span', 'burst-now-pick', picked ? `→ ${resolveDisplayName(picked)}` : '→ 자동'));
@@ -3333,7 +3340,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       const candidates = burstCandidates(step.stage);
       if (candidates.length === 0) {
         burstPicksBox.append(el('p', 'burst-empty',
-          `편성에 ${step.stage}버가 없습니다. 이 단계는 건너뜁니다.`));
+          t('편성에 {stage}버가 없습니다. 이 단계는 건너뜁니다.', { stage: step.stage })));
       }
       candidates.forEach((name, index) => {
         const button = el('button', 'burst-pick' + (picked === name ? ' is-on' : ''));
@@ -3373,7 +3380,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     sequence.forEach((cycle, index) => {
       const cycleNo = index + 1;
       const row = el('div', 'burst-row' + (burstSteps[burstAt]?.cycle === cycleNo ? ' is-now' : ''));
-      row.title = cycleLine(cycle);
+      row.title = BURST_STAGES.flatMap((stage) => {
+        const name = cycle[stage][0];
+        return name ? [t('{stage}버 {name}', { stage, name: resolveDisplayName(name) })] : [];
+      }).join(' → ') || t('자동');
       row.append(el('span', 'burst-row-no', `${cycleNo}`));
 
       const slots = el('div', 'burst-row-slots');
@@ -3383,7 +3393,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         const slot = el('button', 'burst-slot'
           + (name ? ' is-filled' : '') + (here ? ' is-here' : ''));
         (slot as HTMLButtonElement).type = 'button';
-        slot.append(el('span', `burst-slot-stage stage-${stage}`, `${stage}버`));
+        slot.append(el('span', `burst-slot-stage stage-${stage}`, t('{stage}버', { stage })));
 
         const face = el('span', 'burst-slot-face');
         if (name) {
@@ -3397,9 +3407,9 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           } else {
             face.textContent = name.slice(0, 2);
           }
-          slot.title = `${cycleNo}번째 ${stage}버 — ${resolveDisplayName(name)}`;
+          slot.title = t('{n}번째 {stage}버 — {name}', { n: cycleNo, stage, name: resolveDisplayName(name) });
         } else {
-          slot.title = `${cycleNo}번째 ${stage}버 — 아직 안 정함(자동)`;
+          slot.title = t('{n}번째 {stage}버 — 아직 안 정함(자동)', { n: cycleNo, stage });
         }
         slot.append(face);
         slot.addEventListener('click', () => {
@@ -3441,8 +3451,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     burstCyclesNote.textContent = kept
       ? '적어 둔 순서를 불러왔습니다.'
       : (measured !== null
-        ? `지난 계산에서 풀버스트가 ${measured}번 돌았습니다.`
-        : `전투 ${readBattle().duration}초로 어림한 값입니다. 한 번 계산해 보면 실제 횟수로 맞춰집니다.`);
+        ? t('지난 계산에서 풀버스트가 {n}번 돌았습니다.', { n: measured })
+        : t('전투 {n}초로 어림한 값입니다. 한 번 계산해 보면 실제 횟수로 맞춰집니다.', { n: readBattle().duration }));
     burstSteps = stepsFor(burstCycles);
     burstAt = firstUnpicked();
     showBurstMsg('');
@@ -5060,17 +5070,36 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     shareModal.hidden = false;
   }
 
-  const prepared = client.prepare()
-    .then(() => {
-      if (activity !== 'preparing') return;
-      activity = 'ready';
-      status.textContent = '계산 준비 완료 · 모든 연산은 이 기기에서 실행됩니다.';
-    })
-    .catch((error: unknown) => {
-      if (activity !== 'preparing') return;
-      activity = 'error';
-      status.textContent = `초기화 실패 · ${error instanceof Error ? error.message : String(error)}`;
-    });
+  const prepareCalculator = (): Promise<void> => {
+    const promise = client.prepare();
+    void promise
+      .then(() => {
+        if (activity !== 'preparing') return;
+        activity = 'ready';
+        status.textContent = '계산 준비 완료 · 모든 연산은 이 기기에서 실행됩니다.';
+      })
+      .catch((error: unknown) => {
+        if (isCancelled(error)) return;
+        if (activity !== 'preparing') return;
+        activity = 'error';
+        status.textContent = `초기화 실패 · ${error instanceof Error ? error.message : String(error)}`;
+      });
+    return promise;
+  };
+  let prepared = prepareCalculator();
+  const cancelButton = element<HTMLButtonElement>(root, '[data-calc-cancel]');
+  let cancelRequested = false;
+  cancelButton.addEventListener('click', () => {
+    if (!client.cancel || !submit.disabled || cancelRequested) return;
+    cancelRequested = true;
+    cancelButton.disabled = true;
+    // 예약된 미리 계산이 취소 직후 같은 작업을 다시 시작하지 않게 한다.
+    calculationEpoch += 1;
+    clearTimeout(prefetchTimer);
+    client.cancel();
+    status.textContent = t('계산을 끊는 중…');
+    prepared = prepareCalculator();
+  });
 
   // 기본 정렬이 전투력이라 목록을 열기 전에 미리 받아 둔다. 오는 동안은 이름순으로
   // 서 있고, 도착하면 그 자리에서 다시 세운다.
@@ -5078,6 +5107,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (submit.disabled) return;
     const battle = readBattle();
     const selectedDecks = (fiveDeckMode ? decks : [decks[0]!])
       .filter((deck) => deck.squad.some((name) => name.trim()));
@@ -5098,7 +5128,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
     submit.disabled = true;
     submit.classList.add('is-running');
+    cancelButton.hidden = client.cancel === undefined;
+    cancelButton.disabled = false;
+    cancelRequested = false;
     activity = 'running';
+    status.textContent = t('계산 중 · {done}/{total}덱', { done: 0, total: requests.length });
     const completed: DeckResultEntry[] = [];
     let cachedCount = 0;
     let failedIndex = -1;
@@ -5108,6 +5142,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
       // 화면에 세울 때 **덱 번호 순으로 다시 정렬**한다 — 좌→우가 곧 1→5덱이어야 한다.
       let done = 0;
       const runOne = async (index: number) => {
+        if (cancelRequested) throw new CalculationCancelled();
         const { deck, request } = requests[index]!;
         const key = cacheKey(request, version);
         let result = cache.get(key);
@@ -5115,10 +5150,11 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
           cachedCount += 1;
         } else {
           result = await client.simulate(request);
+          if (cancelRequested) throw new CalculationCancelled();
           cache.set(key, result);
         }
         done += 1;
-        status.textContent = `계산 중 · ${done}/${requests.length}덱`;
+        status.textContent = t('계산 중 · {done}/{total}덱', { done, total: requests.length });
         completed.push({ deckId: deck.id, request, result });
         completed.sort((a, b) => a.deckId - b.deckId);
         renderBatchResult(aggregateDeckResults(completed));
@@ -5147,6 +5183,14 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         : t('{n}개 덱 계산 완료 · 같은 조건은 이 기기에 저장됩니다.', { n: requests.length });
     } catch (error) {
       if (completed.length > 0) renderBatchResult(aggregateDeckResults(completed));
+      if (cancelRequested || isCancelled(error)) {
+        showErrors([]);
+        activity = completed.length > 0 ? 'complete' : 'ready';
+        status.textContent = completed.length > 0
+          ? t('계산을 취소했습니다 · {done}/{total}덱까지 나온 결과만 남겼습니다.', { done: completed.length, total: requests.length })
+          : t('계산을 취소했습니다.');
+        return;
+      }
       const failedEntry = requests[failedIndex >= 0 ? failedIndex : completed.length];
       const failed = failedEntry?.deck.id;
       const detail = cleanEngineError(error instanceof Error ? error.message : String(error));
@@ -5163,6 +5207,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
     } finally {
       submit.disabled = false;
       submit.classList.remove('is-running');
+      cancelButton.hidden = true;
     }
   });
 

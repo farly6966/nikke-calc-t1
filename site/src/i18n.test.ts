@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { EN } from './locale/en';
 import { JA } from './locale/ja';
 import { ZH_TW } from './locale/zh-tw';
+import { ZH_TW_FORK } from './locale/zh-tw.fork';
 import {
   detectLang, lang, localizeTree, setLang, setLocaleNames, t, tName, watchLocalize,
 } from './i18n';
@@ -176,15 +177,18 @@ describe('그려진 화면 훑기', () => {
 describe('사전 세 벌', () => {
   it('영어·일본어·번체가 같은 열쇠를 가진다', () => {
     // 한쪽에만 있는 열쇠는 그 말로 볼 때만 한국어가 튀어나온다는 뜻이다.
-    const onlyEn = Object.keys(EN).filter((key) => !(key in JA) || !(key in ZH_TW));
-    const onlyJa = Object.keys(JA).filter((key) => !(key in EN) || !(key in ZH_TW));
+    // 번체 정본은 수정하지 않는다. 새 공통 문구는 화면이 실제 사용하는 fork 사전에서 찾는다.
+    const onlyEn = Object.keys(EN).filter((key) => !(key in JA) || !(key in ZH_TW_FORK));
+    const onlyJa = Object.keys(JA).filter((key) => !(key in EN) || !(key in ZH_TW_FORK));
     const onlyZh = Object.keys(ZH_TW).filter((key) => !(key in EN) || !(key in JA));
     expect({ onlyEn, onlyJa, onlyZh }).toEqual({ onlyEn: [], onlyJa: [], onlyZh: [] });
   });
 
   it('빈 번역이 없다', () => {
-    for (const [key, value] of Object.entries({ ...EN, ...JA, ...ZH_TW })) {
-      expect(value.length, key).toBeGreaterThan(0);
+    for (const dictionary of [EN, JA, ZH_TW, ZH_TW_FORK]) {
+      for (const [key, value] of Object.entries(dictionary)) {
+        expect(value.length, key).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -193,7 +197,7 @@ describe('사전 세 벌', () => {
     for (const [korean, english] of Object.entries(EN)) {
       expect(slots(english), korean).toBe(slots(korean));
       expect(slots(JA[korean] ?? ''), korean).toBe(slots(korean));
-      expect(slots(ZH_TW[korean] ?? ''), korean).toBe(slots(korean));
+      expect(slots(ZH_TW_FORK[korean] ?? ''), korean).toBe(slots(korean));
     }
   });
 
@@ -202,5 +206,18 @@ describe('사전 세 벌', () => {
     expect(t('전투 조건')).toBe('戰鬥條件');
     expect(t('{n}명 지원', { n: 200 })).toBe('支援 200 位妮姬');
     expect(t('억')).toBe('億');
+  });
+
+  it.each(['en', 'ja', 'zh-TW'] as const)('취소 진행 문구는 %s에서 숫자까지 번역된다', (language) => {
+    setLang(language);
+    for (const key of [
+      '계산을 끊는 중…', '계산을 취소했습니다.',
+      '계산 중 · {done}/{total}덱',
+      '계산을 취소했습니다 · {done}/{total}덱까지 나온 결과만 남겼습니다.',
+    ]) {
+      const translated = t(key, { done: 1, total: 5 });
+      expect(translated).not.toMatch(/[가-힣]/);
+      expect(translated).not.toMatch(/\{\w+\}/);
+    }
   });
 });

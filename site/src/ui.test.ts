@@ -6,6 +6,8 @@ import { join } from 'node:path';
 
 import type { StorageLike } from './cache';
 import { mountCalculator, type CalculatorClientLike } from './ui';
+import { CalculationCancelled } from './worker-client';
+import { setLang, setLocaleNames } from './i18n';
 import { decodeBattleCode, encodeBattleCode, encodeShareCode } from './share-code';
 import { encodeUnionDraft } from './union-raid';
 import './styles.css';
@@ -1820,6 +1822,100 @@ describe('calculator UI', () => {
     expect(root.querySelectorAll('[data-character-result]')).toHaveLength(5);
     expect(root.querySelector('[data-status]')?.textContent).toContain('계산 완료');
     expect(client.lastRequest?.duration).toBe(10);
+  });
+
+  it('대체 버스트 후보와 순서 안내의 숫자·툴팁을 번체로 표시한다', async () => {
+    setLang('zh-TW');
+    setLocaleNames(JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'data', 'locale_text.json'), 'utf8')));
+    const translatedCatalog = catalog.map((char) => char.name === '라피 : 레드 후드'
+      ? { ...char, altBurstStage: '1' } : char);
+    const cleanup = mountCalculator(root, { catalog: translatedCatalog, settings, version: 'v1',
+      client: new FakeClient(), storage: localStorage });
+    try {
+      clearCharacterSlot(root, 0);
+      root.querySelector<HTMLButtonElement>('[data-burst-order-open]')!.click();
+      await flush();
+      const modal = root.querySelector<HTMLElement>('[data-burst-order-modal]')!;
+      expect(modal.querySelector('.burst-now-stage')!.textContent).toBe('爆裂 1');
+      expect(modal.querySelectorAll('.burst-pick:not(.is-auto)')).toHaveLength(1);
+      expect(modal.querySelector('.burst-pick-name')!.textContent).toBe('拉毗：小紅帽');
+      expect(modal.textContent).not.toMatch(/[가-힣]/);
+      for (const titled of modal.querySelectorAll('[title]')) {
+        expect(titled.getAttribute('title')).not.toMatch(/[가-힣]/);
+      }
+    } finally {
+      cleanup();
+      setLang('ko');
+      setLocaleNames({});
+    }
+  });
+
+  it('계산 취소는 완료한 덱을 남기고 다음 실행은 새 준비를 기다린다', async () => {
+    class CancellableClient extends FakeClient {
+      rejectRun: ((error: Error) => void) | undefined;
+      readyAgain: (() => void) | undefined;
+      cancelled = false;
+      override async prepare(): Promise<void> {
+        this.prepareCalls += 1;
+        if (this.cancelled) await new Promise<void>((resolve) => { this.readyAgain = resolve; });
+      }
+      override async simulate(request: SimulationRequest): Promise<SimulationResult> {
+        this.requests.push(request);
+        this.simulateCalls += 1;
+        if (this.simulateCalls === 2) return new Promise((_, reject) => { this.rejectRun = reject; });
+        return calculated;
+      }
+      cancel(): void {
+        this.cancelled = true;
+        this.rejectRun?.(new CalculationCancelled());
+      }
+    }
+    const client = new CancellableClient();
+    const cleanup = mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLInputElement>('#duration')!.value = '10';
+    const mode = root.querySelector<HTMLInputElement>('#squad-mode')!;
+    mode.checked = true;
+    mode.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLButtonElement>('[data-deck-tab="2"]')!.click();
+    chooseCharacter(root, 0, '리타');
+    const form = root.querySelector<HTMLFormElement>('form')!;
+    const cancel = root.querySelector<HTMLButtonElement>('[data-calc-cancel]')!;
+    expect(cancel.hidden).toBe(true);
+    form.requestSubmit();
+    await flush();
+    expect(client.simulateCalls).toBe(2);
+    expect(cancel.hidden).toBe(false);
+    cancel.click();
+    await flush();
+    expect(root.querySelector('[data-errors]')?.textContent).toBe('');
+    expect(root.querySelector('[data-status]')?.textContent).toContain('1/2');
+    expect(root.querySelector('[data-result-total]')?.textContent).toContain('123,456');
+    expect(cancel.hidden).toBe(true);
+    form.requestSubmit();
+    await flush();
+    expect(client.simulateCalls).toBe(2);
+    client.readyAgain!();
+    await flush();
+    expect(client.simulateCalls).toBe(3);
+    expect(root.querySelector('[data-status]')?.textContent).toContain('2개 덱 계산 완료');
+    cleanup();
+  });
+
+  it('초기 준비 중 취소하면 계산 요청을 보내지 않는다', async () => {
+    let rejectPrepare: ((error: Error) => void) | undefined;
+    const client = new FakeClient();
+    client.prepare = () => new Promise<void>((_, reject) => { rejectPrepare = reject; });
+    const cancellable = Object.assign(client, {
+      cancel: () => { rejectPrepare!(new CalculationCancelled()); client.prepare = async () => undefined; },
+    });
+    const cleanup = mountCalculator(root, { catalog, settings, version: 'v1', client: cancellable, storage: localStorage });
+    root.querySelector<HTMLFormElement>('form')!.requestSubmit();
+    root.querySelector<HTMLButtonElement>('[data-calc-cancel]')!.click();
+    await flush();
+    expect(client.simulateCalls).toBe(0);
+    expect(root.querySelector('[data-status]')?.textContent).toBe('계산을 취소했습니다.');
+    expect(root.querySelector<HTMLButtonElement>('.calculate-button')!.disabled).toBe(false);
+    cleanup();
   });
 
   it('renders the normal-attack vs skill damage split per character', async () => {

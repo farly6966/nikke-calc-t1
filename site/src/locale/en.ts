@@ -10,6 +10,19 @@
  *    Synchro Device) as NIKKE writes it in English — players search by those words.
  */
 export const EN: Record<string, string> = {
+  '{done} / {total}칸': '{done} / {total} slots',
+  '{n}번째 풀버스트': 'Full Burst {n}',
+  '{stage}버': 'B{stage}',
+  '편성에 {stage}버가 없습니다. 이 단계는 건너뜁니다.': 'No Burst {stage} candidate in this squad. This stage is skipped.',
+  '{stage}버 {name}': 'B{stage} {name}',
+  '{n}번째 {stage}버 — {name}': 'Cycle {n}, B{stage} — {name}',
+  '{n}번째 {stage}버 — 아직 안 정함(자동)': 'Cycle {n}, B{stage} — Unassigned (auto)',
+  '지난 계산에서 풀버스트가 {n}번 돌았습니다.': 'The previous run had {n} Full Bursts.',
+  '전투 {n}초로 어림한 값입니다. 한 번 계산해 보면 실제 횟수로 맞춰집니다.': 'Estimated from a {n}-second battle. Run once to use the actual count.',
+  '계산을 끊는 중…': 'Stopping calculation…',
+  '계산을 취소했습니다.': 'Calculation cancelled.',
+  '계산 중 · {done}/{total}덱': 'Calculating · {done}/{total} squads',
+  '계산을 취소했습니다 · {done}/{total}덱까지 나온 결과만 남겼습니다.': 'Calculation cancelled · Kept results for {done}/{total} squads.',
   // ── 머리·둘러보기 ──────────────────────────────────────────────────────
   '스쿼드 계산기': 'Squad Calculator',
   '캐릭터별 오버로드와 큐브, 전투 조건을 반영해 프레임 단위 예상 대미지를 계산합니다.':

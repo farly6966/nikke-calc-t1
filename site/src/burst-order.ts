@@ -84,6 +84,11 @@ export interface CandidateSource {
 export function candidatesFor(stage: BurstStage, source: CandidateSource): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
+  // 엔진은 버스트 사용 여부가 아니라 편성을 본다. 사용 금지한 아군도 조건에 포함한다.
+  const hasStageAlly = (candidate: string): boolean => source.squad.some((raw) => {
+    const name = (raw ?? '').trim();
+    return name !== candidate && String(source.metaOf(name)?.burstStage) === stage;
+  });
   for (const raw of source.squad) {
     const name = (raw ?? '').trim();
     if (!name || seen.has(name)) continue;
@@ -93,6 +98,7 @@ export function candidatesFor(stage: BurstStage, source: CandidateSource): strin
     if (!meta) continue;
     const own = String(meta.burstStage).toUpperCase();
     if (own === stage || own === 'A') out.push(name);
+    else if (meta.altBurstStage === stage && !hasStageAlly(name)) out.push(name);
   }
   return out;
 }

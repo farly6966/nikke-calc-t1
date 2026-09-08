@@ -23,6 +23,8 @@ describe('generated browser runtime', () => {
 
     expect(catalog).toHaveLength(200);
     expect(catalog.every((char) => !char.name.startsWith('test_'))).toBe(true);
+    expect(catalog.find((char) => char.name === '라피 : 레드 후드')?.altBurstStage).toBe('1');
+    expect(catalog.find((char) => char.name === '리타')?.altBurstStage).toBeNull();
     // 프리뷰(출시 전) 항목은 출시되면 정식 등록되며 사라진다. 지금은 없다
     // (PARSING-CHARS §프리뷰). 남아 있으면 화면에 (임시) 경고가 붙는다.
     expect(catalog.filter((char) => char.preview).map((char) => char.name)).toEqual([]);
