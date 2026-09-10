@@ -299,6 +299,8 @@ export function encodeBattleCode(
   put('ce', battle.coreEnabled ? 1 : 0, 0);
   put('cp', Math.trunc(battle.corePx), d.corePx);
   put('hp', battle.hasParts ? 1 : 0, 0);
+  put('bp', (battle.bossPhases ?? []).map(w =>
+    [w.kind, toTenth(w.from), toTenth(w.to)]), []);
   put('s', Math.trunc(battle.seed), d.seed);
   put('or', [...(battle.optimalRangeWeapons ?? [])].sort(), []);
   put('rm', battle.rngMode === 'random' ? 1 : 0, 0);
@@ -306,6 +308,7 @@ export function encodeBattleCode(
   put('br', toTenth(battle.burstRegenTime), toTenth(d.burstRegenTime));
   // 반응속도는 0.05초 단위라 10분의 1로는 담기지 않는다 — 100분의 1로 싣는다.
   put('rt', toHundredth(battle.burstReaction), toHundredth(d.burstReaction));
+  put('st', toHundredth(battle.burstSwitchDelay ?? 0.1), 10);
 
   // 평타 계수는 **기본값과 다른 무기군만** 싣는다. 여섯 개를 다 실으면 그것만으로
   // 코드가 60자 넘게 길어지는데, 손대는 사람은 거의 없다.
@@ -375,6 +378,12 @@ export function decodeBattleCode(code: string): BattleShare {
     coreEnabled: Boolean(raw.ce),
     corePx: Math.trunc(num(raw.cp, 0, 1_000, d.corePx)),
     hasParts: Boolean(raw.hp),
+    ...(Array.isArray(raw.bp) ? { bossPhases: raw.bp.slice(0, 64).flatMap(w => {
+      if (!Array.isArray(w) || !['parts', 'immune', 'element_gate'].includes(w[0])) return [];
+      const from = fromTenth(num(w[1], 0, 1800, -1));
+      const to = fromTenth(num(w[2], 0, 1800, -1));
+      return from >= 0 && to > from ? [{ kind: w[0] as 'parts' | 'immune' | 'element_gate', from, to }] : [];
+    }) } : {}),
     seed: Math.trunc(num(raw.s, 0, 2_147_483_647, d.seed)),
     optimalRangeWeapons: Array.isArray(raw.or)
       ? (raw.or as unknown[]).filter((w): w is string => typeof w === 'string')
@@ -387,6 +396,7 @@ export function decodeBattleCode(code: string): BattleShare {
     burstRegenTime: fromTenth(num(raw.br, 0, 200, toTenth(d.burstRegenTime))),
     // 없는 키는 기본값이 된다 — 이 항목이 생기기 전에 만들어진 코드는 0.05초로 읽힌다.
     burstReaction: fromHundredth(num(raw.rt, 0, 300, toHundredth(d.burstReaction))),
+    ...(raw.st !== undefined ? { burstSwitchDelay: fromHundredth(num(raw.st, 0, 300, 10)) } : {}),
   };
 }
 
@@ -415,6 +425,7 @@ const UNION_NAME_MAX = 60;
 
 /** 유니온 레이드 보스 한 칸. 코드만 들고 있다 — 뜻은 NK3·NK2가 안다. */
 export interface UnionBossShare {
+  bossId?: string;
   name: string;
   enabled: boolean;
   /** 전투 조건 코드(`NK3-…`). 비면 조건을 안 정한 칸이다. */
@@ -455,16 +466,24 @@ export function encodeUnionCode(share: UnionShare): string {
     && boss.battleCode.trim() === ''
     && boss.deckCodes.every((code) => code.trim() === ''));
 
-  const bytes: number[] = [0, bosses.length];
+  // v1은 그림 id와 255바이트가 넘는 전투 조건을 담는다. v0 코드는 계속 읽는다.
+  const extended = bosses.some(boss => boss.bossId || bodyBytes(boss.battleCode, BATTLE_PREFIX).length > 255);
+  const bytes: number[] = [extended ? 1 : 0, bosses.length];
   for (const boss of bosses) {
     bytes.push(boss.enabled ? 1 : 0);
 
     let name = utf8.encode(boss.name.trim());
     if (name.length > UNION_NAME_MAX) name = name.slice(0, UNION_NAME_MAX);
     bytes.push(name.length, ...name);
+    if (extended) {
+      const id = utf8.encode(boss.bossId ?? '').slice(0, 100);
+      bytes.push(id.length, ...id);
+    }
 
     const battle = bodyBytes(boss.battleCode, BATTLE_PREFIX);
-    bytes.push(battle.length, ...battle);
+    if (battle.length > 65535) throw new Error('전투 조건이 너무 깁니다.');
+    if (extended) bytes.push(battle.length >> 8);
+    bytes.push(battle.length & 255, ...battle);
 
     const decks = trimTail(boss.deckCodes, (code) => code.trim() === '');
     bytes.push(decks.length);
@@ -509,13 +528,16 @@ export function decodeUnionCode(code: string): UnionShare {
   };
 
   need(2);
-  cursor += 1;                     // 예비 플래그 — 지금은 읽지 않는다
+  const version = byte();
+  if (version > 1) throw new Error('지원하지 않는 유니온 판 코드 버전입니다.');
   const count = byte();
   const bosses: UnionBossShare[] = [];
   for (let i = 0; i < count; i += 1) {
     const flags = byte();
     const name = utf8Decode.decode(take(byte()));
-    const battle = take(byte());
+    const bossId = version === 1 ? utf8Decode.decode(take(byte())) : '';
+    const high = version === 1 ? byte() : 0;
+    const battle = take(high * 256 + byte());
     const deckCount = byte();
     const deckCodes: string[] = [];
     for (let d = 0; d < deckCount; d += 1) {
@@ -523,6 +545,7 @@ export function decodeUnionCode(code: string): UnionShare {
       deckCodes.push(deck.length > 0 ? PREFIX + toBase64Url(deck) : '');
     }
     bosses.push({
+      ...(bossId ? { bossId } : {}),
       name,
       enabled: (flags & 1) === 1,
       battleCode: battle.length > 0 ? BATTLE_PREFIX + toBase64Url(battle) : '',

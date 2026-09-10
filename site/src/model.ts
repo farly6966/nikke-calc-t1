@@ -43,6 +43,8 @@ export function normalizeRequest(request: SimulationRequest): SimulationRequest 
     enemyCode: request.enemyCode,
     corePx: Math.trunc(request.corePx),
     hasParts: Boolean(request.hasParts),
+    ...(request.bossPhases?.length ? { bossPhases: [...request.bossPhases]
+      .sort((a, b) => a.from - b.from || a.to - b.to || a.kind.localeCompare(b.kind)) } : {}),
     seed: Math.trunc(request.seed),
     // 고른 순서가 달라도 같은 설정이다 — 정렬해 캐시 키가 갈리지 않게 한다.
     ...(request.optimalRangeWeapons?.length
@@ -70,6 +72,8 @@ export function normalizeRequest(request: SimulationRequest): SimulationRequest 
     // 기본값(0.05초)은 요청에서 뺀다 — 엔진이 같은 값을 쓰므로 옛 캐시 키와 갈리지 않는다.
     ...(request.burstReaction !== undefined && request.burstReaction !== DEFAULT_BURST_REACTION
       ? { burstReaction: request.burstReaction } : {}),
+    ...(request.burstSwitchDelay !== undefined && request.burstSwitchDelay !== 0.1
+      ? { burstSwitchDelay: request.burstSwitchDelay } : {}),
     // 기본 레벨(400)은 요청에서 뺀다 — 엔진이 같은 값을 쓰므로 옛 캐시 키와 갈리지 않는다.
     ...(request.synchroLevel !== undefined && request.synchroLevel !== DEFAULT_SYNCHRO_LEVEL
       ? { synchroLevel: Math.trunc(request.synchroLevel) } : {}),
@@ -189,6 +193,11 @@ export function validateRequest(request: SimulationRequest): string[] {
         && request.burstReaction >= 0 && request.burstReaction <= 3)) {
     errors.push('버스트 반응속도는 0~3초여야 합니다.');
   }
+  if (request.burstSwitchDelay !== undefined
+      && !(Number.isFinite(request.burstSwitchDelay)
+        && request.burstSwitchDelay >= 0 && request.burstSwitchDelay <= 3)) {
+    errors.push('버스트 단계 전환 간격은 0~3초여야 합니다.');
+  }
   // 보스 페이즈 — 시작이 끝보다 뒤면 조용히 뒤집지 않고 막는다. 엔진도 같은 규칙이다.
   const windows: Array<[{ from: number; to: number }, string]> = [
     ...(request.immuneWindows ?? []).map((w) => [w, '족자'] as [typeof w, string]),
@@ -260,6 +269,7 @@ export function requestForDeck(
     enemyCode: battle.enemyCode,
     corePx: battle.coreEnabled ? battle.corePx : 0,
     hasParts: battle.hasParts,
+    ...(battle.bossPhases?.length ? { bossPhases: battle.bossPhases } : {}),
     seed: battle.seed,
     optimalRangeWeapons: battle.optimalRangeWeapons,
     immuneWindows: battle.immuneWindows,
@@ -271,6 +281,7 @@ export function requestForDeck(
     // 덱마다 따로 잡아 뒀으면 그 값이 이긴다 — 버스트 쿨이 밀리는 덱만 달리 잰다.
     burstRegenTime: battle.burstRegenPerDeck?.[deck.id] ?? battle.burstRegenTime,
     burstReaction: battle.burstReaction,
+    burstSwitchDelay: battle.burstSwitchDelay,
     // 편성이 바뀌었으면 없는 이름을 떨궈서 싣는다 — 조용히 틀린 순서로 돌지 않게.
     ...(sequenceForDeck(deck) ? { burstSequence: sequenceForDeck(deck)! } : {}),
     ...(deck.strictNoBurst ? { strictNoBurst: true } : {}),

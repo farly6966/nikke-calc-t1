@@ -541,6 +541,12 @@ def run_request(raw: str) -> str:
     reaction = normalize_burst_reaction(payload.get("burstReaction"))
     if reaction is not None:
         config_in["burst_reaction"] = reaction
+    switch_delay = payload.get("burstSwitchDelay")
+    if switch_delay is not None:
+        switch_delay = float(switch_delay)
+        if not math.isfinite(switch_delay) or not 0 <= switch_delay <= 3:
+            raise ValueError("버스트 단계 전환 간격은 0~3초여야 합니다.")
+        config_in["burst_switch_delay"] = switch_delay
     # 난수 처리: "random"(인게임과 같은 분산) / "expected"(기대값, 결정론적).
     #
     # 안 주면 **기대값**이다 — 이 브리지가 받드는 화면의 기본값이다. 엔진 라이브러리
@@ -582,6 +588,19 @@ def run_request(raw: str) -> str:
         "immune_windows": normalize_immune_windows(payload.get("immuneWindows")),
         "element_windows": normalize_element_windows(payload.get("elementWindows")),
     }
+    phases = payload.get("bossPhases")
+    if phases is not None:
+        if not isinstance(phases, list) or len(phases) > 64:
+            raise ValueError("보스 구간은 64개까지 입력할 수 있습니다")
+        cleaned = []
+        for phase in phases:
+            if not isinstance(phase, dict) or phase.get("kind") not in ("parts", "immune", "element_gate"):
+                raise ValueError("보스 구간 종류가 올바르지 않습니다")
+            start, end = float(phase.get("from", -1)), float(phase.get("to", -1))
+            if not (math.isfinite(start) and math.isfinite(end) and 0 <= start < end <= 180):
+                raise ValueError("보스 구간은 0~180초 범위여야 합니다")
+            cleaned.append({"kind": phase["kind"], "from": start, "to": end})
+        enemy["boss_phases"] = cleaned
     # 관통이 꿰뚫는 몸통·파츠 수. 보스 메이커가 그림에서 세어 넘긴다 — 안 주면
     # 몸통 하나(한 발 = 한 히트)라 기존 계산과 같다.
     pierce = payload.get("piercePass")

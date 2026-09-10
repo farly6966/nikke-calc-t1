@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SITE_DIR = Path(__file__).resolve().parent.parent
@@ -11,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from pybridge.bridge import run_request
 from context.spec import is_preview
 from context.spec import _nikke as parsed_nikke
+from context.spec import build_config
 
 
 class CoreShareTest(unittest.TestCase):
@@ -345,6 +347,20 @@ class BrowserBridgeTest(unittest.TestCase):
         # 늦게 누를수록 버스트가 밀려 총딜이 준다.
         self.assertLess(slow["squadTotal"], default["squadTotal"])
         self.assertGreater(instant["squadTotal"], slow["squadTotal"])
+
+    def test_stage_switch_delay_and_reaction_reach_separate_engine_fields(self):
+        payload = {
+            "squad": ["리타", "크라운", "라피 : 레드 후드", "앨리스", "나가"],
+            "duration": 10, "enemyDef": 31784, "enemyCode": "", "corePx": 0,
+            "hasParts": False, "seed": 42,
+            "burstSwitchDelay": 0.35, "burstReaction": 0,
+        }
+        with patch("pybridge.bridge.char_spec.build_config", wraps=build_config) as config:
+            result = json.loads(run_request(json.dumps(payload, ensure_ascii=False)))
+        self.assertGreater(result["squadTotal"], 0)
+        supplied = config.call_args.args[1]
+        self.assertEqual(supplied["burst_switch_delay"], 0.35)
+        self.assertEqual(supplied["burst_reaction"], 0)
 
     def test_skip_means_never_bursting_at_all(self):
         """「안 씀」은 뒤로 미는 게 아니라 후보에서 빼는 것이다."""
@@ -864,6 +880,26 @@ class BrowserBridgeTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "스쿼드에 없는 캐릭터"):
             run_request(json.dumps(payload, ensure_ascii=False))
+
+
+class UnionBossPhasesBridgeTest(unittest.TestCase):
+    BASE = {"squad": ["리타"], "duration": 10, "enemyDef": 31784,
+            "enemyCode": "전격", "corePx": 52, "hasParts": False, "seed": 42}
+
+    def test_phases_reach_the_engine(self):
+        base = json.loads(run_request(json.dumps(self.BASE)))
+        blocked = json.loads(run_request(json.dumps({
+            **self.BASE, "bossPhases": [{"kind": "immune", "from": 0, "to": 180}],
+        })))
+        self.assertGreater(base["squadTotal"], 0)
+        self.assertEqual(blocked["squadTotal"], 0)
+
+    def test_invalid_or_excessive_phases_are_rejected(self):
+        for phases in ([{"kind": "parts", "from": 5, "to": 2}],
+                       [{"kind": "unknown", "from": 0, "to": 5}],
+                       [{"kind": "parts", "from": 0, "to": 5}] * 65):
+            with self.subTest(phases=phases[:1]), self.assertRaises(ValueError):
+                run_request(json.dumps({**self.BASE, "bossPhases": phases}))
 
 
 if __name__ == "__main__":

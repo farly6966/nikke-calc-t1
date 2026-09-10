@@ -1,0 +1,345 @@
+{
+  "code": "nu8p4v",
+  "cfg": {
+    "v": 1,
+    "mode": "union",
+    "kind": "season_bosses",
+    "duration": 180,
+    "bosses": {
+      "전격": {
+        "def": 31784,
+        "core_px": 52,
+        "has_parts": false,
+        "part_break_interval": 0,
+        "max_burst_count": 0,
+        "first_burst_time": 3,
+        "burst_switch_delay": 0.1,
+        "burst_reenter_delay": 0.5,
+        "optimal_range_weapons": [],
+        "phases": [
+          {
+            "kind": "parts",
+            "t0": 0,
+            "t1": 3
+          }
+        ],
+        "weapon_coeff": {
+          "AR": 1,
+          "SMG": 0.8,
+          "SG": 0.9,
+          "SR": 1,
+          "RL": 1,
+          "MG": 1
+        }
+      },
+      "수냉": {
+        "def": 31784,
+        "core_px": 25,
+        "has_parts": false,
+        "part_break_interval": 0,
+        "max_burst_count": 0,
+        "first_burst_time": 3,
+        "burst_switch_delay": 0.1,
+        "burst_reenter_delay": 0.5,
+        "optimal_range_weapons": [],
+        "phases": [
+          {
+            "kind": "parts",
+            "t0": 19,
+            "t1": 20
+          },
+          {
+            "kind": "parts",
+            "t0": 44,
+            "t1": 45
+          },
+          {
+            "kind": "parts",
+            "t0": 70,
+            "t1": 71
+          },
+          {
+            "kind": "parts",
+            "t0": 97,
+            "t1": 98
+          },
+          {
+            "kind": "parts",
+            "t0": 124,
+            "t1": 125
+          },
+          {
+            "kind": "parts",
+            "t0": 176,
+            "t1": 177
+          }
+        ],
+        "weapon_coeff": {
+          "AR": 1,
+          "SMG": 0.8,
+          "SG": 0.9,
+          "SR": 1,
+          "RL": 1,
+          "MG": 1
+        }
+      },
+      "작열": {
+        "def": 31784,
+        "core_px": 10,
+        "has_parts": false,
+        "part_break_interval": 0,
+        "max_burst_count": 0,
+        "first_burst_time": 3,
+        "burst_switch_delay": 0.1,
+        "burst_reenter_delay": 0.5,
+        "optimal_range_weapons": [
+          "SR"
+        ],
+        "phases": [],
+        "weapon_coeff": {
+          "AR": 1,
+          "SMG": 0.8,
+          "SG": 0.9,
+          "SR": 1,
+          "RL": 1,
+          "MG": 1
+        }
+      },
+      "풍압": {
+        "def": 31784,
+        "core_px": 0,
+        "has_parts": false,
+        "part_break_interval": 0,
+        "max_burst_count": 0,
+        "first_burst_time": 3,
+        "burst_switch_delay": 0.1,
+        "burst_reenter_delay": 0.5,
+        "optimal_range_weapons": [],
+        "phases": [
+          {
+            "kind": "parts",
+            "t0": 0,
+            "t1": 5
+          },
+          {
+            "kind": "parts",
+            "t0": 23,
+            "t1": 25
+          },
+          {
+            "kind": "parts",
+            "t0": 44,
+            "t1": 46
+          },
+          {
+            "kind": "parts",
+            "t0": 65,
+            "t1": 67
+          },
+          {
+            "kind": "parts",
+            "t0": 75,
+            "t1": 77
+          },
+          {
+            "kind": "parts",
+            "t0": 79,
+            "t1": 81
+          },
+          {
+            "kind": "parts",
+            "t0": 114,
+            "t1": 116
+          },
+          {
+            "kind": "parts",
+            "t0": 146,
+            "t1": 148
+          }
+        ],
+        "weapon_coeff": {
+          "AR": 1,
+          "SMG": 0.8,
+          "SG": 0.9,
+          "SR": 1,
+          "RL": 1,
+          "MG": 1.12
+        }
+      },
+      "철갑": {
+        "def": 31784,
+        "core_px": 15,
+        "has_parts": false,
+        "part_break_interval": 0,
+        "max_burst_count": 0,
+        "first_burst_time": 3,
+        "burst_switch_delay": 0.1,
+        "burst_reenter_delay": 0.5,
+        "optimal_range_weapons": [
+          "AR"
+        ],
+        "phases": [
+          {
+            "kind": "parts",
+            "t0": 0,
+            "t1": 5
+          },
+          {
+            "kind": "parts",
+            "t0": 0,
+            "t1": 5
+          },
+          {
+            "kind": "parts",
+            "t0": 14,
+            "t1": 17
+          },
+          {
+            "kind": "parts",
+            "t0": 14,
+            "t1": 17
+          },
+          {
+            "kind": "parts",
+            "t0": 27,
+            "t1": 30
+          },
+          {
+            "kind": "parts",
+            "t0": 27,
+            "t1": 30
+          },
+          {
+            "kind": "parts",
+            "t0": 27,
+            "t1": 30
+          },
+          {
+            "kind": "parts",
+            "t0": 27,
+            "t1": 30
+          },
+          {
+            "kind": "parts",
+            "t0": 48,
+            "t1": 49
+          },
+          {
+            "kind": "parts",
+            "t0": 48,
+            "t1": 49
+          },
+          {
+            "kind": "parts",
+            "t0": 48,
+            "t1": 49
+          },
+          {
+            "kind": "immune",
+            "t0": 62,
+            "t1": 67
+          },
+          {
+            "kind": "parts",
+            "t0": 73,
+            "t1": 74
+          },
+          {
+            "kind": "parts",
+            "t0": 73,
+            "t1": 74
+          },
+          {
+            "kind": "parts",
+            "t0": 83,
+            "t1": 84
+          },
+          {
+            "kind": "parts",
+            "t0": 83,
+            "t1": 84
+          },
+          {
+            "kind": "parts",
+            "t0": 83,
+            "t1": 84
+          },
+          {
+            "kind": "parts",
+            "t0": 103,
+            "t1": 107
+          },
+          {
+            "kind": "parts",
+            "t0": 103,
+            "t1": 107
+          },
+          {
+            "kind": "parts",
+            "t0": 118,
+            "t1": 119
+          },
+          {
+            "kind": "parts",
+            "t0": 118,
+            "t1": 119
+          },
+          {
+            "kind": "parts",
+            "t0": 118,
+            "t1": 119
+          },
+          {
+            "kind": "element_gate",
+            "t0": 131,
+            "t1": 135
+          },
+          {
+            "kind": "parts",
+            "t0": 140,
+            "t1": 146
+          },
+          {
+            "kind": "parts",
+            "t0": 140,
+            "t1": 146
+          },
+          {
+            "kind": "parts",
+            "t0": 140,
+            "t1": 146
+          },
+          {
+            "kind": "parts",
+            "t0": 140,
+            "t1": 146
+          },
+          {
+            "kind": "parts",
+            "t0": 161,
+            "t1": 162
+          },
+          {
+            "kind": "parts",
+            "t0": 161,
+            "t1": 162
+          },
+          {
+            "kind": "parts",
+            "t0": 161,
+            "t1": 162
+          }
+        ],
+        "weapon_coeff": {
+          "AR": 1,
+          "SMG": 0.8,
+          "SG": 0.9,
+          "SR": 1,
+          "RL": 1,
+          "MG": 1
+        }
+      }
+    },
+    "season": 1000044
+  }
+}

@@ -28,6 +28,9 @@ import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './mode
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
 import { UnionSquadPicker } from './union-squad';
 import { createTimelineBlock } from './timeline';
+import { t } from './i18n';
+import { UNION_BOSS_SEASONS, unionBossPreset, unionBossArt, bossWeakness, recommendedUnionBattle,
+  type UnionBossPreset } from './union-bosses';
 import type { BattleSettings, DeckState, ElementCode, SimulationResult } from './types';
 
 /** 유니온원 한 명. `GetGuildMembers`가 주는 것만 담는다. */
@@ -63,6 +66,7 @@ export interface MemberRow extends UnionMember {
 
 /** 보스 한 칸. 체크를 끄면 그 보스는 통째로 건너뛴다. */
 export interface BossSlot {
+  bossId?: string;
   name: string;
   code: string;
   enabled: boolean;
@@ -85,7 +89,7 @@ export interface DeckSlot {
 /** 보스마다 처음 나오는 덱 칸 수. 여기서 늘리고 줄일 수 있다. */
 export function encodeUnionDraft(bosses: BossSlot[]): string {
   return JSON.stringify(bosses.map(boss => ({
-    name: boss.name, code: boss.code, enabled: boss.enabled,
+    name: boss.name, code: boss.code, enabled: boss.enabled, bossId: boss.bossId,
     decks: boss.decks.map(deck => ({ code: deck.code, cycle: deck.cycle ? {
       burstReaction: deck.cycle.burstReaction, burstRegenTime: deck.cycle.burstRegenTime,
     } : undefined, burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad ?? []), noBurst: cleanNoBurst(deck.noBurst, deck.squad ?? []) })),
@@ -109,7 +113,8 @@ export function decodeUnionDraft(text: string, names: string[]): BossSlot[] {
       }
       return deck;
     });
-    return readBossCode({ name: item.name, code: item.code, enabled: item.enabled, decks });
+    return readBossCode({ name: item.name, code: item.code, enabled: item.enabled, decks,
+      ...(unionBossPreset(item.bossId) ? { bossId: item.bossId } : {}) });
   });
 }
 
@@ -559,6 +564,7 @@ export function unionShareOf(bosses: BossSlot[]): UnionShare {
   return {
     bosses: bosses.map((boss) => ({
       name: boss.name,
+      ...(boss.bossId ? { bossId: boss.bossId } : {}),
       enabled: boss.enabled,
       battleCode: boss.code,
       deckCodes: boss.decks.map((deck) => deck.code),
@@ -582,6 +588,7 @@ export function applyUnionShare(
     const decks = Array.from({ length: DECK_SLOTS }, (_, deckIndex) =>
       readDeckCode({ code: shared?.deckCodes[deckIndex] ?? '' }, catalogNames));
     const slot: BossSlot = {
+      ...(unionBossPreset(shared?.bossId) ? { bossId: shared!.bossId } : {}),
       name: shared?.name ?? '',
       code: shared?.battleCode ?? '',
       // 코드에 없는 칸은 끈 채로 둔다 — 빈 보스가 켜져 있으면 실행 단추가 헷갈린다.
@@ -635,7 +642,7 @@ export function buildJobs(members: MemberRow[], bosses: BossSlot[]): Job[] {
         jobs.push({
           member,
           bossIndex,
-          bossName: boss.name.trim() || `보스 ${bossIndex + 1}`,
+          bossName: t(boss.name.trim()) || t('보스 {n}', { n: bossIndex + 1 }),
           deckIndex,
           squad: deck.squad,
           burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad),
@@ -695,7 +702,7 @@ export function groupResults(results: JobResult[]): MemberReport[] {
       report = { member: result.job.member, bosses: [] };
       byMember.set(key, report);
     }
-    let boss = report.bosses.find((entry) => entry.name === result.job.bossName);
+    let boss = report.bosses.find((entry) => entry.rows[0]?.job.bossIndex === result.job.bossIndex);
     if (!boss) {
       boss = { name: result.job.bossName, rows: [] };
       report.bosses.push(boss);
@@ -995,7 +1002,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     if (personalLede) personalLede.hidden = !personal;
     showStep('1', !personal);
     showStep('2', !personal && members.length > 0);
-    showStep('3', personal || members.some((row) => row.state === 'public'));
+    showStep('3', true); // 계정 자료를 넣기 전에도 보스를 고르고 편성을 준비할 수 있다.
     renderMembers();
     renderReport();
     refreshRunGate();
@@ -1125,7 +1132,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       mark.type = 'checkbox';
       mark.checked = row.bossPicks?.[index] !== false;
       mark.dataset.unionBossPick = String(index);
-      const label = boss.name.trim() || `보스 ${index + 1}`;
+      const label = t(boss.name.trim()) || t('보스 {n}', { n: index + 1 });
       chip.title = `${row.name} — ${label}`;
       chip.classList.toggle('is-off', !mark.checked);
       mark.addEventListener('change', (event) => {
@@ -1480,6 +1487,78 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
   // ── 3단계 · 보스와 덱 ────────────────────────────────────────────────────
   const bossBox = pick(panel, '[data-union-bosses]');
+  let undoBossBoard: string | undefined;
+  const seasonBox = el('section', 'union-season');
+  steps.get('1')!.before(seasonBox);
+  const applyPreset = (boss: BossSlot, preset: UnionBossPreset): BossSlot => ({
+    ...readBossCode({ ...boss, name: preset.name, bossId: preset.id, enabled: true,
+      code: encodeBattleCode(recommendedUnionBattle(preset)) }),
+    decks: boss.decks,
+  });
+  const portrait = (preset: UnionBossPreset, className: string): HTMLElement => {
+    const frame = el('div', className);
+    const img = document.createElement('img');
+    img.src = unionBossArt(preset); img.alt = t(preset.name); img.loading = 'lazy';
+    img.addEventListener('error', () => {
+      img.remove();
+      frame.append(el('span', 'union-art-fallback', t(preset.name)));
+    }, { once: true });
+    frame.append(img);
+    return frame;
+  };
+  function renderSeason(): void {
+    seasonBox.replaceChildren();
+    const season = UNION_BOSS_SEASONS[0]!;
+    const heading = el('div', 'union-season-heading');
+    heading.append(el('h4', undefined, t('회차 보스')));
+    const select = el('select');
+    select.ariaLabel = t('회차 선택');
+    select.append(new Option(season.label, season.id));
+    heading.append(select);
+    const apply = el('button', 'roster-import', t('이 회차 적용'));
+    apply.type = 'button';
+    apply.dataset.unionSeasonApply = '';
+    apply.addEventListener('click', () => {
+      undoBossBoard = encodeUnionDraft(bosses);
+      bosses = bosses.map((boss, index) => applyPreset(boss, season.bosses[Math.min(index, 4)]!));
+      renderBosses(); renderMembers();
+    });
+    heading.append(apply);
+    if (undoBossBoard) {
+      const undo = el('button', 'roster-import', t('보스 변경 되돌리기'));
+      undo.type = 'button';
+      undo.addEventListener('click', () => {
+        const previous = decodeUnionDraft(undoBossBoard!, deps.catalogNames());
+        bosses = previous.map((boss, index) => ({ ...boss, decks: bosses[index]!.decks }));
+        undoBossBoard = undefined;
+        renderBosses(); renderMembers();
+      });
+      heading.append(undo);
+    }
+    seasonBox.append(heading, el('p', 'field-note',
+      t('보스 이름·그림·추천 전투 조건을 여섯 칸에 적용합니다. 여섯 번째는 마지막 보스의 무한 단계이며, 각 칸의 편성은 유지됩니다.')));
+    const lineup = el('div', 'union-season-lineup');
+    season.bosses.forEach((preset, index) => {
+      const tile = el('button', 'union-season-tile');
+      tile.type = 'button';
+      tile.append(portrait(preset, 'union-season-art'),
+        el('strong', undefined, t(preset.name)),
+        el('span', undefined, t('약점: {code}', { code: t(preset.weakness) })));
+      tile.title = t('보스 {n} 선택', { n: index + 1 });
+      tile.addEventListener('click', () => {
+        undoBossBoard = encodeUnionDraft(bosses);
+        bosses[index] = applyPreset(bosses[index]!, preset);
+        renderBosses(); renderMembers();
+        bossBox.children[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      lineup.append(tile);
+    });
+    seasonBox.append(lineup, el('p', 'field-note',
+      t('추천값은 DILDORO S44 설정(2026-09-09)입니다. 단계와 실제 부위 파괴 시간에 맞게 수정하세요.')));
+    const source = el('a', 'field-note', t('자료 출처: DILDORO'));
+    source.href = 'https://dildoro.com/union'; source.target = '_blank'; source.rel = 'noopener noreferrer';
+    seasonBox.append(source);
+  }
 
   // 視覺排隊器。판은 **하나뿐**이고 겨눈 덱 줄 아래로 옮겨 다닌다 — 덱 줄이 열다섯이라
   // 줄마다 격자를 그리면 니케 200명이 열다섯 벌 깔린다.
@@ -1680,7 +1759,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       renderBosses();
       renderMembers();
       const live = bosses.filter((boss) => boss.enabled).length;
-      sayBoard(`판을 깔았습니다 — 보스 ${live}개.`, true);
+      sayBoard(t('판을 깔았습니다 — 보스 {n}개.', { n: live }), true);
       setBox.hidden = true;
     } catch (error) {
       sayBoard(error instanceof Error ? error.message : String(error));
@@ -1704,9 +1783,41 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
   function renderBosses(): void {
     invalidateResults();
+    renderSeason();
     bossBox.replaceChildren();
     bosses.forEach((boss, index) => {
       const card = el('div', 'union-boss');
+      card.dataset.bossIndex = String(index);
+      const preset = unionBossPreset(boss.bossId);
+      const hero = el('div', 'union-boss-hero');
+      if (preset) hero.append(portrait(preset, 'union-boss-art'));
+      else hero.append(el('div', 'union-boss-art union-art-empty', String(index + 1).padStart(2, '0')));
+      const identity = el('div', 'union-boss-identity');
+      const stage = index === 5 ? t('무한 단계') : t('보스 {n}', { n: index + 1 });
+      identity.append(el('span', 'union-boss-stage', stage));
+      const choose = el('select', 'union-boss-preset');
+      choose.ariaLabel = t('보스 {n} 선택', { n: index + 1 });
+      choose.append(new Option(t('직접 설정'), ''));
+      for (const entry of UNION_BOSS_SEASONS.flatMap(s => s.bosses)) {
+        choose.append(new Option(t(entry.name), entry.id));
+      }
+      choose.value = preset?.id ?? '';
+      choose.addEventListener('change', () => {
+        undoBossBoard = encodeUnionDraft(bosses);
+        const selected = unionBossPreset(choose.value);
+        bosses[index] = selected ? applyPreset(boss, selected) : { ...boss, bossId: undefined };
+        renderBosses(); renderMembers();
+      });
+      identity.append(choose);
+      const weak = bossWeakness(boss.battle?.enemyCode ?? '');
+      identity.append(el('span', 'union-boss-weakness', weak
+        ? t('약점: {code}', { code: t(weak) }) : t('전투 조건을 설정하세요')));
+      const outcome = el('div', 'union-boss-outcome');
+      outcome.dataset.bossOutcome = String(index);
+      outcome.textContent = t('계산 결과 없음');
+      identity.append(outcome);
+      hero.append(identity);
+      card.append(hero);
       if (!boss.enabled) card.classList.add('is-off');
 
       const head = el('div', 'union-boss-head');
@@ -1722,8 +1833,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       const name = document.createElement('input');
       name.type = 'text';
       name.className = 'union-boss-name';
-      name.placeholder = `보스 ${index + 1} 이름`;
-      name.value = boss.name;
+      name.placeholder = t('보스 {n} 이름', { n: index + 1 });
+      name.value = t(boss.name);
       name.addEventListener('input', () => {
         boss.name = name.value;
         invalidateResults();
@@ -1741,13 +1852,16 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       const codeRow = el('div', 'union-code-row');
       const shape = shapeOf(boss.battle);
       const applyShape = (next: Partial<BossShape>): void => {
-        const code = bossCodeForShape({ ...shape, ...next }, deps.settings.normalHitCoeff);
+        const changed = decodeBattleCode(bossCodeForShape({ ...shape, ...next }));
+        const code = encodeBattleCode({ ...(boss.battle ?? changed),
+          enemyCode: changed.enemyCode, coreEnabled: changed.coreEnabled, corePx: changed.corePx,
+          hasParts: changed.hasParts, enemyDef: changed.enemyDef } as BattleSettings);
         bosses[index] = { ...readBossCode({ ...boss, code }), decks: boss.decks };
         renderBosses();
       };
 
       const pickCode = el('label', 'union-boss-code');
-      pickCode.append(el('span', undefined, '屬性'));
+      pickCode.append(el('span', undefined, t('보스 속성')));
       const codeSelect = document.createElement('select');
       for (const value of BOSS_CODES) {
         const option = document.createElement('option');
@@ -1798,7 +1912,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         partsBox.checked = shape.hasParts;
         partsBox.title = '這隻王有可破壞部位';
         partsBox.addEventListener('change', () => applyShape({ hasParts: partsBox.checked }));
-        parts.append(partsBox, el('span', undefined, '有部位'));
+        parts.append(partsBox, el('span', undefined, t('상시 부위')));
         codeRow.append(parts);
       }
 
@@ -1829,12 +1943,128 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         codeRow.append(fromShare);
       }
       card.append(codeRow);
+      if (boss.battle) {
+        const advanced = el('details', 'union-boss-settings');
+        advanced.append(el('summary', undefined, t('추천 설정 상세 · 수정')));
+        const reset = el('button', 'roster-import', t('추천값 복원'));
+        reset.type = 'button'; reset.disabled = !preset;
+        reset.addEventListener('click', () => {
+          if (!preset) return;
+          undoBossBoard = encodeUnionDraft(bosses);
+          bosses[index] = { ...applyPreset(boss, preset), name: boss.name, enabled: boss.enabled };
+          renderBosses();
+        });
+        advanced.append(reset);
+        const updateBattle = (next: Partial<BattleSettings>): void => {
+          bosses[index] = readBossCode({ ...boss,
+            code: encodeBattleCode({ ...boss.battle!, ...next }) });
+          renderBosses();
+          const fold = bossBox.children[index]?.querySelector<HTMLDetailsElement>('.union-boss-settings');
+          if (fold) fold.open = true;
+        };
+        const ranges = el('div', 'union-setting-row');
+        ranges.append(el('span', undefined, t('적정거리 무기')));
+        for (const weapon of ['AR', 'SMG', 'SG', 'SR', 'RL', 'MG']) {
+          const label = el('label', undefined, weapon);
+          const check = el('input'); check.type = 'checkbox';
+          check.checked = boss.battle.optimalRangeWeapons.includes(weapon);
+          check.addEventListener('change', () => updateBattle({ optimalRangeWeapons: check.checked
+            ? [...boss.battle!.optimalRangeWeapons, weapon]
+            : boss.battle!.optimalRangeWeapons.filter(w => w !== weapon) }));
+          label.prepend(check); ranges.append(label);
+        }
+        advanced.append(ranges);
+        const coeffs = el('div', 'union-setting-row');
+        coeffs.append(el('span', undefined, t('무기별 평타 계수')));
+        for (const weapon of ['AR', 'SMG', 'SG', 'SR', 'RL', 'MG']) {
+          const label = el('label', undefined, weapon);
+          const input = el('input', 'union-boss-num'); input.type = 'number';
+          input.min = '0'; input.max = '2'; input.step = '0.01';
+          input.value = String(boss.battle.normalHitCoeff[weapon] ?? 1);
+          input.ariaLabel = t('{weapon} 평타 계수', { weapon });
+          input.addEventListener('change', () => {
+            if (!input.checkValidity() || !input.value) {
+              input.value = String(boss.battle!.normalHitCoeff[weapon] ?? 1);
+              return;
+            }
+            updateBattle({ normalHitCoeff: { ...boss.battle!.normalHitCoeff, [weapon]: Number(input.value) } });
+          });
+          label.append(input); coeffs.append(label);
+        }
+        advanced.append(coeffs);
+        const timing = el('div', 'union-setting-row');
+        for (const [field, title, fallback] of [
+          ['burstSwitchDelay', '버스트 단계 전환 간격', 0.1],
+          ['burstReaction', '버스트 반응속도', 0.05],
+        ] as const) {
+          const label = el('label', undefined, t(title));
+          const input = el('input', 'union-boss-num'); input.type = 'number';
+          input.min = '0'; input.max = '3'; input.step = '0.01';
+          input.value = String(boss.battle[field] ?? fallback);
+          input.ariaLabel = t(title);
+          input.addEventListener('change', () => {
+            if (!input.value || !input.checkValidity()) {
+              input.value = String(boss.battle![field] ?? fallback);
+              return;
+            }
+            updateBattle({ [field]: Number(input.value) });
+          });
+          label.append(input, t('초')); timing.append(label);
+        }
+        advanced.append(timing);
+        advanced.append(el('p', 'field-note',
+          t('부위는 시작부터 종료 직전까지 존재하며, 종료 시 부위 하나가 파괴됩니다. 같은 구간을 여러 번 넣으면 여러 부위입니다. 무적은 모든 피해를 막고 속성 저지는 우월 코드만 통과시킵니다.')));
+        const phases = boss.battle.bossPhases ?? [];
+        const kinds = { parts: '부위', immune: '모든 피해 차단', element_gate: '속성 저지' };
+        phases.forEach((phase, at) => {
+          const line = el('div', 'union-phase-row');
+          const phaseError = el('p', 'union-error');
+          phaseError.hidden = true;
+          phaseError.setAttribute('role', 'alert');
+          const kind = el('select');
+          kind.ariaLabel = t('구간 {n} 종류', { n: at + 1 });
+          for (const [value, label] of Object.entries(kinds)) kind.append(new Option(t(label), value));
+          kind.value = phase.kind;
+          kind.addEventListener('change', () => updateBattle({ bossPhases: phases.map((p, i) =>
+            i === at ? { ...p, kind: kind.value as typeof p.kind } : p) }));
+          line.append(kind);
+          for (const field of ['from', 'to'] as const) {
+            const input = el('input', 'union-boss-num'); input.type = 'number';
+            input.min = '0'; input.max = '180'; input.step = '0.1'; input.value = String(phase[field]);
+            input.ariaLabel = t(field === 'from' ? '구간 {n} 시작' : '구간 {n} 종료', { n: at + 1 });
+            input.addEventListener('change', () => {
+              const next = { ...phase, [field]: Number(input.value) };
+              if (!input.value || !input.checkValidity() || next.from >= next.to) {
+                input.value = String(phase[field]);
+                phaseError.textContent = t('구간은 0~180초 안에서 시작이 종료보다 빨라야 합니다. 이전 값으로 복원했습니다.');
+                phaseError.hidden = false;
+                return;
+              }
+              updateBattle({ bossPhases: phases.map((p, i) => i === at ? next : p) });
+            });
+            input.addEventListener('input', () => { phaseError.hidden = true; });
+            line.append(input);
+          }
+          const remove = el('button', 'roster-import', t('삭제')); remove.type = 'button';
+          remove.ariaLabel = t('구간 {n} 삭제', { n: at + 1 });
+          remove.addEventListener('click', () => updateBattle({ bossPhases: phases.filter((_, i) => i !== at) }));
+          line.append(el('span', undefined, t('초')), remove, phaseError); advanced.append(line);
+        });
+        const add = el('button', 'roster-import', t('구간 추가')); add.type = 'button';
+        add.disabled = phases.length >= 64;
+        add.addEventListener('click', () => updateBattle({ bossPhases: [...phases, { kind: 'parts', from: 0, to: 5 }] }));
+        advanced.append(add);
+        card.append(advanced);
+      }
       if (boss.error) card.append(el('p', 'union-error', boss.error));
 
       const deckBox = el('div', 'union-decks');
       boss.decks.forEach((deck, deckIndex) => {
         const row = el('div', 'union-deck');
         row.append(el('p', 'union-deck-label', `第 ${deckIndex + 1} 隊`));
+        const deckOutcome = el('p', 'union-boss-outcome', t('계산 결과 없음'));
+        deckOutcome.dataset.deckOutcome = `${index}-${deckIndex}`;
+        row.append(deckOutcome);
 
         // 視覺排隊 —— 點頭像放入。代碼欄仍在下面的「代碼」摺疊裡，因為盤面碼(NK4)
         // 是靠它組出來的，而且貼別人給的組合代碼還是最快的路。
@@ -1946,7 +2176,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'union-code';
-        input.placeholder = `덱 ${deckIndex + 1} 조합 코드 (NK2-…)`;
+        input.placeholder = t('덱 {n} 조합 코드 (NK2-…)', { n: deckIndex + 1 });
         input.value = deck.code;
         input.addEventListener('input', () => {
           boss.decks[deckIndex] = readDeckCode({ code: input.value }, deps.catalogNames());
@@ -1961,18 +2191,19 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       card.append(deckBox);
       bossBox.append(card);
     });
+    renderBossOutcomes();
     refreshRunGate();
   }
 
   const battleSummary = (boss: BossSlot): string => {
-    if (!boss.battle) return '조건 없음';
-    const parts = [`${boss.battle.duration}秒`,
-      boss.battle.enemyCode ? boss.battle.enemyCode : '無屬性',
-      // 코어는 켜고 끄는 것만으로 딜이 두 배 갈린다 — 요약에 반드시 적는다.
-      boss.battle.coreEnabled ? `核心 ${boss.battle.corePx}px` : '無核心',
-      `방어 ${DAMAGE.format(boss.battle.enemyDef)}`];
+    if (!boss.battle) return t('조건 없음');
+    const parts = [t('{n}초', { n: boss.battle.duration }),
+      t(boss.battle.enemyCode || '무속성'),
+      boss.battle.coreEnabled ? t('코어 {n}px', { n: boss.battle.corePx }) : t('코어 없음'),
+      t('방어 {n}', { n: DAMAGE.format(boss.battle.enemyDef) }),
+      t('보스 구간 {n}개', { n: boss.battle.bossPhases?.length ?? 0 })];
     const decks = boss.decks.filter((deck) => deck.squad).length;
-    parts.push(decks > 0 ? `덱 ${decks}개` : '덱 없음');
+    parts.push(t('편성 {n}개', { n: decks }));
     return parts.join(' · ');
   };
 
@@ -2049,8 +2280,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         : jobs.length === 0
         ? (personal ? '要先填好王與隊伍才能執行。' : missingReason())
         : (personal
-          ? `${jobs.length}판을 돌립니다 — 보스·덱 조합만큼입니다.`
-          : `${jobs.length}판을 돌립니다 — 유니온원 ${people}명 × 보스·덱.`);
+          ? t('보스·편성 {n}개를 계산합니다.', { n: jobs.length })
+          : t('{people}명의 보스·편성 {n}개를 계산합니다.', { people, n: jobs.length }));
     }
   }
 
@@ -2194,8 +2425,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     runStatus.textContent = resultsInvalidated
       ? '編成或條件已變更，舊模擬已作廢，請重新執行。'
       : cancelled
-      ? `중단했습니다 (${results.length}/${jobs.length}판).`
-      : `${jobs.length}판을 ${humanSeconds((Date.now() - started) / 1000)} 만에 마쳤습니다.`;
+      ? t('중단했습니다 ({done}/{n}판).', { done: results.length, n: jobs.length })
+      : t('{n}판 완료 · {seconds}초', { n: jobs.length, seconds: Math.round((Date.now() - started) / 1000) });
   };
 
   runButton.addEventListener('click', () => { void runAll(); });
@@ -2276,8 +2507,27 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     gridBox.append(table);
   }
 
+  function renderBossOutcomes(): void {
+    for (const output of bossBox.querySelectorAll<HTMLElement>('[data-boss-outcome]')) {
+      const rows = results.filter(row => row.job.bossIndex === Number(output.dataset.bossOutcome));
+      const damages = rows.flatMap(row => row.damage !== undefined ? [row.damage] : []);
+      output.textContent = damages.length ? t('최고 피해 {damage} · {n}개 결과', {
+        damage: DAMAGE.format(Math.round(Math.max(...damages))), n: damages.length,
+      }) : t('계산 결과 없음');
+    }
+    for (const output of bossBox.querySelectorAll<HTMLElement>('[data-deck-outcome]')) {
+      const [bossIndex, deckIndex] = output.dataset.deckOutcome!.split('-').map(Number);
+      const rows = results.filter(row => row.job.bossIndex === bossIndex && row.job.deckIndex === deckIndex);
+      const damages = rows.flatMap(row => row.damage !== undefined ? [row.damage] : []);
+      output.textContent = damages.length ? t('최고 피해 {damage} · {n}개 결과', {
+        damage: DAMAGE.format(Math.round(Math.max(...damages))), n: damages.length,
+      }) : rows.length ? t('계산 실패 · 아래 결과에서 원인을 확인하세요') : t('계산 결과 없음');
+    }
+  }
+
   function renderReport(): void {
     renderGrid();
+    renderBossOutcomes();
     reportBox.replaceChildren();
     for (const report of groupResults(results)) {
       const card = el('div', 'union-report-card');

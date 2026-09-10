@@ -2809,6 +2809,13 @@ def simulate(
     # 두 모드로 비교하기 위한 스위치다: 기본은 무발동, 주기를 주면 그 간격으로 발생.
     _part_break_interval = float(cfg.get("part_break_interval", 0) or 0)
     _next_part_break = _part_break_interval if _part_break_interval > 0 else math.inf
+    # 회차 추천 설정의 부위 구간. 겹쳐도 파츠 보너스는 한 번, 파괴는 부위마다 발생한다.
+    _boss_phases = enm.get("boss_phases") or []
+    _part_windows = [(float(w["from"]), float(w["to"])) for w in _boss_phases if w["kind"] == "parts"]
+    _part_ends = sorted(hi for _, hi in _part_windows)
+    _part_cursor = 0
+    _static_parts = enm.get("has_parts", False)
+    _all_immune = [(float(w["from"]), float(w["to"])) for w in _boss_phases if w["kind"] == "immune"]
 
     # ── 보스 페이즈 관문 (족자 · 속저) ────────────────────────────────────
     # 족자는 그 구간의 평타만 빗나가고, 속저는 코드 상성이 맞는 캐릭터만 통과시킨다.
@@ -2819,6 +2826,8 @@ def simulate(
         (float(w["from"]), float(w["to"]), str(w["code"]))
         for w in enm.get("element_windows") or []
     ]
+    _raid_element_windows = [(float(w["from"]), float(w["to"]), enm.get("code", ""))
+                             for w in _boss_phases if w["kind"] == "element_gate"]
     # 속저 판정은 인게임과 같이 **우월 코드 버프까지 인정한다** (유저 확인) —
     # 로스터 코드 상성이거나, `element_code_override` 버프로 그 코드에 우월해졌거나
     # 둘 중 하나면 통과한다. 후자는 버프라 매 프레임 조회해야 한다
@@ -2831,6 +2840,20 @@ def simulate(
                 or bm.element_override_match(name, code))
 
     def _gate(events: list[HitEvent], t: float) -> list[HitEvent]:
+        if _all_immune or _raid_element_windows:
+            # 스킬은 발동 다음 프레임에 수거되기도 한다. 수거 시각을 쓰면 구간
+            # 안에서 난 피해가 밖으로 새거나, 시작 직전 피해가 잘못 사라진다.
+            gated = []
+            for ev in events:
+                phase_t = round(ev.t, 9)  # 60FPS 누적 오차를 경계 판정에서 걷어 낸다.
+                if any(lo <= phase_t < hi for lo, hi in _all_immune):
+                    continue
+                if any(lo <= phase_t < hi and not _beats(ev.caster, code)
+                       for lo, hi, code in _raid_element_windows):
+                    continue
+                gated.append(ev)
+            events = gated
+        # 기존 족자·속저는 종전의 수거 프레임 판정을 유지한다.
         if not events or (not _immune_windows and not _element_windows):
             return events
         if any(lo <= t < hi for lo, hi in _immune_windows):
@@ -2843,6 +2866,8 @@ def simulate(
 
     t = 0.0
     while t <= duration:
+        if _part_windows:
+            enm["has_parts"] = _static_parts or any(lo <= round(t, 9) < hi for lo, hi in _part_windows)
         bm.tick(t)
         _sync_damage_accumulators(t)
 
@@ -2851,7 +2876,11 @@ def simulate(
             result.char_total[ev.caster] += ev.damage
             _apply_lifesteal(ev, bm, base_stats, t)
 
-        if t >= _next_part_break:
+        while _part_cursor < len(_part_ends) and t + 1e-9 >= _part_ends[_part_cursor]:
+            for char in squad:
+                bm.notify("event:part_destroy", t, char["name"])
+            _part_cursor += 1
+        if not _part_windows and t >= _next_part_break:
             for char in squad:
                 bm.notify("event:part_destroy", t, char["name"])
             _next_part_break += _part_break_interval

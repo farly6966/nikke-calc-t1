@@ -631,8 +631,8 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         </div>
 
         <div class="union-step" data-union-step="3" hidden>
-          <h3>Boss 與隊伍</h3>
-          <p class="field-note">Boss 用<b>戰鬥條件代碼</b>(NK3-)、隊伍用<b>組合代碼</b>(NK2-)填入。可以帶入計算機裡的設定,或<b>從分享清單選</b>。取消勾選的 Boss 不計算 — 因為有人對風壓強、對電擊弱。</p>
+          <h3>보스와 편성</h3>
+          <p class="field-note">위 그림이나 보스 선택으로 추천 조건을 불러온 뒤, 아래 빈 슬롯을 눌러 편성하세요. 조건 코드(NK3)와 조합 코드(NK2)도 사용할 수 있습니다. 체크를 끈 보스는 계산하지 않습니다.</p>
           <div class="union-board-bar">
             <span class="union-board-label">整個盤面</span>
             <button type="button" class="roster-import" data-union-set-share>從分享選盤面</button>
@@ -640,7 +640,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
             <button type="button" class="roster-import" data-union-set-copy>複製此盤面代碼</button>
             <span class="union-status" data-union-set-status></span>
           </div>
-          <p class="field-note">五個 Boss 與每格的隊伍都裝進<b>一個代碼</b>(NK4-) — 整套搬移上季盤面、或發到聯盟群時,不必貼二十次。<b>聯盟成員名單不會被包含。</b></p>
+          <p class="field-note">보스 그림·전투 조건·편성을 판 코드(NK4) 하나로 옮깁니다. 새 코드는 이 기능이 반영된 계산기에서 열어 주세요. <b>聯盟成員名單不會被包含。</b></p>
           <div class="union-set-box" data-union-set-box hidden>
             <textarea class="custom-json" data-union-set-code rows="3" placeholder="판 코드 (NK4-…)"></textarea>
             <div class="deck-copy-actions">

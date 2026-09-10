@@ -1124,6 +1124,7 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
    네 단계가 위에서 아래로 하나씩 열린다. 명단을 읽기 전에는 2단계가 없고,
    공개된 사람이 없으면 3단계도 안 열린다 — 할 수 없는 일을 미리 보여 주지 않는다. */
 .union-panel { grid-column: 1 / -1; padding: 28px; }
+.union-panel > .section-heading > div { flex-basis: auto; }
 .union-lede { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .union-lede b { color: var(--ink); }
 .beta-tag, .tab-beta { margin-left: 6px; padding: 2px 6px; border: 1px solid rgba(255,191,60,.45);
@@ -1173,7 +1174,51 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 .union-ask p { margin: 0 auto 0 0; font-size: 12.5px; font-weight: 700; color: #cfeceb; }
 
 /* 보스 다섯 칸. 넓으면 둘씩 서고, 좁으면 한 줄로 접힌다. */
-.union-bosses { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-top: 12px; }
+.union-bosses { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 16px; }
+.union-season { padding: 16px; border: 1px solid var(--line); background: rgba(8,20,32,.7); }
+.union-season-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.union-season-heading h4 { margin: 0 auto 0 0; }
+.union-season-heading select, .union-boss-preset, .union-phase-row select {
+  color: var(--text); background: #0a1825; border: 1px solid var(--line); padding: 7px; min-width: 0;
+}
+.union-season-lineup { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 16px 0 10px; }
+.union-season-tile { padding: 0 0 10px; display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  color: var(--text); background: #0b1a29; border: 1px solid var(--line); cursor: pointer; text-align: center; min-width: 0; }
+.union-season-tile:hover, .union-season-tile:focus-visible { border-color: #62cfed; background: #11283b; }
+.union-season-tile strong { font-size: 12px; padding: 0 5px; overflow-wrap: anywhere; }
+.union-season-tile > span { color: #9eddeb; font-size: 11px; }
+.union-season-art { height: 108px; overflow: hidden; background: #070d15; }
+.union-season-art img, .union-boss-art img { width: 100%; height: 100%; object-fit: contain; }
+.union-boss { scroll-margin-top: 16px; min-width: 0; }
+.union-boss-hero { display: flex; align-items: stretch; gap: 16px; margin: -12px -12px 12px;
+  padding: 14px; background: linear-gradient(115deg, #102a3d, #08131f); border-bottom: 1px solid var(--line); }
+.union-boss-art { flex: 0 0 160px; height: 115px; background: #070e18; overflow: hidden; }
+.union-art-empty { display: grid; place-items: center; color: #426781; font: 700 44px ui-monospace, monospace; }
+.union-art-fallback { display: grid; place-items: center; height: 100%; font-size: 12px; }
+.union-boss-identity { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; gap: 7px; }
+.union-boss-stage { color: #91a8b9; font: 700 11px ui-monospace, monospace; letter-spacing: .12em; }
+.union-boss-preset { max-width: 100%; font-weight: 700; }
+.union-boss-weakness { color: #a3e4f2; font-size: 12px; }
+.union-boss-outcome { color: #dfeef5; font-size: 12px; }
+.union-boss-settings { margin: 12px 0; padding: 10px; border: 1px solid var(--line); }
+.union-boss-settings > summary { cursor: pointer; font-size: 12px; color: #99ddec; }
+.union-boss-settings[open] > summary { margin-bottom: 12px; }
+.union-setting-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; font-size: 12px; }
+.union-setting-row > span { flex: 0 0 100%; color: var(--muted); }
+.union-setting-row label { display: flex; align-items: center; gap: 4px; }
+.union-phase-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: 12px; }
+.union-boss > .union-decks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.union-boss > .union-decks > .union-deck { min-width: 0; padding: 10px; background: rgba(10,25,39,.6); border: 1px solid var(--line); }
+@media (max-width: 1100px) {
+  .union-boss > .union-decks { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .union-season-lineup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .union-boss-art { flex-basis: 100px; height: 110px; }
+  .union-boss-head { flex-wrap: wrap; }
+  .union-boss-summary { white-space: normal !important; }
+  .union-season { padding: 10px; }
+}
 .union-boss { padding: 12px; border: 1px solid var(--line); background: rgba(4,12,21,.55); }
 .union-boss.is-off { opacity: .45; }
 .union-boss-head { display: flex; align-items: center; gap: 8px; }

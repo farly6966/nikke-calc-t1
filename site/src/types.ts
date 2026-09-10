@@ -89,6 +89,7 @@ export interface ConsoleLevels {
 }
 
 export interface SimulationRequest {
+  bossPhases?: BossPhase[];
   squad: string[];
   characters?: Record<string, CharacterOverrides>;
   customCharacters?: Record<string, { nikke: Record<string, unknown>; skills: unknown[] }>;
@@ -126,6 +127,8 @@ export interface SimulationRequest {
   burstRegenTime?: number;
   /** 버스트 반응속도(초). 안 주면 엔진 기본값(0.05)을 쓴다. */
   burstReaction?: number;
+  /** 버스트 단계 전환 간격(초). 안 주면 엔진 기본값(0.1)을 쓴다. */
+  burstSwitchDelay?: number;
   /**
    * 파츠 파괴 주기(초). 보스 메이커가 «파츠 체력 ÷ 예상 DPS»로 낸 값을 넘긴다 —
    * 엔진에는 적 체력이 없어 파괴는 **시각**으로만 들어간다. 0이나 미지정이면 무발동.
@@ -178,12 +181,15 @@ export interface ShotTrack {
 
 /** 보스 페이즈 구간. `[from, to)` 반개구간이다. */
 export interface PhaseWindow { from: number; to: number }
+/** 구간 끝마다 부위 하나가 파괴된다. 같은 구간 여러 개는 여러 부위다. */
+export interface BossPhase extends PhaseWindow { kind: 'parts' | 'immune' | 'element_gate' }
 /** 속저 — 그 구간 동안 이 코드에 **우월한** 캐릭터의 딜만 들어간다. */
 export interface ElementWindow extends PhaseWindow { code: ElementCode }
 /** 난수 처리. random = 인게임과 같은 분산, expected = 기대값(결정론적). */
 export type RngMode = 'random' | 'expected';
 
 export interface BattleSettings {
+  bossPhases?: BossPhase[];
   duration: number;
   /**
    * 싱크로 디바이스 레벨. 소대에 넣은 니케는 전원이 이 레벨이 되므로 캐릭터 설정이
@@ -217,6 +223,7 @@ export interface BattleSettings {
    * **버스트 하나하나마다** 더해진다 — 3단계까지 쓰면 그 세 배만큼 늦어진다.
    */
   burstReaction: number;
+  burstSwitchDelay?: number;
 }
 
 export interface DeckState {

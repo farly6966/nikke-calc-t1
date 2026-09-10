@@ -555,6 +555,54 @@ describe('calculator UI', () => {
     }))));
   }
 
+  it('keeps boss settings, valid results and later squad edits consistent through season apply and undo', async () => {
+    seedUnionDraft();
+    const before = localStorage.getItem('nikke-union-board-v1')!;
+    const client = new FakeClient();
+    mountCalculator(root, { catalog,
+      settings: { ...settings, normalHitCoeff: { ...settings.normalHitCoeff, AR: 0.75 } },
+      version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-season-apply]')!.click();
+    expect(root.querySelectorAll('.union-season-art img')).toHaveLength(5);
+    expect(root.querySelectorAll('.union-boss-art img')).toHaveLength(6);
+    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    expect(stored()[0].decks).toEqual(JSON.parse(before)[0].decks);
+    expect(stored()[5].bossId).toBe('s44-annihilio');
+    expect(root.querySelector<HTMLInputElement>('[aria-label="AR 평타 계수"]')!.value).toBe('1');
+    const core = root.querySelector<HTMLInputElement>('.union-boss-code input[type="number"]')!;
+    core.value = '61'; core.dispatchEvent(new Event('change'));
+    expect(decodeBattleCode(stored()[0].code).bossPhases).toEqual([{ kind: 'parts', from: 0, to: 3 }]);
+    const phaseStart = root.querySelector<HTMLInputElement>('[aria-label="구간 1 시작"]')!;
+    phaseStart.value = '6'; phaseStart.dispatchEvent(new Event('change'));
+    expect(phaseStart.value).toBe('0');
+    expect(phaseStart.checkValidity()).toBe(true);
+    const phaseError = root.querySelector<HTMLElement>('.union-phase-row [role="alert"]')!;
+    expect(phaseError.hidden).toBe(false);
+    expect(phaseError.textContent).toContain('이전 값으로 복원했습니다');
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('[data-union-stop]')!.hidden).toBe(true));
+    const outcome = () => root.querySelector('[data-boss-outcome="0"]')!.textContent;
+    expect(outcome()).toContain('123,456');
+    expect(client.requests.find(r => r.enemyCode === '전격')?.bossPhases).toEqual([{ kind: 'parts', from: 0, to: 3 }]);
+    const requestCount = client.requests.length;
+    for (let i = 0; i < 2; i++) {
+      root.querySelector<HTMLButtonElement>('.union-slot-pick')!.click();
+      expect(outcome()).toContain('123,456');
+      expect(root.querySelector('[data-deck-outcome="0-0"]')!.textContent).toContain('123,456');
+    }
+    expect(client.requests).toHaveLength(requestCount);
+    root.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
+    const cycle = root.querySelector<HTMLInputElement>('.union-deck .union-deck-code input[type="number"]')!;
+    cycle.value = '0.3'; cycle.dispatchEvent(new Event('input'));
+    const edited = stored();
+    expect(edited[0].decks).not.toEqual(JSON.parse(before)[0].decks);
+    root.querySelector<HTMLButtonElement>('.union-season-heading button:last-child')!.click();
+    expect(stored()).toEqual(JSON.parse(before).map((boss: object, index: number) => ({
+      ...boss, decks: edited[index].decks,
+    })));
+  });
+
   it('discards an in-flight union result when its squad changes', async () => {
     seedUnionDraft();
     const client = new FakeClient();
