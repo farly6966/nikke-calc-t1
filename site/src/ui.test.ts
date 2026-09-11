@@ -603,6 +603,63 @@ describe('calculator UI', () => {
     })));
   });
 
+  it('appends JSON imports, updates duplicate members, and keeps accounts when switching modes', async () => {
+    seedUnionDraft();
+    const client = new FakeClient();
+    const codedCatalog = catalog.map((char, i) => ({ ...char, nameCode: 1000 + i }));
+    mountCalculator(root, { catalog: codedCatalog, settings, version: 'v1', client, storage: localStorage });
+    const input = root.querySelector<HTMLInputElement>('[data-union-files]')!;
+    const upload = async (name: string, synchro = 400, valid = true) => {
+      const text = JSON.stringify({ name, synchroLevel: synchro, area_id: 1,
+        elements: { all: names.slice(0,5).map((_,i) => ({ name_code: 1000+i, lv:synchro,
+          skill1_level:10,skill2_level:10,skill_burst_level:10,limit_break:{grade:3} })) } });
+      const file = new File([valid ? text : '{'], `${name}.json`);
+      Object.defineProperty(file, 'text', { value: async () => valid ? text : '{' });
+      Object.defineProperty(input, 'files', { configurable:true, value:[file] });
+      input.dispatchEvent(new Event('change'));
+      await vi.waitFor(() => expect(root.querySelector('[data-union-file-status]')!.textContent).not.toContain('讀取中'));
+      await flush();
+    };
+    await upload('A'); await upload('B', 420);
+    expect(root.querySelectorAll('[data-union-member]')).toHaveLength(2);
+    const picked = root.querySelector<HTMLInputElement>('[data-union-member="file:A"] input')!;
+    picked.checked = false; picked.dispatchEvent(new Event('change'));
+    await upload('A', 450);
+    expect(root.querySelectorAll('[data-union-member]')).toHaveLength(2);
+    expect(root.querySelector<HTMLInputElement>('[data-union-member="file:A"] input')!.checked).toBe(false);
+    await upload('broken', 400, false);
+    expect(root.querySelector('[data-union-member="file:A"]')).not.toBeNull();
+    expect(root.querySelector('[data-union-member="file:B"]')).not.toBeNull();
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-mode="union"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-mode="union"]')!.click();
+    expect(root.querySelectorAll('[data-union-member]')).toHaveLength(3);
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('[data-union-stop]')!.hidden).toBe(true));
+    expect(client.requests.filter(r => r.enemyCode === '작열').map(r=>r.synchroLevel)).toEqual([420]);
+  });
+
+  it('sends per-squad cube tests to the engine and keeps them after swapping positions and reloading', async () => {
+    seedUnionDraft();
+    localStorage.setItem('nikke-roster-v1', JSON.stringify(Object.fromEntries(names.map(name =>
+      [name, { growthStage: 7, cube: {name:'재장',level:15} }]))));
+    const client = new FakeClient();
+    mountCalculator(root, {catalog, settings, version:'v1', client, storage:localStorage});
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    const select = root.querySelector<HTMLSelectElement>('[data-union-cube-name="리타"]')!;
+    select.value='탄충'; select.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('[data-union-stop]')!.hidden).toBe(true));
+    const request = client.requests.find(r=>r.enemyCode==='작열')!;
+    expect(request.characters?.리타?.cube).toEqual({name:'탄충',level:15});
+    expect(request.characters?.리타?.growthStage).toBe(7);
+    expect(JSON.parse(localStorage.getItem('nikke-roster-v1')!).리타.cube.name).toBe('재장');
+    root.replaceChildren();
+    mountCalculator(root, {catalog, settings, version:'v1', client:new FakeClient(), storage:localStorage});
+    expect(root.querySelector<HTMLSelectElement>('[data-union-cube-name="리타"]')!.value).toBe('탄충');
+  });
+
   it('discards an in-flight union result when its squad changes', async () => {
     seedUnionDraft();
     const client = new FakeClient();

@@ -10,6 +10,16 @@
  *    Synchro Device) as NIKKE writes it in English — players search by those words.
  */
 export const EN: Record<string, string> = {
+  "큐브 테스트 설정": "Cube test settings",
+  "각 계정의 큐브를 그대로 쓰거나 이 덱에서만 종류와 레벨을 바꿉니다. 지정한 큐브는 이 덱을 계산하는 모든 계정에 적용되며 원본 양성값은 바꾸지 않습니다.": "Keep each account's cubes or choose a type and level for this squad. Overrides apply to every account running this squad without changing imported character settings.",
+  "계정 큐브 유지": "Use account cube",
+  "{name} 큐브": "{name} cube",
+  "{name} 큐브 레벨": "{name} cube level",
+  "이 큐브의 고유 효과는 아직 지원하지 않습니다. 기본 능력치와 공통 우월 코드 효과만 적용됩니다.": "This cube's unique effect is not supported yet. Only base stats and the common elemental effect are applied.",
+  "큐브 테스트 설정은 이 브라우저에 저장됩니다. NK2·NK4 공유 코드에는 포함되지 않습니다.": "Cube test settings are saved in this browser. NK2/NK4 codes do not include them.",
+  "추가 {added}명 · 갱신 {updated}명 · 전체 {total}명 · 실패 {failed}개": "Added {added} / Updated {updated} / Total {total} / Failed files {failed}",
+  "풀버스트가 끝난 뒤 게이지를 다시 채우는 고정 시간입니다. 기본 2초이며 사격으로 자동 추정하지 않습니다. 다음 버스트는 게이지와 스킬 쿨타임이 모두 준비되어야 시작합니다. 첫 버스트 시각은 이 값과 별개입니다.": "Fixed time to refill the gauge after Full Burst ends; default 2 seconds, not estimated from firing. The next cycle requires both gauge and skill cooldowns to be ready. First Burst timing is separate.",
+  "ExiaInvasion JSON을 한 번에 또는 나누어 가져오세요. 기존 명단에 추가하며, 같은 이름은 최신 파일로 갱신합니다. 로그인 없이 각 멤버가 제공한 양성값으로 계산합니다.": "Import ExiaInvasion JSON files together or in batches. Existing members are kept; matching names are updated from the latest file. Uses member-provided character settings without login.",
   "구간은 0~180초 안에서 시작이 종료보다 빨라야 합니다. 이전 값으로 복원했습니다.": "Intervals must be within 0–180 seconds, with start before end. The previous value was restored.",
   "버스트 단계 전환 간격": "Burst stage interval",
   "버스트 단계 전환 간격은 0~3초여야 합니다.": "Burst stage interval must be between 0 and 3 seconds.",

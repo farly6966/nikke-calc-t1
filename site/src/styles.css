@@ -1398,6 +1398,9 @@ details.union-source[open] > summary { margin-bottom: 8px; }
 
 /* 유니온 / 개인용 — 「누구의 스펙으로 도는가」라 화면 맨 위에서 고른다. */
 .union-modes { display: inline-flex; margin-bottom: 12px; border: 1px solid var(--line); }
+.union-cube-row { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: 6px; margin: 12px 0; }
+.union-cube-row > span, .union-cube-row > p { grid-column: 1 / -1; }
+.union-cube-row select { min-width: 0; width: 100%; }
 .union-mode { padding: 7px 18px; border: 0; background: transparent; color: var(--muted);
   font: 800 11.5px inherit; cursor: pointer; }
 .union-mode + .union-mode { border-left: 1px solid var(--line); }

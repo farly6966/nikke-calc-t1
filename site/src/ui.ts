@@ -555,7 +555,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
           <div class="union-source">
             <p class="union-source-head">從匯出檔匯入<b class="union-pick">推薦</b></p>
-            <p class="field-note">請每位成員各自用 <b>ExiaInvasion</b> 擴充匯出一個 JSON 交給你,一次全部拖進來就好。這條路<b>不需要任何登入</b>,設「僅對聯盟成員公開」甚至完全不公開的人也算得到。</p>
+            <p class="field-note">ExiaInvasion JSON을 한 번에 또는 나누어 가져오세요. 기존 명단에 추가하며, 같은 이름은 최신 파일로 갱신합니다. 로그인 없이 각 멤버가 제공한 양성값으로 계산합니다.</p>
             <label class="union-drop" data-union-drop>
               <input type="file" multiple accept=".json,application/json" data-union-files hidden>
               <b>把 JSON 檔拖到這裡</b>

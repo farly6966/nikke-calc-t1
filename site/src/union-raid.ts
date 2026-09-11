@@ -27,6 +27,7 @@ import { ownedSSR, searchSquads } from './union-search';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
 import { UnionSquadPicker } from './union-squad';
+import { cleanUnionCubes, applyUnionCubes, createUnionCubeEditor, type UnionCubes } from './union-cubes';
 import { createTimelineBlock } from './timeline';
 import { t } from './i18n';
 import { UNION_BOSS_SEASONS, unionBossPreset, unionBossArt, bossWeakness, recommendedUnionBattle,
@@ -78,6 +79,7 @@ export interface BossSlot {
 
 /** 덱 한 칸. 니케 이름 다섯만 쓴다 — 수치는 유니온원 각자의 것을 쓴다. */
 export interface DeckSlot {
+  cubes?: UnionCubes;
   noBurst?: string[];
   code: string;
   squad?: string[];
@@ -90,7 +92,7 @@ export interface DeckSlot {
 export function encodeUnionDraft(bosses: BossSlot[]): string {
   return JSON.stringify(bosses.map(boss => ({
     name: boss.name, code: boss.code, enabled: boss.enabled, bossId: boss.bossId,
-    decks: boss.decks.map(deck => ({ code: deck.code, cycle: deck.cycle ? {
+    decks: boss.decks.map(deck => ({ code: deck.code, cubes: cleanUnionCubes(deck.cubes, deck.squad ?? []), cycle: deck.cycle ? {
       burstReaction: deck.cycle.burstReaction, burstRegenTime: deck.cycle.burstRegenTime,
     } : undefined, burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad ?? []), noBurst: cleanNoBurst(deck.noBurst, deck.squad ?? []) })),
   })));
@@ -105,6 +107,7 @@ export function decodeUnionDraft(text: string, names: string[]): BossSlot[] {
     const decks = Array.from({ length: DECK_SLOTS }, (_, index) => {
       const value = item.decks[index];
       const deck = readDeckCode({ code: typeof value?.code === 'string' ? value.code : '' }, names);
+      deck.cubes = cleanUnionCubes(value?.cubes, deck.squad ?? []);
       deck.burstSequence = cleanUnionSequence(value?.burstSequence, deck.squad ?? []);
       deck.noBurst = cleanNoBurst(value?.noBurst, deck.squad ?? []);
       if (value?.cycle && ['burstReaction', 'burstRegenTime'].every(key =>
@@ -548,7 +551,7 @@ export function readDeckCode(slot: DeckSlot, catalogNames: string[]): DeckSlot {
     const squad = (payload.decks[0]?.squad ?? []).map((name) => name.trim());
     const filled = squad.filter(Boolean);
     if (filled.length === 0) return { ...slot, squad: undefined, error: '코드에 니케가 없습니다.' };
-    return { ...slot, squad, noBurst: cleanNoBurst(slot.noBurst, squad), burstSequence: cleanUnionSequence(slot.burstSequence, squad), error: undefined };
+    return { ...slot, squad, cubes: cleanUnionCubes(slot.cubes, squad), noBurst: cleanNoBurst(slot.noBurst, squad), burstSequence: cleanUnionSequence(slot.burstSequence, squad), error: undefined };
   } catch (error) {
     return { ...slot, squad: undefined, error: error instanceof Error ? error.message : String(error) };
   }
@@ -615,6 +618,7 @@ export function readUnionCode(
 
 /** 시뮬레이션 한 칸. 유니온원 × 보스 × 덱. */
 export interface Job {
+  cubes?: UnionCubes;
   noBurst?: string[];
   member: MemberRow;
   bossIndex: number;
@@ -645,6 +649,7 @@ export function buildJobs(members: MemberRow[], bosses: BossSlot[]): Job[] {
           bossName: t(boss.name.trim()) || t('보스 {n}', { n: bossIndex + 1 }),
           deckIndex,
           squad: deck.squad,
+          cubes: cleanUnionCubes(deck.cubes, deck.squad),
           burstSequence: cleanUnionSequence(deck.burstSequence, deck.squad),
           noBurst: cleanNoBurst(deck.noBurst, deck.squad),
           battle: { ...boss.battle!, ...deck.cycle, ...(deck.cycle ? { burstRegenPerDeck: undefined } : {}) },
@@ -959,6 +964,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   // 只是那個掃描按鈕按了一定失敗，所以把它整塊藏起來。
   const canScan = Boolean(deps.proxy);
   let personal = false;
+  let modeInitialized = false;
+  let unionAccounts = { members, rosters, consoles };
   const modeButtons = [...panel.querySelectorAll<HTMLButtonElement>('[data-union-mode]')];
   if (!canScan) {
     const scanBox = panel.querySelector<HTMLElement>('[data-union-scan-box]');
@@ -986,6 +993,10 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   };
 
   const setMode = (next: boolean) => {
+    if (modeInitialized && next === personal) return;
+    if (!personal && next) unionAccounts = { members, rosters, consoles };
+    if (running) { resultsInvalidated = true; cancelled = true; }
+    modeInitialized = true;
     // 以前沒有代理伺服器時，這裡會強制退回「個人用」。現在有了匯出檔匯入，
     // 聯盟模式不再綁著代理伺服器，所以按什麼就是什麼。
     personal = next;
@@ -995,7 +1006,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       button.setAttribute('aria-pressed', String(on));
     }
     if (personal) loadMe();
-    else { members = []; rosters = new Map(); consoles = new Map(); results = []; }
+    else { ({ members, rosters, consoles } = unionAccounts); results = []; planSelections.clear(); }
     const unionLede = panel.querySelector<HTMLElement>('[data-union-lede-union]');
     const personalLede = panel.querySelector<HTMLElement>('[data-union-lede-personal]');
     if (unionLede) unionLede.hidden = personal;
@@ -1367,12 +1378,14 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         name: file.name, text: await file.text(),
       })));
       const { profiles, failed } = parseExiaBatch(texts, deps.settings);
+      if (personal) setMode(false);
 
-      members = [];
-      rosters = new Map();
-      consoles = new Map();
-      results = [];
+      if (profiles.length > 0) {
+        results = []; planSelections.clear();
+        if (running) { resultsInvalidated = true; cancelled = true; }
+      }
       let usable = 0;
+      let added = 0, updated = 0;
 
       for (const profile of profiles) {
         const { overrides, matched } = areaToOverrides(profile.raw, deps.settings, deps.catalog);
@@ -1389,7 +1402,13 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             ? (profile.notes.length > 0 ? profile.notes.join(' ') : undefined)
             : '檔案裡沒有計算機認得的妮姬',
         };
-        members.push(seat);
+        const previous = members.findIndex(row => row.openid === seat.openid);
+        if (previous >= 0) {
+          seat.picked = seat.state === 'public' && members[previous]!.picked;
+          seat.bossPicks = members[previous]!.bossPicks;
+          members[previous] = seat; updated += 1;
+        } else { members.push(seat); added += 1; }
+        rosters.delete(seat.openid); consoles.delete(seat.openid);
         if (matched.length === 0) continue;
         rosters.set(seat.openid, overrides);
         const levels = consoleFrom(profile.raw);
@@ -1399,6 +1418,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
       // 讀不起來的檔案也留一列。靜靜地少一個人，會讓人以為那個人的檔案傳丟了。
       for (const bad of failed) {
+        members = members.filter(row => row.openid !== `bad:${bad.file}`);
         members.push({
           name: bad.file, openid: `bad:${bad.file}`, synchro: 0, level: 0, area: 0,
           state: 'error', picked: false, note: bad.reason,
@@ -1411,9 +1431,9 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       if (usable > 0) showStep('3', true);
       refreshRunGate();
 
-      const parts = [`已讀取 ${usable} 人`];
-      if (failed.length > 0) parts.push(`${failed.length} 個檔案讀不起來`);
-      fileStatus.textContent = `${parts.join(' · ')}。`;
+      fileStatus.textContent = t('추가 {added}명 · 갱신 {updated}명 · 전체 {total}명 · 실패 {failed}개', {
+        added, updated, total: members.filter(row => row.state === 'public').length, failed: failed.length,
+      });
     } catch (error) {
       fileStatus.textContent = error instanceof Error ? error.message : String(error);
     }
@@ -1442,7 +1462,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     });
   };
 
-  wireDrop(fileDrop, fileInput, (files) => { void takeFiles(files); });
+  let pendingFiles = Promise.resolve();
+  wireDrop(fileDrop, fileInput, files => { pendingFiles = pendingFiles.then(() => takeFiles(files)); });
 
   // 清洗工具 —— 傳檔之前用的。瀏覽器改不了硬碟上的原檔，所以這裡是「另存一份乾淨的」。
   const washInput = pick<HTMLInputElement>(panel, '[data-union-wash-files]');
@@ -2078,7 +2099,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
           const filled = squad.filter(Boolean);
           boss.decks[deckIndex] = filled.length > 0
             ? readDeckCode({ code: encodeShareCode(
-              [{ id: 1, squad: [...squad], characters: {} } as DeckState], false), cycle: deck.cycle, burstSequence: deck.burstSequence, noBurst: deck.noBurst },
+              [{ id: 1, squad: [...squad], characters: {} } as DeckState], false), cycle: deck.cycle, burstSequence: deck.burstSequence, noBurst: deck.noBurst, cubes: deck.cubes },
             deps.catalogNames())
             : { code: '', squad: undefined, error: undefined };
           renderBosses();
@@ -2108,7 +2129,10 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
           wrap.append(input); cycle.append(wrap);
         }
         cycle.append(el('p', 'field-note', '循環設定會隨盤面保存在此瀏覽器；NK2／NK4 分享碼仍只攜帶編成與王條件。'));
+        cycle.append(el('p', 'field-note', t('풀버스트가 끝난 뒤 게이지를 다시 채우는 고정 시간입니다. 기본 2초이며 사격으로 자동 추정하지 않습니다. 다음 버스트는 게이지와 스킬 쿨타임이 모두 준비되어야 시작합니다. 첫 버스트 시각은 이 값과 별개입니다.')));
         row.append(cycle);
+        if (deck.squad?.some(Boolean)) row.append(createUnionCubeEditor(deck.squad, deck.cubes,
+          deps.settings, deps.labelOf, cubes => { deck.cubes = cubes; invalidateResults(); refreshRunGate(); }));
         const skipBox = el('details', 'union-deck-code');
         skipBox.append(el('summary', undefined, '禁止爆裂（仍提供被動技能）'));
         for (const name of (deck.squad ?? []).filter(Boolean)) {
@@ -2323,12 +2347,13 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         if (cancelled || !current()) break;
         const base = completed, priorFailures = failures;
         await searchSquads({ pool, budget, element: boss.battle!.enemyCode,
-          seeds: boss.decks.filter(d => d.squad?.filter(Boolean).length === 5).map(d => ({ squad: d.squad!, noBurst: d.noBurst, burstSequence: d.burstSequence, cycle: d.cycle })),
+          seeds: boss.decks.filter(d => d.squad?.filter(Boolean).length === 5).map(d => ({ squad: d.squad!, noBurst: d.noBurst, burstSequence: d.burstSequence, cycle: d.cycle, cubes: d.cubes })),
           stopped: () => cancelled || !current(),
           evaluate: async candidate => {
             const { deck, missing } = deckForMember(candidate.squad, roster);
             if (missing.length) throw new Error('缺少持有資料');
             applyUnionBurst(deck, candidate.burstSequence, deps.catalog, candidate.noBurst);
+            applyUnionCubes(deck, candidate.cubes, deps.settings);
             const battle = { ...boss.battle!, ...candidate.cycle, ...(candidate.cycle ? { burstRegenPerDeck: undefined } : {}), synchroLevel: memberSnapshot.synchro > 0 ? memberSnapshot.synchro : boss.battle!.synchroLevel,
               console: consoleSnapshot ?? boss.battle!.console };
             const request = requestForDeck(deck, battle);
@@ -2395,6 +2420,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             console: consoles.get(job.member.openid) ?? job.battle.console,
           };
           applyUnionBurst(deck, job.burstSequence, deps.catalog, job.noBurst);
+          applyUnionCubes(deck, job.cubes, deps.settings);
           const request = requestForDeck(deck, battle);
           const result = await deps.simulate(request);
           if (!resultsInvalidated && resultBoard === boardState()) results.push({ job, damage: result.squadTotal, detail: { deckId: job.deckIndex + 1, request, result } });
@@ -2627,6 +2653,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
                 if (candidate.missing.length) continue;
                 try {
                   applyUnionBurst(candidate.deck, row.job.burstSequence, deps.catalog, row.job.noBurst);
+                  applyUnionCubes(candidate.deck, row.job.cubes, deps.settings);
                   const request = normalizeRequest({ ...row.detail!.request, squad: candidate.deck.squad, characters: candidate.deck.characters,
                     burstSequence: candidate.deck.burstSequence, strictNoBurst: candidate.deck.strictNoBurst });
                   const result = await deps.simulate(request);

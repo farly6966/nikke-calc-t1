@@ -1,8 +1,9 @@
 import { candidatesFor } from './burst-order';
 import type { BurstSequence } from './burst-order';
+import { cleanUnionCubes, type UnionCubes } from './union-cubes';
 import type { BattleSettings, CharacterMeta, CharacterOverrides, SettingsCatalog } from './types';
 
-export interface SquadCandidate { squad: string[]; noBurst?: string[]; burstSequence?: BurstSequence; cycle?: Pick<BattleSettings, 'burstReaction' | 'burstRegenTime'> }
+export interface SquadCandidate { squad: string[]; cubes?: UnionCubes; noBurst?: string[]; burstSequence?: BurstSequence; cycle?: Pick<BattleSettings, 'burstReaction' | 'burstRegenTime'> }
 export interface ScoredCandidate extends SquadCandidate { damage: number }
 
 /** Exploration preference only; actual elemental damage stays in calculator/damage.py. */
@@ -27,6 +28,7 @@ export function hasBurstChain(candidate: SquadCandidate, catalog: CharacterMeta[
 
 export const candidateKey = (candidate: SquadCandidate): string => JSON.stringify([
   candidate.squad, [...(candidate.noBurst ?? [])].sort(), candidate.burstSequence ?? null, candidate.cycle ?? null,
+  cleanUnionCubes(candidate.cubes, [...candidate.squad].sort()) ?? null,
 ]);
 
 /** Bounded, reproducible exploration + simulated-score-guided local replacement.
@@ -64,7 +66,7 @@ export async function searchSquads(options: {
           diverse.push(row); row.squad.forEach(n => used.add(n));
         }
         const parent = pick(diverse)!;
-        candidate = { squad: [...parent.squad], noBurst: [...(parent.noBurst ?? [])], cycle: parent.cycle };
+        candidate = { squad: [...parent.squad], noBurst: [...(parent.noBurst ?? [])], cycle: parent.cycle, cubes: parent.cubes };
         if (attempt % 6 === 0) {
           const a = Math.floor(random() * 5), b = Math.floor(random() * 5);
           [candidate.squad[a], candidate.squad[b]] = [candidate.squad[b]!, candidate.squad[a]!];
