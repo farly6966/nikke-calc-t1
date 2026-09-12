@@ -8,8 +8,9 @@ import type { StorageLike } from './cache';
 import { mountCalculator, type CalculatorClientLike } from './ui';
 import { CalculationCancelled } from './worker-client';
 import { setLang, setLocaleNames } from './i18n';
-import { decodeBattleCode, encodeBattleCode, encodeShareCode } from './share-code';
-import { encodeUnionDraft } from './union-raid';
+import { decodeBattleCode, encodeBattleCode, encodeShareCode, decodeUnionCode } from './share-code';
+import { encodeUnionDraft, decodeUnionDraft, unionCodeOf } from './union-raid';
+import { UNION_BOSS_SEASONS } from './union-bosses';
 import './styles.css';
 import type {
   CharacterMeta,
@@ -547,13 +548,110 @@ describe('calculator UI', () => {
 
   function seedUnionDraft(fourJobs = false): void {
     const code = encodeShareCode([{ id: 1, squad: names.slice(0, 5), characters: {} }], false);
-    localStorage.setItem('nikke-union-board-v1', encodeUnionDraft(Array.from({ length: 6 }, (_, index) => ({
+    localStorage.setItem('nikke-union-board-v2', encodeUnionDraft(Array.from({ length: 5 }, (_, index) => ({
       name: `Test ${index + 1}`, code: 'NK3-eyJlYyI6M30', enabled: index === 0 || (fourJobs && index === 1),
       decks: Array.from({ length: 3 }, (_, deckIndex) => ({
         code: deckIndex === 0 || (fourJobs && index === 0) ? code : '',
       })),
     }))));
   }
+
+  function selectUnionSeason(id: string): void {
+    const select = root.querySelector<HTMLSelectElement>('[data-union-season]')!;
+    select.value = id; select.dispatchEvent(new Event('change'));
+  }
+
+  it('automatically fills five bosses, switches seasons immediately and preserves custom settings on reload', () => {
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
+    expect(root.querySelectorAll('.union-boss')).toHaveLength(5);
+    expect(root.querySelector('[data-union-season-apply]')).toBeNull();
+    expect(root.querySelector<HTMLSelectElement>('[data-union-season]')!.value).toBe('s44');
+    expect(root.querySelectorAll('[data-union-season] option')).toHaveLength(10);
+    expect(stored().map((b: { bossId: string }) => b.bossId)).toEqual(UNION_BOSS_SEASONS[0]!.bosses.map(b => b.id));
+    selectUnionSeason('s43');
+    expect(stored().map((b: { bossId: string }) => b.bossId)).toEqual(UNION_BOSS_SEASONS[1]!.bosses.map(b => b.id));
+    expect(root.querySelector('.union-season-warning')).not.toBeNull();
+    const core = root.querySelector<HTMLInputElement>('.union-boss-code input[type="number"]')!;
+    core.value = '61'; core.dispatchEvent(new Event('change'));
+    const before = localStorage.getItem('nikke-union-board-v2');
+    const scroll = vi.fn(); Object.defineProperty(root.querySelector('.union-boss'), 'scrollIntoView', { value: scroll });
+    root.querySelector<HTMLButtonElement>('.union-season-tile')!.click();
+    expect(scroll).toHaveBeenCalledOnce();
+    expect(localStorage.getItem('nikke-union-board-v2')).toBe(before);
+    root.replaceChildren();
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    expect(root.querySelector<HTMLSelectElement>('[data-union-season]')!.value).toBe('s43');
+    expect(decodeBattleCode(stored()[0].code).corePx).toBe(61);
+  });
+
+  it('preserves every squad option when changing seasons and keeps imported custom boards untouched', () => {
+    seedUnionDraft();
+    const draft = decodeUnionDraft(localStorage.getItem('nikke-union-board-v2')!, names);
+    for (const boss of draft) for (const deck of boss.decks) if (deck.squad) {
+      deck.cubes = { 리타: { name: '탄충', level: 15 } };
+      deck.noBurst = ['나가']; deck.burstSequence = [{ '1': ['리타'], '2': ['크라운'], '3': ['앨리스'] }];
+      deck.cycle = { burstReaction: 0.3, burstRegenTime: 5 };
+    }
+    localStorage.setItem('nikke-union-board-v2', encodeUnionDraft(draft));
+    const before = JSON.parse(encodeUnionDraft(draft));
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    expect(root.querySelector<HTMLSelectElement>('[data-union-season]')!.value).toBe('');
+    expect(JSON.parse(localStorage.getItem('nikke-union-board-v2')!)).toEqual(before);
+    for (const id of ['s43', 's35', 's44']) {
+      selectUnionSeason(id);
+      const after = JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
+      expect(after.map((b: { decks: unknown }) => b.decks)).toEqual(before.map((b: { decks: unknown }) => b.decks));
+    }
+  });
+
+  it('migrates five active slots without modifying v1 and can recover then undo the old sixth slot', async () => {
+    seedUnionDraft();
+    const draft = decodeUnionDraft(localStorage.getItem('nikke-union-board-v2')!, names);
+    const sixth = { ...draft[0]!, name: 'Legacy six', enabled: true };
+    sixth.decks[0]!.noBurst = ['나가'];
+    const old = encodeUnionDraft([...draft, sixth]);
+    localStorage.removeItem('nikke-union-board-v2'); localStorage.setItem('nikke-union-board-v1', old);
+    const client = new FakeClient();
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    expect(root.querySelectorAll('.union-boss')).toHaveLength(5);
+    expect(root.querySelector('.union-retired-boss')!.textContent).toContain('Legacy six');
+    const before = localStorage.getItem('nikke-union-board-v2');
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
+    await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('[data-union-stop]')!.hidden).toBe(true));
+    expect(client.requests.filter(r => r.enemyCode === '작열')).toHaveLength(1);
+    const target = root.querySelector<HTMLSelectElement>('.union-retired-boss select')!;
+    target.value = '4'; root.querySelector<HTMLButtonElement>('.union-retired-boss button')!.click();
+    const restored = JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
+    expect(restored[4].name).toBe('Legacy six'); expect(restored[4].decks[0].noBurst).toEqual(['나가']);
+    root.querySelector<HTMLButtonElement>('[data-union-season-undo]')!.click();
+    expect(localStorage.getItem('nikke-union-board-v2')).toBe(before);
+    selectUnionSeason('s43');
+    expect(localStorage.getItem('nikke-union-board-v1')).toBe(old);
+    root.replaceChildren();
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    expect(root.querySelector<HTMLSelectElement>('[data-union-season]')!.value).toBe('s43');
+    expect(root.querySelector('.union-retired-boss')!.textContent).toContain('Legacy six');
+  });
+
+  it('retains a legacy sixth slot from NK4 imports while exporting only five active bosses', () => {
+    seedUnionDraft();
+    const draft = decodeUnionDraft(localStorage.getItem('nikke-union-board-v2')!, names);
+    const code = unionCodeOf([...draft, { ...draft[0]!, name: 'Imported six' }]);
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-set-paste]')!.click();
+    root.querySelector<HTMLTextAreaElement>('[data-union-set-code]')!.value = code;
+    root.querySelector<HTMLButtonElement>('[data-union-set-apply]')!.click();
+    expect(root.querySelectorAll('.union-boss')).toHaveLength(5);
+    expect(root.querySelector('.union-retired-boss')!.textContent).toContain('Imported six');
+    expect(JSON.parse(localStorage.getItem('nikke-union-retired-shares-v1')!)).toEqual([code]);
+    const active = decodeUnionDraft(localStorage.getItem('nikke-union-board-v2')!, names);
+    expect(decodeUnionCode(unionCodeOf(active)).bosses).toHaveLength(5);
+    root.replaceChildren();
+    mountCalculator(root, { catalog, settings, version: 'v1', client: new FakeClient(), storage: localStorage });
+    expect(root.querySelector('.union-retired-boss')!.textContent).toContain('Imported six');
+  });
 
   it('persists new boss phases and runs result-side random trials without changing the roster', async () => {
     seedUnionDraft();
@@ -566,7 +664,7 @@ describe('calculator UI', () => {
     kind.value = 'optimal_range'; kind.dispatchEvent(new Event('change'));
     const weapons = root.querySelector<HTMLSelectElement>('[aria-label="區間 1 適正武器"]')!;
     [...weapons.options].find(o => o.value === 'MG')!.selected = true; weapons.dispatchEvent(new Event('change'));
-    const board = JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    const board = JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
     expect(decodeBattleCode(board[0].code).bossPhases?.[0]).toMatchObject({ kind: 'optimal_range', weapons: ['MG'] });
     root.querySelector<HTMLButtonElement>('[data-union-run]')!.click(); await flush(); await flush();
     const analysis = root.querySelector<HTMLElement>('[data-union-report] .battle-analysis')!;
@@ -578,18 +676,18 @@ describe('calculator UI', () => {
 
   it('keeps boss settings, valid results and later squad edits consistent through season apply and undo', async () => {
     seedUnionDraft();
-    const before = localStorage.getItem('nikke-union-board-v1')!;
+    const before = localStorage.getItem('nikke-union-board-v2')!;
     const client = new FakeClient();
     mountCalculator(root, { catalog,
       settings: { ...settings, normalHitCoeff: { ...settings.normalHitCoeff, AR: 0.75 } },
       version: 'v1', client, storage: localStorage });
     root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
-    root.querySelector<HTMLButtonElement>('[data-union-season-apply]')!.click();
+    selectUnionSeason('s44');
     expect(root.querySelectorAll('.union-season-art img')).toHaveLength(5);
-    expect(root.querySelectorAll('.union-boss-art img')).toHaveLength(6);
-    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    expect(root.querySelectorAll('.union-boss-art img')).toHaveLength(5);
+    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
     expect(stored()[0].decks).toEqual(JSON.parse(before)[0].decks);
-    expect(stored()[5].bossId).toBe('s44-annihilio');
+    expect(stored()[4].bossId).toBe('s44-annihilio');
     expect(root.querySelector<HTMLInputElement>('[aria-label="AR 평타 계수"]')!.value).toBe('1');
     const core = root.querySelector<HTMLInputElement>('.union-boss-code input[type="number"]')!;
     core.value = '61'; core.dispatchEvent(new Event('change'));
@@ -706,7 +804,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
     const picker = root.querySelector<HTMLSelectElement>('.union-burst-editor [aria-label="第 1 輪 B3"]')!;
     picker.value = '앨리스'; picker.dispatchEvent(new Event('change'));
-    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    const stored = () => JSON.parse(localStorage.getItem('nikke-union-board-v2')!);
     expect(stored()[0].decks[0].burstSequence[0]['3']).toEqual(['앨리스']);
     [...root.querySelectorAll<HTMLButtonElement>('.union-deck-tools button')].find(button => button.textContent === '與第 2 隊交換')!.click();
     expect(stored()[0].decks[1].burstSequence[0]['3']).toEqual(['앨리스']);
@@ -727,7 +825,7 @@ describe('calculator UI', () => {
     root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
     const ban = root.querySelector<HTMLInputElement>('[aria-label="禁止爆裂：나가"]')!;
     ban.checked = true; ban.dispatchEvent(new Event('change'));
-    expect(JSON.parse(localStorage.getItem('nikke-union-board-v1')!)[0].decks[0].noBurst).toEqual(['나가']);
+    expect(JSON.parse(localStorage.getItem('nikke-union-board-v2')!)[0].decks[0].noBurst).toEqual(['나가']);
     root.querySelector<HTMLInputElement>('[aria-label="每個王搜尋盤數"]')!.value = '10';
     root.querySelector<HTMLButtonElement>('.union-auto-search button')!.click();
     await vi.waitFor(() => expect(root.querySelector('.union-auto-search .union-status')!.textContent).toContain('本輪搜尋完成'), { timeout: 8000 });

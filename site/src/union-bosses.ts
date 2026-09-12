@@ -1,41 +1,51 @@
 import type { BattleSettings, BossPhase, ElementCode } from './types';
 import { decodeBattleCode } from './share-code';
 import recommendation from './data/union-s44-recommendation.json';
+import catalog from './data/union-seasons.json';
 import { DEFAULT_SYNCHRO_LEVEL } from './model';
 
 /** 회차의 식별 정보. 전투 조건은 아래의 고정된 추천 자료에서 읽는다. */
 export interface UnionBossPreset {
   id: string;
+  seasonId: string;
   name: string;
   art: string;
-  enemyCode: ElementCode;
+  enemyCode: Exclude<ElementCode, ''>;
   weakness: ElementCode;
 }
 
 // 출처와 갱신 절차: docs/union-boss-catalog.md.
 // 공지의 약점과 엔진에 넘기는 적 코드를 혼동하지 않는다.
-export const UNION_BOSS_SEASONS = [{
-  id: 's44',
-  label: 'S44 · 2026-09-04',
-  bosses: [
-    { id: 's44-laitance', name: '레이턴스 [Z.E.U.S.]', art: 'bcg002',
-      enemyCode: '전격', weakness: '철갑' },
-    { id: 's44-tombstone', name: '툼스톤 [H.S.T.A.]', art: 'tombstone',
-      enemyCode: '작열', weakness: '수냉' },
-    { id: 's44-modernia', name: '모더니아 [A.N.M.I.]', art: 'mbg004_anmi',
-      enemyCode: '풍압', weakness: '작열' },
-    { id: 's44-stout', name: '리빌드 빅 토르소 [P.S.I.D.]', art: 'ecg005_re',
-      enemyCode: '수냉', weakness: '전격' },
-    { id: 's44-annihilio', name: '애니힐리오 [D.M.T.R.]', art: 'annihilio',
-      enemyCode: '철갑', weakness: '풍압' },
-  ] satisfies UnionBossPreset[],
-}];
+export interface UnionBossSeason { id: string; label: string; bosses: UnionBossPreset[] }
+
+// Keep already shared S44 identifiers stable. Other seasons use the source art key.
+const S44_IDS: Record<string, string> = {
+  bcg002: 'laitance', tombstone: 'tombstone', mbg004_anmi: 'modernia',
+  ecg005_re: 'stout', annihilio: 'annihilio',
+};
+export const UNION_BOSS_SEASONS: UnionBossSeason[] = [...catalog.seasons].reverse().map(season => ({
+  id: season.id,
+  label: `${season.id.toUpperCase()} · ${season.start}`,
+  bosses: season.bosses.map(([code, art, name]) => ({
+    id: `${season.id}-${season.id === 's44' ? S44_IDS[art!] : art}`,
+    seasonId: season.id, name: name!, art: art!,
+    enemyCode: code as Exclude<ElementCode, ''>, weakness: bossWeakness(code as ElementCode),
+  })),
+}));
+
+/** Infer identity only; never overwrite saved custom battle conditions on reload. */
+export function unionSeasonForBosses(bosses: Array<{ bossId?: string }>): UnionBossSeason | undefined {
+  return UNION_BOSS_SEASONS.find(season => bosses.length === season.bosses.length
+    && season.bosses.every((boss, index) => boss.id === bosses[index]?.bossId));
+}
 
 export function unionBossPreset(id: unknown): UnionBossPreset | undefined {
   return UNION_BOSS_SEASONS.flatMap(season => season.bosses).find(boss => boss.id === id);
 }
 
-export function unionBossArt(preset: UnionBossPreset): string {
+export function unionBossArt(preset: UnionBossPreset): string | undefined {
+  // The source lists this art key but its image returned 404 on 2026-09-12.
+  if (preset.art === 'bbg004_dmtr_intercept') return undefined;
   return `${import.meta.env.BASE_URL}bosses/${preset.art}.webp`;
 }
 
@@ -45,11 +55,18 @@ export function bossWeakness(code: ElementCode): ElementCode {
 
 /** 검토해 고정한 회차 추천값. 실행 중 외부 서버 값이 바뀌어도 계산 조건은 바뀌지 않는다. */
 export function recommendedUnionBattle(preset: UnionBossPreset): BattleSettings {
-  const source = recommendation.cfg.bosses[preset.enemyCode as keyof typeof recommendation.cfg.bosses];
-  return {
+  // Historical lineups are verified, but their battle presets are not. Do not
+  // accidentally borrow the current season's phases just because elements match.
+  const base: BattleSettings = {
     ...decodeBattleCode('NK3-e30'),
     synchroLevel: DEFAULT_SYNCHRO_LEVEL,
     console: { common_level: 0, class_level: {}, company_level: {} },
+    enemyCode: preset.enemyCode,
+  };
+  if (preset.seasonId !== 's44') return base;
+  const source = recommendation.cfg.bosses[preset.enemyCode as keyof typeof recommendation.cfg.bosses];
+  return {
+    ...base,
     duration: recommendation.cfg.duration,
     enemyCode: preset.enemyCode,
     enemyDef: source.def,

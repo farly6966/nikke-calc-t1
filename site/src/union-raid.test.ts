@@ -235,15 +235,15 @@ describe('돌릴 것 늘어놓기', () => {
 });
 
 describe('local union board draft', () => {
-  const draft = (): BossSlot[] => Array.from({ length: 6 }, (_, i) => readBossCode({
+  const draft = (): BossSlot[] => Array.from({ length: 5 }, (_, i) => readBossCode({
     name: `Boss ${i + 1}`, code: encodeBattleCode(battle), enabled: i === 0,
     decks: [{ code: encodeShareCode([{ id: 1, squad: ['리타', '', '', '', ''], characters: {} }], false),
       cycle: { burstReaction: 0.05, burstRegenTime: 5 } }],
   }));
 
-  it('restores all six bosses, three slots, squad and per-deck cycle', () => {
+  it('restores all five bosses, three slots, squad and per-deck cycle', () => {
     const restored = decodeUnionDraft(encodeUnionDraft(draft()), ['리타']);
-    expect(restored).toHaveLength(6);
+    expect(restored).toHaveLength(5);
     expect(restored[0]!.decks).toHaveLength(3);
     expect(restored[0]!.decks[0]!.squad?.[0]).toBe('리타');
     expect(restored[0]!.decks[0]!.cycle).toEqual({ burstReaction: 0.05, burstRegenTime: 5 });
@@ -257,6 +257,13 @@ describe('local union board draft', () => {
     Object.assign(bosses[0]!.decks[0]!, { account: 'SECRET' });
     const saved = encodeUnionDraft(bosses);
     expect(saved).not.toMatch(/SECRET|cookie|roster|account/);
+  });
+
+  it('still decodes a legacy sixth slot for recovery, but shared active boards have five slots', () => {
+    const legacy = [...draft(), { ...draft()[0]!, name: 'Legacy sixth' }];
+    const saved = encodeUnionDraft(legacy);
+    expect(decodeUnionDraft(saved, ['리타'])[5]!.name).toBe('Legacy sixth');
+    expect(readUnionCode(unionCodeOf(legacy), ['리타'])).toHaveLength(5);
   });
 
   it('rejects corrupt drafts and ignores invalid cycle values', () => {
@@ -353,7 +360,7 @@ describe('유니온 판 코드 (NK4)', () => {
   it('판을 코드로 냈다가 그대로 되살린다', () => {
     const back = readUnionCode(unionCodeOf(board()), NAMES);
 
-    expect(back).toHaveLength(6);   // 다섯 보스 + 무한 단계 칸
+    expect(back).toHaveLength(5);
     expect(back[0]!.name).toBe('작열 글러트니');
     expect(back[0]!.enabled).toBe(true);
     expect(back[0]!.battle?.enemyCode).toBe('작열');

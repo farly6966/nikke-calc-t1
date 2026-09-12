@@ -10,6 +10,15 @@
  *    Synchro Device) as NIKKE writes it in English — players search by those words.
  */
 export const EN: Record<string, string> = {
+  "사용자 설정 / 가져온 판": "Custom / imported board",
+  "회차를 바꾸면 보스 1~5의 조건이 자동으로 바뀝니다. 각 칸의 편성·버스트 설정은 유지되며, 변경을 되돌릴 수 있습니다.": "Changing season automatically fills Bosses 1–5 and resets their conditions. Squads and burst settings stay in their slots; the change can be undone.",
+  "과거 회차는 보스 명단·속성만 검증되었습니다. 전투 조건은 기본값이며 방어력·코어·부위·구간을 확인해야 합니다. S44 추천값은 적용하지 않습니다.": "Historical boss lineups and elements are verified, but battle conditions use generic defaults. Check defense, core, parts and phases; S44 recommendations are not applied.",
+  "이전 6번 칸 백업 (계산 제외)": "Legacy sixth-slot backup (excluded from simulation)",
+  "기존 백업은 유지됩니다. 복사하면 선택한 칸의 조건과 편성을 덮어쓰며, 되돌릴 수 있습니다.": "The original backup is kept. Copying overwrites the selected slot's conditions and squads; you can undo it.",
+  "백업 복원 위치": "Restore backup to",
+  "선택한 칸에 백업 복사 (덮어쓰기)": "Copy backup to selected slot (overwrite)",
+  "기본 조건 복원": "Reset generic conditions",
+  "회차 선택으로 다섯 보스를 자동 설정합니다. 위 그림은 해당 보스로 이동하며 조건을 바꾸지 않습니다. 아래 빈 슬롯을 눌러 편성하세요. 조건 코드(NK3)와 조합 코드(NK2)도 사용할 수 있습니다. 체크를 끈 보스는 계산하지 않습니다.": "Select a season to fill all five bosses automatically. Images navigate to a boss without changing its settings. Click empty slots to build squads. Battle (NK3) and squad (NK2) codes are supported. Unchecked bosses are excluded.",
   "큐브 테스트 설정": "Cube test settings",
   "각 계정의 큐브를 그대로 쓰거나 이 덱에서만 종류와 레벨을 바꿉니다. 지정한 큐브는 이 덱을 계산하는 모든 계정에 적용되며 원본 양성값은 바꾸지 않습니다.": "Keep each account's cubes or choose a type and level for this squad. Overrides apply to every account running this squad without changing imported character settings.",
   "계정 큐브 유지": "Use account cube",

@@ -32,7 +32,7 @@ import { cleanUnionCubes, applyUnionCubes, createUnionCubeEditor, type UnionCube
 import { createTimelineBlock } from './timeline';
 import { t } from './i18n';
 import { UNION_BOSS_SEASONS, unionBossPreset, unionBossArt, bossWeakness, recommendedUnionBattle,
-  type UnionBossPreset } from './union-bosses';
+  unionSeasonForBosses, type UnionBossPreset } from './union-bosses';
 import type { BattleSettings, DeckState, ElementCode, SimulationResult } from './types';
 
 /** 유니온원 한 명. `GetGuildMembers`가 주는 것만 담는다. */
@@ -101,7 +101,7 @@ export function encodeUnionDraft(bosses: BossSlot[]): string {
 
 export function decodeUnionDraft(text: string, names: string[]): BossSlot[] {
   const raw = JSON.parse(text);
-  if (!Array.isArray(raw) || raw.length !== BOSS_SLOTS) throw new Error('盤面草稿格式錯誤');
+  if (!Array.isArray(raw) || ![BOSS_SLOTS, 6].includes(raw.length)) throw new Error('盤面草稿格式錯誤');
   return raw.map(item => {
     if (!item || typeof item.name !== 'string' || typeof item.code !== 'string'
       || typeof item.enabled !== 'boolean' || !Array.isArray(item.decks)) throw new Error('盤面草稿格式錯誤');
@@ -122,18 +122,8 @@ export function decodeUnionDraft(text: string, names: string[]): BossSlot[] {
   });
 }
 
-/**
- * 보스 칸 수.
- *
- * 유니온 레이드의 보스는 다섯이지만 **여섯 칸**을 둔다. 모든 단계를 깬 뒤 다섯 번째
- * 보스가 «무한 단계»(체력 상한 없음)로 열리고, 그때는 유니온원 전원이 그 하나만 친다.
- * 회차 표에서도 그 칸이 따로 한 줄을 차지한다(공회 배정표의 «철1·철2»가 그것이다).
- * 다섯 번째와 같은 랩처지만 조건과 편성을 따로 잡으므로 칸을 나눠 둔다.
- *
- * 안 쓰는 칸은 비워 두면 그만이고, 판 코드(NK4)는 채운 칸 수만 싣는다 —
- * 다섯 칸 시절의 코드도 그대로 읽힌다.
- */
-export const BOSS_SLOTS = 6;
+/** A season has five bosses. Legacy sixth slots are recovery data, never jobs. */
+export const BOSS_SLOTS = 5;
 
 /** 모든 값이 기본값인 전투 조건(`{}`). 속성만 갈아 끼울 바탕으로 쓴다. */
 const PLAIN_BATTLE_CODE = 'NK3-e30';
@@ -937,11 +927,36 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   }));
   let results: JobResult[] = [];
   const planSelections = new Set<JobResult>();
-  const draftKey = 'nikke-union-board-v1';
+  const draftKey = 'nikke-union-board-v2';
+  const legacyKey = 'nikke-union-board-v1';
+  const retiredSharesKey = 'nikke-union-retired-shares-v1';
+  const retiredBosses: BossSlot[] = [];
+  let retiredShares: string[] = [];
+  let restoredDraft = false;
+  // v1 is deliberately never overwritten: it remains a byte-for-byte backup.
+  for (const key of [draftKey, legacyKey]) {
+    try {
+      const saved = localStorage.getItem(key);
+      if (!saved) continue;
+      const decoded = decodeUnionDraft(saved, deps.catalogNames());
+      if (!restoredDraft) { bosses = decoded.slice(0, BOSS_SLOTS); restoredDraft = true; }
+      if (decoded[5]) retiredBosses.push(decoded[5]);
+    } catch { /* Invalid or unavailable storage must not prevent opening the editor. */ }
+  }
+  const retiredFromShare = (code: string): BossSlot | undefined => {
+    const share = decodeUnionCode(code);
+    return share.bosses[5] ? applyUnionShare({ ...share, bosses: [share.bosses[5]] }, deps.catalogNames())[0] : undefined;
+  };
   try {
-    const saved = localStorage.getItem(draftKey);
-    if (saved) bosses = decodeUnionDraft(saved, deps.catalogNames());
-  } catch { /* Invalid or unavailable storage must not prevent opening the editor. */ }
+    const saved: unknown = JSON.parse(localStorage.getItem(retiredSharesKey) ?? '[]');
+    if (Array.isArray(saved)) for (const code of saved) {
+      if (typeof code !== 'string') continue;
+      try {
+        const retired = retiredFromShare(code);
+        if (retired) { retiredShares.push(code); retiredBosses.push(retired); }
+      } catch { /* Keep other valid backups. */ }
+    }
+  } catch { /* Storage can be unavailable. */ }
   let resultBoard = '';
   let resultsInvalidated = false;
   const boardState = () => encodeUnionDraft(bosses);
@@ -1511,6 +1526,19 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   // ── 3단계 · 보스와 덱 ────────────────────────────────────────────────────
   const bossBox = pick(panel, '[data-union-bosses]');
   let undoBossBoard: string | undefined;
+  let undoIncludesDecks = false;
+  const rememberBossBoard = (includeDecks = false): void => {
+    undoBossBoard = encodeUnionDraft(bosses); undoIncludesDecks = includeDecks;
+  };
+  const loadBoardCode = (code: string): void => {
+    const next = readUnionCode(code, deps.catalogNames(), DEFAULT_SYNCHRO_LEVEL);
+    const retired = retiredFromShare(code);
+    if (retired && !retiredShares.includes(code)) {
+      retiredShares.push(code); retiredBosses.push(retired);
+      try { localStorage.setItem(retiredSharesKey, JSON.stringify(retiredShares)); } catch { /* Session recovery still works. */ }
+    }
+    bosses = next; undoBossBoard = undefined;
+  };
   const seasonBox = el('section', 'union-season');
   steps.get('1')!.before(seasonBox);
   const applyPreset = (boss: BossSlot, preset: UnionBossPreset): BossSlot => ({
@@ -1520,8 +1548,13 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   });
   const portrait = (preset: UnionBossPreset, className: string): HTMLElement => {
     const frame = el('div', className);
+    const src = unionBossArt(preset);
+    if (!src) {
+      frame.append(el('span', 'union-art-fallback', t(preset.name)));
+      return frame;
+    }
     const img = document.createElement('img');
-    img.src = unionBossArt(preset); img.alt = t(preset.name); img.loading = 'lazy';
+    img.src = src; img.alt = t(preset.name); img.loading = 'lazy';
     img.addEventListener('error', () => {
       img.remove();
       frame.append(el('span', 'union-art-fallback', t(preset.name)));
@@ -1531,53 +1564,77 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   };
   function renderSeason(): void {
     seasonBox.replaceChildren();
-    const season = UNION_BOSS_SEASONS[0]!;
+    const season = unionSeasonForBosses(bosses);
     const heading = el('div', 'union-season-heading');
     heading.append(el('h4', undefined, t('회차 보스')));
     const select = el('select');
     select.ariaLabel = t('회차 선택');
-    select.append(new Option(season.label, season.id));
-    heading.append(select);
-    const apply = el('button', 'roster-import', t('이 회차 적용'));
-    apply.type = 'button';
-    apply.dataset.unionSeasonApply = '';
-    apply.addEventListener('click', () => {
-      undoBossBoard = encodeUnionDraft(bosses);
-      bosses = bosses.map((boss, index) => applyPreset(boss, season.bosses[Math.min(index, 4)]!));
+    select.dataset.unionSeason = '';
+    if (!season) select.append(new Option(t('사용자 설정 / 가져온 판'), ''));
+    for (const entry of UNION_BOSS_SEASONS) select.append(new Option(entry.label, entry.id));
+    select.value = season?.id ?? '';
+    select.addEventListener('change', () => {
+      const selected = UNION_BOSS_SEASONS.find(entry => entry.id === select.value);
+      if (!selected) return;
+      rememberBossBoard();
+      bosses = bosses.map((boss, index) => applyPreset(boss, selected.bosses[index]!));
       renderBosses(); renderMembers();
     });
-    heading.append(apply);
+    heading.append(select);
     if (undoBossBoard) {
       const undo = el('button', 'roster-import', t('보스 변경 되돌리기'));
       undo.type = 'button';
+      undo.dataset.unionSeasonUndo = '';
       undo.addEventListener('click', () => {
         const previous = decodeUnionDraft(undoBossBoard!, deps.catalogNames());
-        bosses = previous.map((boss, index) => ({ ...boss, decks: bosses[index]!.decks }));
+        bosses = previous.map((boss, index) => ({ ...boss, decks: undoIncludesDecks ? boss.decks : bosses[index]!.decks }));
         undoBossBoard = undefined;
         renderBosses(); renderMembers();
       });
       heading.append(undo);
     }
     seasonBox.append(heading, el('p', 'field-note',
-      t('보스 이름·그림·추천 전투 조건을 여섯 칸에 적용합니다. 여섯 번째는 마지막 보스의 무한 단계이며, 각 칸의 편성은 유지됩니다.')));
+      t('회차를 바꾸면 보스 1~5의 조건이 자동으로 바뀝니다. 각 칸의 편성·버스트 설정은 유지되며, 변경을 되돌릴 수 있습니다.')));
     const lineup = el('div', 'union-season-lineup');
-    season.bosses.forEach((preset, index) => {
+    bosses.forEach((boss, index) => {
+      const preset = unionBossPreset(boss.bossId);
       const tile = el('button', 'union-season-tile');
       tile.type = 'button';
-      tile.append(portrait(preset, 'union-season-art'),
-        el('strong', undefined, t(preset.name)),
-        el('span', undefined, t('약점: {code}', { code: t(preset.weakness) })));
+      if (preset) tile.append(portrait(preset, 'union-season-art'));
+      tile.append(el('span', undefined, t('보스 {n}', { n: index + 1 })),
+        el('strong', undefined, t(boss.name) || t('직접 설정')),
+        el('span', undefined, t('약점: {code}', { code: t(bossWeakness(boss.battle?.enemyCode ?? '')) || '—' })));
       tile.title = t('보스 {n} 선택', { n: index + 1 });
       tile.addEventListener('click', () => {
-        undoBossBoard = encodeUnionDraft(bosses);
-        bosses[index] = applyPreset(bosses[index]!, preset);
-        renderBosses(); renderMembers();
         bossBox.children[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       lineup.append(tile);
     });
-    seasonBox.append(lineup, el('p', 'field-note',
+    seasonBox.append(lineup);
+    if (season?.id === 's44') seasonBox.append(el('p', 'field-note',
       t('추천값은 DILDORO S44 설정(2026-09-09)입니다. 단계와 실제 부위 파괴 시간에 맞게 수정하세요.')));
+    if (bosses.some(boss => { const preset = unionBossPreset(boss.bossId); return preset && preset.seasonId !== 's44'; })) {
+      seasonBox.append(el('p', 'field-note union-season-warning',
+        t('과거 회차는 보스 명단·속성만 검증되었습니다. 전투 조건은 기본값이며 방어력·코어·부위·구간을 확인해야 합니다. S44 추천값은 적용하지 않습니다.')));
+    }
+    retiredBosses.forEach((retired, index) => {
+      if (!retired.name && !retired.code && !retired.decks.some(deck => deck.code)) return;
+      const recovery = el('details', 'union-retired-boss');
+      recovery.append(el('summary', undefined, t('이전 6번 칸 백업 (계산 제외)')),
+        el('p', 'field-note', `${index + 1}. ${t(retired.name) || t('직접 설정')} · ${t('기존 백업은 유지됩니다. 복사하면 선택한 칸의 조건과 편성을 덮어쓰며, 되돌릴 수 있습니다.')}`));
+      const target = el('select'); target.ariaLabel = t('백업 복원 위치');
+      for (let at = 0; at < BOSS_SLOTS; at++) target.append(new Option(t('보스 {n}', { n: at + 1 }), String(at)));
+      const restore = el('button', 'roster-import', t('선택한 칸에 백업 복사 (덮어쓰기)'));
+      restore.type = 'button';
+      restore.addEventListener('click', () => {
+        rememberBossBoard(true);
+        // Round-trip a full board to preserve codes and all per-deck options.
+        const copy = decodeUnionDraft(encodeUnionDraft(Array.from({ length: BOSS_SLOTS }, () => retired)), deps.catalogNames())[0]!;
+        bosses[Number(target.value)] = copy;
+        renderBosses(); renderMembers();
+      });
+      recovery.append(target, restore); seasonBox.append(recovery);
+    });
     const source = el('a', 'field-note', t('자료 출처: DILDORO'));
     source.href = 'https://dildoro.com/union'; source.target = '_blank'; source.rel = 'noopener noreferrer';
     seasonBox.append(source);
@@ -1639,7 +1696,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   /** 목록에서 고른 것을 그 자리에 넣는다. 코드가 깨졌으면 던져서 창이 알리게 둔다. */
   const applyShared = (kind: ShareKind, item: ShareItem): void => {
     if (kind === 'union') {
-      bosses = readUnionCode(item.code, deps.catalogNames(), DEFAULT_SYNCHRO_LEVEL);
+      loadBoardCode(item.code);
       renderBosses();
       renderMembers();
       notifyShare(`«${item.name}» 판을 깔았습니다.`, true);
@@ -1778,7 +1835,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
 
   pick<HTMLButtonElement>(panel, '[data-union-set-apply]').addEventListener('click', () => {
     try {
-      bosses = readUnionCode(setCode.value, deps.catalogNames(), DEFAULT_SYNCHRO_LEVEL);
+      loadBoardCode(setCode.value);
       renderBosses();
       renderMembers();
       const live = bosses.filter((boss) => boss.enabled).length;
@@ -1816,17 +1873,19 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       if (preset) hero.append(portrait(preset, 'union-boss-art'));
       else hero.append(el('div', 'union-boss-art union-art-empty', String(index + 1).padStart(2, '0')));
       const identity = el('div', 'union-boss-identity');
-      const stage = index === 5 ? t('무한 단계') : t('보스 {n}', { n: index + 1 });
+      const stage = t('보스 {n}', { n: index + 1 });
       identity.append(el('span', 'union-boss-stage', stage));
       const choose = el('select', 'union-boss-preset');
       choose.ariaLabel = t('보스 {n} 선택', { n: index + 1 });
       choose.append(new Option(t('직접 설정'), ''));
-      for (const entry of UNION_BOSS_SEASONS.flatMap(s => s.bosses)) {
-        choose.append(new Option(t(entry.name), entry.id));
+      for (const season of UNION_BOSS_SEASONS) {
+        const group = el('optgroup'); group.label = season.label;
+        for (const entry of season.bosses) group.append(new Option(t(entry.name), entry.id));
+        choose.append(group);
       }
       choose.value = preset?.id ?? '';
       choose.addEventListener('change', () => {
-        undoBossBoard = encodeUnionDraft(bosses);
+        rememberBossBoard();
         const selected = unionBossPreset(choose.value);
         bosses[index] = selected ? applyPreset(boss, selected) : { ...boss, bossId: undefined };
         renderBosses(); renderMembers();
@@ -1969,11 +2028,11 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       if (boss.battle) {
         const advanced = el('details', 'union-boss-settings');
         advanced.append(el('summary', undefined, t('추천 설정 상세 · 수정')));
-        const reset = el('button', 'roster-import', t('추천값 복원'));
+        const reset = el('button', 'roster-import', t(preset?.seasonId === 's44' ? '추천값 복원' : '기본 조건 복원'));
         reset.type = 'button'; reset.disabled = !preset;
         reset.addEventListener('click', () => {
           if (!preset) return;
-          undoBossBoard = encodeUnionDraft(bosses);
+          rememberBossBoard();
           bosses[index] = { ...applyPreset(boss, preset), name: boss.name, enabled: boss.enabled };
           renderBosses();
         });
@@ -2733,6 +2792,9 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     button.addEventListener('click', () => setMode(button.dataset.unionMode === 'personal'));
   }
 
+  if (!restoredDraft || bosses.every(boss => !boss.name && !boss.code && !boss.decks.some(deck => deck.code))) {
+    bosses = bosses.map((boss, index) => applyPreset(boss, UNION_BOSS_SEASONS[0]!.bosses[index]!));
+  }
   renderBosses();
   // 開起來就停在「聯盟」。匯出檔匯入不需要代理伺服器，所以沒設代理也一樣從這裡開始。
   setMode(false);

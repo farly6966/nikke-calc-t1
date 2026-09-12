@@ -1178,6 +1178,10 @@ button.roster-cell.is-taken { opacity: .35; cursor: not-allowed; }
 .union-season { padding: 16px; border: 1px solid var(--line); background: rgba(8,20,32,.7); }
 .union-season-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .union-season-heading h4 { margin: 0 auto 0 0; }
+.union-season-warning { padding: 10px; border-left: 3px solid #e7b768; background: #30271c; color: #f2d8ae; }
+.union-retired-boss { margin: 12px 0; padding: 10px; border: 1px solid var(--line); }
+.union-retired-boss summary { cursor: pointer; font-size: 12px; }
+.union-retired-boss select { margin-right: 8px; color: var(--text); background: #0a1825; padding: 7px; }
 .union-season-heading select, .union-boss-preset, .union-phase-row select {
   color: var(--text); background: #0a1825; border: 1px solid var(--line); padding: 7px; min-width: 0;
 }

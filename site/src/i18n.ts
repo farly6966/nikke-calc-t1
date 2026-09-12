@@ -29,6 +29,7 @@ import { JA } from './locale/ja';
 // 이 fork는 상류 사전 위에 제 말을 덧입혀 쓴다(`locale/zh-tw.fork.ts`) — 그래야
 // `locale/zh-tw.ts`를 상류와 똑같이 두고 동기화 때 통째로 갈아 끼울 수 있다.
 import { ZH_TW_FORK as ZH_TW } from './locale/zh-tw.fork';
+import unionCatalog from './data/union-seasons.json';
 
 export type Lang = 'ko' | 'en' | 'ja' | 'zh-TW';
 
@@ -50,7 +51,11 @@ export interface LocaleNames {
   favorites?: Record<string, Record<string, string>>;
 }
 
-const DICTS: Record<Lang, Record<string, string>> = { ko: {}, en: EN, ja: JA, 'zh-TW': ZH_TW };
+const DICTS: Record<Lang, Record<string, string>> = {
+  ko: {}, en: { ...unionCatalog.translations.en, ...EN },
+  ja: { ...unionCatalog.translations.ja, ...JA },
+  'zh-TW': { ...unionCatalog.translations.zh, ...ZH_TW },
+};
 
 const TRADITIONAL_CHINESE = /^(zh-tw|zh-hk|zh-mo)\b|hant/;
 

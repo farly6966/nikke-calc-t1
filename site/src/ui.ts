@@ -634,7 +634,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
         <div class="union-step" data-union-step="3" hidden>
           <h3>보스와 편성</h3>
-          <p class="field-note">위 그림이나 보스 선택으로 추천 조건을 불러온 뒤, 아래 빈 슬롯을 눌러 편성하세요. 조건 코드(NK3)와 조합 코드(NK2)도 사용할 수 있습니다. 체크를 끈 보스는 계산하지 않습니다.</p>
+          <p class="field-note">회차 선택으로 다섯 보스를 자동 설정합니다. 위 그림은 해당 보스로 이동하며 조건을 바꾸지 않습니다. 아래 빈 슬롯을 눌러 편성하세요. 조건 코드(NK3)와 조합 코드(NK2)도 사용할 수 있습니다. 체크를 끈 보스는 계산하지 않습니다.</p>
           <div class="union-board-bar">
             <span class="union-board-label">整個盤面</span>
             <button type="button" class="roster-import" data-union-set-share>從分享選盤面</button>
