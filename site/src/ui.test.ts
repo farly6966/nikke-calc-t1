@@ -555,6 +555,27 @@ describe('calculator UI', () => {
     }))));
   }
 
+  it('persists new boss phases and runs result-side random trials without changing the roster', async () => {
+    seedUnionDraft();
+    const client = new FakeClient();
+    mountCalculator(root, { catalog, settings, version: 'v1', client, storage: localStorage });
+    root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
+    const add = [...root.querySelectorAll<HTMLButtonElement>('.union-boss button')].find(b => b.textContent === '구간 추가')!;
+    add.click();
+    const kind = root.querySelector<HTMLSelectElement>('[aria-label="구간 1 종류"]')!;
+    kind.value = 'optimal_range'; kind.dispatchEvent(new Event('change'));
+    const weapons = root.querySelector<HTMLSelectElement>('[aria-label="區間 1 適正武器"]')!;
+    [...weapons.options].find(o => o.value === 'MG')!.selected = true; weapons.dispatchEvent(new Event('change'));
+    const board = JSON.parse(localStorage.getItem('nikke-union-board-v1')!);
+    expect(decodeBattleCode(board[0].code).bossPhases?.[0]).toMatchObject({ kind: 'optimal_range', weapons: ['MG'] });
+    root.querySelector<HTMLButtonElement>('[data-union-run]')!.click(); await flush(); await flush();
+    const analysis = root.querySelector<HTMLElement>('[data-union-report] .battle-analysis')!;
+    analysis.querySelector<HTMLInputElement>('input')!.value = '2';
+    analysis.querySelector<HTMLButtonElement>('button')!.click();
+    await vi.waitFor(() => expect(analysis.textContent).toContain('比較完成 · 2/2'));
+    expect(client.requests.slice(-2).every(r => r.rngMode === 'random' && r.bossPhases?.[0]?.kind === 'optimal_range')).toBe(true);
+  });
+
   it('keeps boss settings, valid results and later squad edits consistent through season apply and undo', async () => {
     seedUnionDraft();
     const before = localStorage.getItem('nikke-union-board-v1')!;

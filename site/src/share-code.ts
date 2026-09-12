@@ -300,7 +300,7 @@ export function encodeBattleCode(
   put('cp', Math.trunc(battle.corePx), d.corePx);
   put('hp', battle.hasParts ? 1 : 0, 0);
   put('bp', (battle.bossPhases ?? []).map(w =>
-    [w.kind, toTenth(w.from), toTenth(w.to)]), []);
+    [w.kind, toTenth(w.from), toTenth(w.to), ...(w.kind === 'optimal_range' ? [w.weapons ?? []] : [])]), []);
   put('s', Math.trunc(battle.seed), d.seed);
   put('or', [...(battle.optimalRangeWeapons ?? [])].sort(), []);
   put('rm', battle.rngMode === 'random' ? 1 : 0, 0);
@@ -379,10 +379,12 @@ export function decodeBattleCode(code: string): BattleShare {
     corePx: Math.trunc(num(raw.cp, 0, 1_000, d.corePx)),
     hasParts: Boolean(raw.hp),
     ...(Array.isArray(raw.bp) ? { bossPhases: raw.bp.slice(0, 64).flatMap(w => {
-      if (!Array.isArray(w) || !['parts', 'immune', 'element_gate'].includes(w[0])) return [];
+      if (!Array.isArray(w) || !['parts', 'immune', 'element_gate', 'core', 'optimal_range', 'pierce_gate'].includes(w[0])) return [];
       const from = fromTenth(num(w[1], 0, 1800, -1));
       const to = fromTenth(num(w[2], 0, 1800, -1));
-      return from >= 0 && to > from ? [{ kind: w[0] as 'parts' | 'immune' | 'element_gate', from, to }] : [];
+      return from >= 0 && to > from ? [{ kind: w[0] as NonNullable<BattleSettings['bossPhases']>[number]['kind'], from, to,
+        ...(w[0] === 'optimal_range' ? { weapons: Array.isArray(w[3]) ? [...new Set(w[3].filter((v: unknown): v is string =>
+          typeof v === 'string' && ['AR', 'SMG', 'SG', 'MG', 'SR', 'RL'].includes(v)))] : [] } : {}) }] : [];
     }) } : {}),
     seed: Math.trunc(num(raw.s, 0, 2_147_483_647, d.seed)),
     optimalRangeWeapons: Array.isArray(raw.or)

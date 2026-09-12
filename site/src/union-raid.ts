@@ -23,6 +23,7 @@ import {
 import type { BurstSequence } from './burst-order';
 import { cleanUnionSequence, createUnionBurstEditor, cleanNoBurst, applyUnionBurst } from './union-burst';
 import { bestThreeShots } from './union-planning';
+import { createBattleAnalysis } from './battle-analysis';
 import { ownedSSR, searchSquads } from './union-search';
 import { DEFAULT_SYNCHRO_LEVEL, SYNCHRO_MAX, SYNCHRO_MEASURED_MAX } from './model';
 import { parseExiaBatch, stripExiaProfile } from './exia-import';
@@ -846,6 +847,7 @@ export interface UnionHosts {
 }
 
 export interface UnionDeps {
+  isExternalBusy?: () => boolean;
   /** 블라블라링크 조회 프록시. 비어 있으면 이 탭 자체를 띄우지 않는다. */
   proxy: string;
   settings: SettingsCatalog;
@@ -2036,7 +2038,8 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
         advanced.append(el('p', 'field-note',
           t('부위는 시작부터 종료 직전까지 존재하며, 종료 시 부위 하나가 파괴됩니다. 같은 구간을 여러 번 넣으면 여러 부위입니다. 무적은 모든 피해를 막고 속성 저지는 우월 코드만 통과시킵니다.')));
         const phases = boss.battle.bossPhases ?? [];
-        const kinds = { parts: '부위', immune: '모든 피해 차단', element_gate: '속성 저지' };
+        const kinds = { parts: '부위', immune: '모든 피해 차단', element_gate: '속성 저지', core: '核心出現', optimal_range: '適正距離', pierce_gate: '僅貫通傷害' };
+        advanced.append(el('p', 'field-note', '有核心區間時，僅在區間內開啟上方設定的核心。適正距離區間補充全程武器設定；重疊時較早開始者優先。貫通限定區間只讓貫通傷害通過。'));
         phases.forEach((phase, at) => {
           const line = el('div', 'union-phase-row');
           const phaseError = el('p', 'union-error');
@@ -2049,6 +2052,16 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
           kind.addEventListener('change', () => updateBattle({ bossPhases: phases.map((p, i) =>
             i === at ? { ...p, kind: kind.value as typeof p.kind } : p) }));
           line.append(kind);
+          if (phase.kind === 'optimal_range') {
+            const weapons = el('select'); weapons.multiple = true; weapons.size = 3;
+            weapons.ariaLabel = `區間 ${at + 1} 適正武器`;
+            for (const weapon of ['AR', 'SMG', 'SG', 'MG', 'SR']) {
+              const option = new Option(weapon, weapon); option.selected = phase.weapons?.includes(weapon) ?? false; weapons.append(option);
+            }
+            weapons.addEventListener('change', () => updateBattle({ bossPhases: phases.map((p, i) => i === at
+              ? { ...p, weapons: [...weapons.selectedOptions].map(o => o.value) } : p) }));
+            line.append(weapons);
+          }
           for (const field of ['from', 'to'] as const) {
             const input = el('input', 'union-boss-num'); input.type = 'number';
             input.min = '0'; input.max = '180'; input.step = '0.1'; input.value = String(phase[field]);
@@ -2253,7 +2266,14 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       const option = el('option', undefined, deps.labelOf(char.name)); option.value = char.name; option.selected = excluded.has(char.name); searchExclude.append(option);
     }
   };
-  searchMember.addEventListener('change', refreshExclusions);
+  const poolNote = el('p', 'field-note'); searchBox.append(poolNote);
+  const updatePoolNote = () => {
+    const n = searchExclude.options.length - searchExclude.selectedOptions.length;
+    const combinations = n < 5 ? 0 : Math.round(n * (n - 1) * (n - 2) * (n - 3) * (n - 4) / 120);
+    poolNote.textContent = `SR／R 已排除。可用 SSR ${n} 位；單看五人選擇有 ${combinations.toLocaleString('en-US')} 種，尚未計入站位與爆裂順序。搜尋盤數限制的是模擬次數，不是稀有度。`;
+  };
+  searchExclude.addEventListener('change', updatePoolNote);
+  searchMember.addEventListener('change', () => { refreshExclusions(); updatePoolNote(); });
   const runStop = pick<HTMLButtonElement>(panel, '[data-union-stop]');
   const runStatus = pick(panel, '[data-union-run-status]');
   const runBar = pick(panel, '[data-union-run-progress]');
@@ -2290,10 +2310,11 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
       }
       if ([...searchMember.options].some(o => o.value === prior)) searchMember.value = prior;
       refreshExclusions();
+      updatePoolNote();
     }
-    searchStart.disabled = running || comparing || !searchMember.value || !bosses.some(b => b.enabled && b.battle);
+    searchStart.disabled = running || comparing || Boolean(deps.isExternalBusy?.()) || !searchMember.value || !bosses.some(b => b.enabled && b.battle);
     const jobs = buildJobs(members, bosses);
-    const ready = jobs.length > 0 && !running && !comparing;
+    const ready = jobs.length > 0 && !running && !comparing && !deps.isExternalBusy?.();
     runButton.disabled = !ready;
     // 자리는 명단이 들어온 뒤로 늘 보인다 — 모자란 것을 말해 주려면 보여야 한다.
     showStep('4', members.length > 0 || results.length > 0);
@@ -2313,7 +2334,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
   searchStop.addEventListener('click', () => { cancelled = true; });
   searchStart.addEventListener('click', () => { void runSearch(); });
   async function runSearch(): Promise<void> {
-    if (running || comparing) return;
+    if (running || comparing || deps.isExternalBusy?.()) return;
     if (personal) { loadMe(); renderMembers(); }
     const member = members.find(m => m.openid === searchMember.value);
     if (!member) { searchStatus.textContent = '請先匯入有持有角色資料的帳號。'; return; }
@@ -2390,7 +2411,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
     }
   }
   const runAll = async () => {
-    if (comparing) return;
+    if (comparing || deps.isExternalBusy?.()) return;
     // 개인용은 돌리기 직전에 내 스펙을 다시 읽는다 — 그 사이 싱크로나 로스터를
     // 바꿨을 수 있고, 그때 화면에 적힌 값과 계산이 어긋나면 안 된다.
     if (personal) { loadMe(); renderMembers(); }
@@ -2626,6 +2647,10 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
               table.append(tr);
             }
             detail.append(table);
+            detail.append(createBattleAnalysis({ request: row.detail.request, settings: deps.settings, labelOf: deps.labelOf,
+              simulate: deps.simulate, isBusy: () => running || comparing || Boolean(deps.isExternalBusy?.()),
+              setBusy: busy => { comparing = busy; refreshRunGate(); },
+            }));
             const compare = el('details', 'union-deck-code');
             compare.append(el('summary', undefined, '換人／B3 站位順序比較'));
             const position = el('select'); position.ariaLabel = '換人位置';
@@ -2639,7 +2664,7 @@ export function mountUnionRaid(hosts: UnionHosts, deps: UnionDeps): UnionHandle 
             let stopped = false;
             stop.addEventListener('click', () => { stopped = true; });
             const evaluate = async (squads: string[][]) => {
-              if (running || comparing) { output.textContent = '請等目前模擬或比較完成。'; return; }
+              if (running || comparing || deps.isExternalBusy?.()) { output.textContent = '請等目前模擬或比較完成。'; return; }
               comparing = true;
               runButton.disabled = true;
               replace.disabled = true; order.disabled = true; stop.hidden = false; stopped = false;

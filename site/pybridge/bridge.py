@@ -594,12 +594,17 @@ def run_request(raw: str) -> str:
             raise ValueError("보스 구간은 64개까지 입력할 수 있습니다")
         cleaned = []
         for phase in phases:
-            if not isinstance(phase, dict) or phase.get("kind") not in ("parts", "immune", "element_gate"):
+            if not isinstance(phase, dict) or phase.get("kind") not in ("parts", "immune", "element_gate", "core", "optimal_range", "pierce_gate"):
                 raise ValueError("보스 구간 종류가 올바르지 않습니다")
             start, end = float(phase.get("from", -1)), float(phase.get("to", -1))
             if not (math.isfinite(start) and math.isfinite(end) and 0 <= start < end <= 180):
                 raise ValueError("보스 구간은 0~180초 범위여야 합니다")
             cleaned.append({"kind": phase["kind"], "from": start, "to": end})
+            if phase["kind"] == "optimal_range":
+                weapons = phase.get("weapons", [])
+                if not isinstance(weapons, list) or any(w not in ("AR", "SMG", "SG", "MG", "SR", "RL") for w in weapons):
+                    raise ValueError("適正距離區間的武器類型不正確")
+                cleaned[-1]["weapons"] = list(dict.fromkeys(weapons))
         enemy["boss_phases"] = cleaned
     # 관통이 꿰뚫는 몸통·파츠 수. 보스 메이커가 그림에서 세어 넘긴다 — 안 주면
     # 몸통 하나(한 발 = 한 히트)라 기존 계산과 같다.

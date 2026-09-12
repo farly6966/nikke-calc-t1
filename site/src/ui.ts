@@ -1,4 +1,5 @@
 import { ResultCache, type StorageLike, type StorageSource } from './cache';
+import { createBattleAnalysis } from './battle-analysis';
 import { CalculationCancelled, isCancelled } from './worker-client';
 import { renderCharacterSettings, type CharPanelKind } from './character-settings';
 import {
@@ -396,6 +397,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
   let carryOverSettings = true;
   let fiveDeckMode = false;
   let activity: 'preparing' | 'ready' | 'running' | 'complete' | 'cached' | 'error' = 'preparing';
+  let analysisBusy = false;
 
   const ROSTER_KEY = 'nikke-roster-v1';
   const resolveStorage = (): StorageLike | null => {
@@ -3149,6 +3151,10 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         createText('span', t('시드 {n}', { n: entry.request.seed })),
       );
       section.append(facts, createText('pre', shownDeviations(entry.result.deviations), 'deviations'));
+      section.append(createBattleAnalysis({ request: entry.request, settings, labelOf: resolveDisplayName,
+        simulate: request => client.simulate(request), isBusy: () => analysisBusy || submit.disabled || Boolean(unionHandle?.busy()),
+        setBusy: busy => { analysisBusy = busy; submit.disabled = busy; },
+      }));
       host.append(section);
     };
 
@@ -4798,6 +4804,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
         return deck ? encodeShareCode([deck], false) : '';
       },
       currentDeckSequence: (index) => decks[index]?.burstSequence,
+      isExternalBusy: () => analysisBusy,
       catalogNames: () => [...catalogByName.keys()],
       concurrency: () => (parallelOn ? parallelCount : 1),
       me: () => {
@@ -5107,7 +5114,7 @@ export function mountCalculator(root: HTMLElement, deps: CalculatorDependencies)
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (submit.disabled) return;
+    if (submit.disabled || analysisBusy || unionHandle?.busy()) return;
     const battle = readBattle();
     const selectedDecks = (fiveDeckMode ? decks : [decks[0]!])
       .filter((deck) => deck.squad.some((name) => name.trim()));

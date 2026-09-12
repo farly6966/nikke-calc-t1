@@ -901,6 +901,18 @@ class UnionBossPhasesBridgeTest(unittest.TestCase):
             with self.subTest(phases=phases[:1]), self.assertRaises(ValueError):
                 run_request(json.dumps({**self.BASE, "bossPhases": phases}))
 
+    def test_new_phase_kinds_reach_engine_and_validate_weapons(self):
+        for phase in ({"kind": "core", "from": 0, "to": 5},
+                      {"kind": "optimal_range", "from": 0, "to": 5, "weapons": ["SMG"]},
+                      {"kind": "pierce_gate", "from": 0, "to": 5}):
+            result = json.loads(run_request(json.dumps({**self.BASE, "bossPhases": [phase]})))
+            self.assertGreaterEqual(result["squadTotal"], 0)
+        for weapons in ("SMG", ["cookie"], [None]):
+            with self.assertRaises(ValueError):
+                run_request(json.dumps({**self.BASE, "bossPhases": [
+                    {"kind": "optimal_range", "from": 0, "to": 5, "weapons": weapons},
+                ]}))
+
 
 if __name__ == "__main__":
     unittest.main()

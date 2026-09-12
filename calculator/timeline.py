@@ -726,7 +726,7 @@ class CharState:
             shot_damage = _apply_hit_coeff(res["damage"], cfg, self.weapon_type,
                                            self._wc_is_skill_damage())
             events.append(HitEvent(t=t, caster=self.name, damage=shot_damage,
-                                   is_crit=res["is_crit"], hit_tag=tag,
+                                   is_crit=res["is_crit"], hit_tag=tag, is_pierce=bool(ht.get("is_pierce_damage")),
                                    core_frac=core_frac,
                                    **({"skill_name": self._wc_name}
                                       if self._wc_is_skill_damage() else {})))
@@ -993,7 +993,7 @@ class CharState:
             shot_damage = _apply_hit_coeff(res["damage"], cfg, self.weapon_type,
                                            self._wc_is_skill_damage())
             events.append(HitEvent(t=t, caster=self.name, damage=shot_damage,
-                                   is_crit=res["is_crit"], hit_tag=tag,
+                                   is_crit=res["is_crit"], hit_tag=tag, is_pierce=bool(ht.get("is_pierce_damage")),
                                    # 코어를 맞은 몫 (`_fire`와 같은 값·같은 취지).
                                    core_frac=(P_core if expected
                                               else (1.0 if is_core else 0.0)),
@@ -2743,7 +2743,7 @@ def simulate(
             hit_tag = "normal_skill" if is_normal else base_stat
             _dot_events.append(HitEvent(
                 t=t, caster=caster, damage=res["damage"],
-                is_crit=res["is_crit"], hit_tag=hit_tag,
+                is_crit=res["is_crit"], hit_tag=hit_tag, is_pierce=bool(ht.get("is_pierce_damage")),
                 skill_name=eff.get("name", stat),
             ))
             # hit_count:[스킬명] 이벤트 — named damage effect 명중마다 발생.
@@ -2795,6 +2795,17 @@ def simulate(
         bm.sync_hp(ev.caster)
         bm.notify("event:heal_received", t, ev.caster)
 
+    # 戰鬥開始技能也必須使用 0 秒的 Boss 狀態。
+    _base_core_px = enm.get("core_px", 0)
+    _base_range = list(enm.get("optimal_range_weapons", []))
+    _initial_phases = enm.get("boss_phases") or []
+    _initial_core = [w for w in _initial_phases if w["kind"] == "core"]
+    if _initial_core and not any(w["from"] <= 0 < w["to"] for w in _initial_core):
+        enm["core_px"] = 0
+    _initial_range = sorted((w for w in _initial_phases if w["kind"] == "optimal_range"), key=lambda w: w["from"])
+    if _initial_range:
+        enm["optimal_range_weapons"] = list(dict.fromkeys([*_base_range, *next(
+            (w.get("weapons", []) for w in _initial_range if w["from"] <= 0 < w["to"]), [])]))
     bm.battle_start(0.0)
 
     # battle_start 버프 적용 후 장탄을 실제 max_ammo로 초기화
@@ -2816,6 +2827,11 @@ def simulate(
     _part_cursor = 0
     _static_parts = enm.get("has_parts", False)
     _all_immune = [(float(w["from"]), float(w["to"])) for w in _boss_phases if w["kind"] == "immune"]
+    _core_windows = [(float(w["from"]), float(w["to"])) for w in _boss_phases if w["kind"] == "core"]
+    _pierce_windows = [(float(w["from"]), float(w["to"])) for w in _boss_phases if w["kind"] == "pierce_gate"]
+    _range_windows = sorted((w for w in _boss_phases if w["kind"] == "optimal_range"), key=lambda w: w["from"])
+    _static_core = _base_core_px
+    _static_range = _base_range
 
     # ── 보스 페이즈 관문 (족자 · 속저) ────────────────────────────────────
     # 족자는 그 구간의 평타만 빗나가고, 속저는 코드 상성이 맞는 캐릭터만 통과시킨다.
@@ -2840,13 +2856,17 @@ def simulate(
                 or bm.element_override_match(name, code))
 
     def _gate(events: list[HitEvent], t: float) -> list[HitEvent]:
-        if _all_immune or _raid_element_windows:
+        if _all_immune or _raid_element_windows or _pierce_windows:
             # 스킬은 발동 다음 프레임에 수거되기도 한다. 수거 시각을 쓰면 구간
             # 안에서 난 피해가 밖으로 새거나, 시작 직전 피해가 잘못 사라진다.
             gated = []
             for ev in events:
                 phase_t = round(ev.t, 9)  # 60FPS 누적 오차를 경계 판정에서 걷어 낸다.
                 if any(lo <= phase_t < hi for lo, hi in _all_immune):
+                    continue
+                if any(lo <= phase_t < hi for lo, hi in _pierce_windows) and not (
+                    ev.is_pierce or ev.hit_tag.startswith("pierce:") or ev.hit_tag == "pierce_damage"
+                ):
                     continue
                 if any(lo <= phase_t < hi and not _beats(ev.caster, code)
                        for lo, hi, code in _raid_element_windows):
@@ -2866,6 +2886,12 @@ def simulate(
 
     t = 0.0
     while t <= duration:
+        phase_t = round(t, 9)
+        if _core_windows:
+            enm["core_px"] = _static_core if any(lo <= phase_t < hi for lo, hi in _core_windows) else 0
+        if _range_windows:
+            active_range = next((w.get("weapons", []) for w in _range_windows if w["from"] <= phase_t < w["to"]), [])
+            enm["optimal_range_weapons"] = list(dict.fromkeys([*_static_range, *active_range]))
         if _part_windows:
             enm["has_parts"] = _static_parts or any(lo <= round(t, 9) < hi for lo, hi in _part_windows)
         bm.tick(t)

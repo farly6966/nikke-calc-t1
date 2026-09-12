@@ -22,6 +22,18 @@ const FIVE_DECKS = [
 
 const allNames = [...new Set(FIVE_DECKS.flat())];
 
+it('round-trips new core, range and pierce boss phases with weapon allowlisting', () => {
+  const base = decodeBattleCode('NK3-e30');
+  const phases = [
+    { kind: 'core' as const, from: 5, to: 10 },
+    { kind: 'optimal_range' as const, from: 0, to: 20, weapons: ['MG', 'SR'] },
+    { kind: 'pierce_gate' as const, from: 30, to: 40 },
+  ];
+  expect(decodeBattleCode(encodeBattleCode({
+    ...base, synchroLevel: 400, console: { common_level: 0, class_level: {}, company_level: {} }, bossPhases: phases,
+  })).bossPhases).toEqual(phases);
+});
+
 describe('share code round trip', () => {
   it('carries the squads of five decks', () => {
     const decks = emptyDecks();

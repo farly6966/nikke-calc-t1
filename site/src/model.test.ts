@@ -49,6 +49,11 @@ const deck = (id: number, squad: string[]): DeckState => ({
 });
 
 describe('validateRequest', () => {
+  it('validates new phase intervals and weapon codes', () => {
+    expect(validateRequest({ ...valid, bossPhases: [{ kind: 'optimal_range', from: 0, to: 15, weapons: ['MG'] }] })).toEqual([]);
+    expect(validateRequest({ ...valid, bossPhases: [{ kind: 'core', from: 15, to: 0 }] })).not.toEqual([]);
+    expect(validateRequest({ ...valid, bossPhases: [{ kind: 'optimal_range', from: 0, to: 15, weapons: ['unknown'] }] })).toContain('Boss 適正武器不正確。');
+  });
   it.each([
     [[], '스쿼드에 캐릭터를 1명 이상 편성해 주세요.'],
     [['1', '2', '3', '4', '5', '6'], '스쿼드는 최대 5명까지 편성할 수 있습니다.'],
@@ -76,6 +81,14 @@ describe('validateRequest', () => {
 });
 
 describe('request normalization', () => {
+  it('keeps range phase weapons in cache keys with stable weapon ordering', () => {
+    const withRange: SimulationRequest = { ...valid, bossPhases: [{ kind: 'optimal_range', from: 0, to: 10, weapons: ['MG', 'SR'] }] };
+    const reordered: SimulationRequest = { ...valid, bossPhases: [{ kind: 'optimal_range', from: 0, to: 10, weapons: ['SR', 'MG', 'MG'] }] };
+    const different: SimulationRequest = { ...valid, bossPhases: [{ kind: 'optimal_range', from: 0, to: 10, weapons: ['MG'] }] };
+    expect(cacheKey(withRange, 'v1')).toBe(cacheKey(reordered, 'v1'));
+    expect(cacheKey(withRange, 'v1')).not.toBe(cacheKey(different, 'v1'));
+    expect(withRange.bossPhases![0]!.weapons).toEqual(['MG', 'SR']);
+  });
   it('trims names and integer-valued inputs', () => {
     expect(normalizeRequest({
       ...valid,

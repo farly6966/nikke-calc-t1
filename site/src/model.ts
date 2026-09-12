@@ -44,6 +44,7 @@ export function normalizeRequest(request: SimulationRequest): SimulationRequest 
     corePx: Math.trunc(request.corePx),
     hasParts: Boolean(request.hasParts),
     ...(request.bossPhases?.length ? { bossPhases: [...request.bossPhases]
+      .map(w => ({ kind: w.kind, from: w.from, to: w.to, ...(w.kind === 'optimal_range' ? { weapons: [...new Set(w.weapons ?? [])].sort() } : {}) }))
       .sort((a, b) => a.from - b.from || a.to - b.to || a.kind.localeCompare(b.kind)) } : {}),
     seed: Math.trunc(request.seed),
     // 고른 순서가 달라도 같은 설정이다 — 정렬해 캐시 키가 갈리지 않게 한다.
@@ -200,9 +201,15 @@ export function validateRequest(request: SimulationRequest): string[] {
   }
   // 보스 페이즈 — 시작이 끝보다 뒤면 조용히 뒤집지 않고 막는다. 엔진도 같은 규칙이다.
   const windows: Array<[{ from: number; to: number }, string]> = [
+    ...(request.bossPhases ?? []).map((w) => [w, 'Boss'] as [typeof w, string]),
     ...(request.immuneWindows ?? []).map((w) => [w, '족자'] as [typeof w, string]),
     ...(request.elementWindows ?? []).map((w) => [w, '속저'] as [typeof w, string]),
   ];
+  if ((request.bossPhases?.length ?? 0) > 64) errors.push('Boss 區間最多 64 個。');
+  for (const phase of request.bossPhases ?? []) {
+    if (!['parts', 'immune', 'element_gate', 'core', 'optimal_range', 'pierce_gate'].includes(phase.kind)) errors.push('Boss 區間種類不正確。');
+    if (phase.kind === 'optimal_range' && phase.weapons?.some(w => !['AR', 'SMG', 'SG', 'MG', 'SR', 'RL'].includes(w))) errors.push('Boss 適正武器不正確。');
+  }
   for (const [w, label] of windows) {
     if (!Number.isFinite(w.from) || !Number.isFinite(w.to)
         || w.from < 0 || w.to > 180 || w.from < 0) {

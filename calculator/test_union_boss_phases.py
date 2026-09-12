@@ -19,6 +19,24 @@ class UnionBossPhasesTest(unittest.TestCase):
         self.assertEqual(self.run_battle().char_total,
                          self.run_battle(boss_phases=[]).char_total)
 
+    def test_core_window_has_no_core_hits_outside_its_half_open_interval(self):
+        result = self.run_battle(core_px=1000, boss_phases=[{"kind": "core", "from": 5, "to": 10}])
+        aiming = [ev for ev in result.hits if ev.core_frac is not None]
+        self.assertTrue(any(ev.core_frac > 0 for ev in aiming if 5 <= round(ev.t, 9) < 10))
+        self.assertTrue(all(ev.core_frac == 0 for ev in aiming if not 5 <= round(ev.t, 9) < 10))
+
+    def test_full_duration_range_matches_static_and_expired_range_does_not_leak(self):
+        weapons = ["AR", "SMG", "SG", "MG", "SR"]
+        continuous = self.run_battle(boss_phases=[{"kind": "optimal_range", "from": 0, "to": 180, "weapons": weapons}])
+        self.assertEqual(continuous.char_total, self.run_battle(optimal_range_weapons=weapons).char_total)
+        partial = self.run_battle(boss_phases=[{"kind": "optimal_range", "from": 0, "to": 5, "weapons": weapons}])
+        self.assertLess(sum(partial.char_total.values()), sum(continuous.char_total.values()))
+
+    def test_pierce_gate_only_retains_hits_marked_at_attack_time(self):
+        result = self.run_battle(boss_phases=[{"kind": "pierce_gate", "from": 0, "to": 180}])
+        self.assertGreater(sum(result.char_total.values()), 0)
+        self.assertTrue(all(ev.is_pierce or ev.hit_tag.startswith("pierce:") or ev.hit_tag == "pierce_damage" for ev in result.hits))
+
     def test_recommended_stage_delay_does_not_add_extra_reaction(self):
         squad = build_squad(self.NAMES)
         result = simulate(squad, config=build_config(squad, {
