@@ -766,12 +766,15 @@ describe('calculator UI', () => {
     mountCalculator(root, {catalog, settings, version:'v1', client, storage:localStorage});
     root.querySelector<HTMLButtonElement>('[data-union-mode="personal"]')!.click();
     const select = root.querySelector<HTMLSelectElement>('[data-union-cube-name="리타"]')!;
+    expect(root.querySelector('.union-cube-editor summary')!.textContent).toContain('Lv15');
+    expect(select.selectedOptions[0]!.textContent).toContain('Lv15');
     select.value='탄충'; select.dispatchEvent(new Event('change'));
     root.querySelector<HTMLButtonElement>('.union-slot-move-right')!.click();
     root.querySelector<HTMLButtonElement>('[data-union-run]')!.click();
     await vi.waitFor(() => expect(root.querySelector<HTMLButtonElement>('[data-union-stop]')!.hidden).toBe(true));
     const request = client.requests.find(r=>r.enemyCode==='작열')!;
     expect(request.characters?.리타?.cube).toEqual({name:'탄충',level:15});
+    expect(request.characters?.크라운?.cube).toEqual({name:'렐릭 베어 큐브',level:15});
     expect(request.characters?.리타?.growthStage).toBe(7);
     expect(JSON.parse(localStorage.getItem('nikke-roster-v1')!).리타.cube.name).toBe('재장');
     root.replaceChildren();

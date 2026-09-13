@@ -10,6 +10,9 @@
  *    Synchro Device) as NIKKE writes it in English — players search by those words.
  */
 export const EN: Record<string, string> = {
+  "큐브 테스트 설정 (기본: 렐릭 베어 큐브 Lv15)": "Cube test settings (default: Resilience Cube Lv15)",
+  "미지정 큐브는 렐릭 베어 Lv15를 사용합니다. 개별 지정은 우선 적용하며 원본 계정 데이터는 바꾸지 않습니다.": "Unspecified cubes use Resilience Lv15. Explicit type and level overrides take priority without changing imported account data.",
+  "기본: 렐릭 베어 큐브 Lv15": "Default: Resilience Cube Lv15",
   "사용자 설정 / 가져온 판": "Custom / imported board",
   "회차를 바꾸면 보스 1~5의 조건이 자동으로 바뀝니다. 각 칸의 편성·버스트 설정은 유지되며, 변경을 되돌릴 수 있습니다.": "Changing season automatically fills Bosses 1–5 and resets their conditions. Squads and burst settings stay in their slots; the change can be undone.",
   "과거 회차는 보스 명단·속성만 검증되었습니다. 전투 조건은 기본값이며 방어력·코어·부위·구간을 확인해야 합니다. S44 추천값은 적용하지 않습니다.": "Historical boss lineups and elements are verified, but battle conditions use generic defaults. Check defense, core, parts and phases; S44 recommendations are not applied.",

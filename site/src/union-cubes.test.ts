@@ -7,6 +7,15 @@ import type { DeckState, SettingsCatalog } from './types';
 
 const settings = { cubes: { 재장: { levels: { '1': {}, '15': {} } } } } as unknown as SettingsCatalog;
 describe('union cube overrides', () => {
+  it('defaults every unspecified member to Resilience Lv15 without mutating imported account data', () => {
+    const imported = { cube: { name: '재장', level: 1 }, growthStage: 7 };
+    const deck: DeckState = { id: 1, squad: ['리타', '크라운', ''], characters: { 리타: imported } };
+    applyUnionCubes(deck, undefined, settings);
+    for (const name of ['리타', '크라운']) expect(deck.characters[name]?.cube).toEqual({ name: '렐릭 베어 큐브', level: 15 });
+    expect(imported.cube).toEqual({ name: '재장', level: 1 });
+    expect(deck.characters.리타?.growthStage).toBe(7);
+    expect(deck.characters['']).toBeUndefined();
+  });
   it('changes only the selected cube, leaving imported stats and other squad members intact', () => {
     const imported = { cube: { name: '재장', level: 1 }, growthStage: 7 };
     const deck: DeckState = { id: 1, squad: ['리타', '크라운'], characters: { 리타: imported } };

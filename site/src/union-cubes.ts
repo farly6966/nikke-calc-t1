@@ -2,6 +2,7 @@ import { t, tName } from './i18n';
 import type { CubeSelection, DeckState, SettingsCatalog } from './types';
 
 export type UnionCubes = Record<string, CubeSelection>;
+export const DEFAULT_UNION_CUBE: Readonly<CubeSelection> = { name: '렐릭 베어 큐브', level: 15 };
 
 /** 편성에서 빠진 니케나 손상된 저장값은 계산에 보내지 않는다. */
 export function cleanUnionCubes(raw: unknown, squad: string[], settings?: SettingsCatalog): UnionCubes | undefined {
@@ -20,7 +21,9 @@ export function cleanUnionCubes(raw: unknown, squad: string[], settings?: Settin
 
 /** 원본 계정의 양성값을 바꾸지 않고 이 시뮬레이션의 큐브만 덮는다. */
 export function applyUnionCubes(deck: DeckState, cubes: UnionCubes | undefined, settings: SettingsCatalog): void {
-  for (const [name, cube] of Object.entries(cleanUnionCubes(cubes, deck.squad, settings) ?? {})) {
+  const overrides = cleanUnionCubes(cubes, deck.squad, settings) ?? {};
+  for (const name of deck.squad.filter(Boolean)) {
+    const cube = overrides[name] ?? DEFAULT_UNION_CUBE;
     deck.characters[name] = { ...deck.characters[name], cube: { ...cube } };
   }
 }
@@ -30,10 +33,10 @@ export function createUnionCubeEditor(
   labelOf: (name: string) => string, onChange: (next: UnionCubes | undefined) => void,
 ): HTMLDetailsElement {
   const fold = document.createElement('details'); fold.className = 'union-deck-code union-cube-editor';
-  const summary = document.createElement('summary'); summary.textContent = t('큐브 테스트 설정');
+  const summary = document.createElement('summary'); summary.textContent = t('큐브 테스트 설정 (기본: 렐릭 베어 큐브 Lv15)');
   fold.append(summary);
   const note = document.createElement('p'); note.className = 'field-note';
-  note.textContent = t('각 계정의 큐브를 그대로 쓰거나 이 덱에서만 종류와 레벨을 바꿉니다. 지정한 큐브는 이 덱을 계산하는 모든 계정에 적용되며 원본 양성값은 바꾸지 않습니다.');
+  note.textContent = t('미지정 큐브는 렐릭 베어 Lv15를 사용합니다. 개별 지정은 우선 적용하며 원본 계정 데이터는 바꾸지 않습니다.');
   fold.append(note);
   let cubes = cleanUnionCubes(current, squad, settings) ?? {};
   for (const name of squad.filter(Boolean)) {
@@ -41,7 +44,7 @@ export function createUnionCubeEditor(
     const label = document.createElement('span'); label.textContent = labelOf(name);
     const select = document.createElement('select'); select.dataset.unionCubeName = name;
     select.ariaLabel = t('{name} 큐브', { name: labelOf(name) });
-    select.append(new Option(t('계정 큐브 유지'), ''), new Option(t('큐브 없음'), '없음'));
+    select.append(new Option(t('기본: 렐릭 베어 큐브 Lv15'), ''), new Option(t('큐브 없음'), '없음'));
     for (const cube of Object.keys(settings.cubes)) select.append(new Option(tName(cube), cube));
     select.value = cubes[name]?.name ?? '';
     const levels = document.createElement('select'); levels.dataset.unionCubeLevel = name;
@@ -50,6 +53,7 @@ export function createUnionCubeEditor(
     const paint = () => {
       const cube = cubes[name]; const meta = cube ? settings.cubes[cube.name] : undefined;
       levels.replaceChildren();
+      if (!cube) levels.append(new Option('Lv15', '15'));
       for (const value of Object.keys(meta?.levels ?? {}).map(Number).sort((a,b) => a-b)) {
         levels.append(new Option(`Lv${value}`, String(value)));
       }
@@ -65,7 +69,7 @@ export function createUnionCubeEditor(
       else if (select.value === '없음') cubes[name] = { name: '없음', level: 0 };
       else {
         const available = Object.keys(settings.cubes[select.value]!.levels).map(Number);
-        const prior = cubes[name]?.level ?? settings.characters[name]?.cube.level;
+        const prior = cubes[name]?.level ?? DEFAULT_UNION_CUBE.level;
         cubes[name] = { name: select.value, level: prior && available.includes(prior) ? prior : Math.max(...available) };
       }
       save();
